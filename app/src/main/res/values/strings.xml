@@ -3,4 +3,100 @@
     <string name="title_home">Home</string>
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>
+
+    <string name="permissions_rationale_title">Network Survey Permissions</string>
+    <string name="permissions_rationale">The Network Survey app requires a few permissions to work.  Denying these permissions will result in the app not functioning properly.
+        \n\n1. <b>Make and Manage Phone Calls</b>:  This app does not make or manage phone calls.  Instead, it needs this permission to get access to the current cellular connection type (e.g. LTE vs UMTS).
+        \n\n2. <b>Access this Device\'s Location</b>:  This app creates a log file which includes the location the cellular record was captured at and to display GNSS details.
+        \n\n3. <b>Access Photos, Media, and Files on Your Device</b>:  This permission allows the log file to be written.</string>
+
+    <!-- Device compatibility check failure -->
+    <string name="alert_deviceCompatibility_title">Compatibility check failed</string>
+    <string name="alert_deviceCompatibility_header">Network scan is not possible.\n\nREASON:</string>
+
+    <!-- Action Bar Buttons -->
+    <string name="action_scan">Scan</string>
+    <string name="action_map">Map</string>
+    <string name="action_info">Info</string>
+    <string name="action_upload_pending_files">Upload pending files</string>
+    <string name="action_active_test_advanced">Advanced active network test</string>
+    <string name="action_upload_suspicious_dumps">Upload suspicious activity</string>
+    <string name="action_upload_debug_logs">Submit feedback/question</string>
+    <string name="action_network_info">Mobile network info</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_about">About</string>
+    <string name="action_exit">Exit</string>
+
+    <!-- Common Buttons -->
+    <string name="common_button_upload">Upload</string>
+    <string name="common_button_nodata">No data</string>
+    <string name="common_button_networktest_start">Start network test</string>
+    <string name="common_button_networktest_stop">Stop Test</string>
+    <string name="warning_button_proceed_anyway">Ok, proceed anyway</string>
+    <string name="warning_button_quit">Quit application</string>
+
+    <!-- Messages -->
+    <string name="message_smsDetected">New SMS detected&#8230;</string>
+    <string name="message_imsiCatcherDetected">New IMSI catcher detected&#8230;</string>
+    <string name="message_recordingStarted">Recording started&#8230;</string>
+    <string name="message_recordingStopped">Recording stopped&#8230;</string>
+
+    <!-- Alerts -->
+    <string name="alert_button_quit">Quit</string>
+    <string name="alert_confirmation_title">Confirmation</string>
+    <string name="alert_fatal_condition_title">Fatal condition</string>
+    <string name="alert_notification_title">Notification</string>
+    <string name="alert_button_ok">@android:string/ok</string>
+    <string name="alert_button_cancel">@android:string/cancel</string>
+    <string name="alert_dialog_refreshappid_button_cancel">@android:string/cancel</string>
+
+    <string name="settings_cat_notifications">Notifications</string>
+    <string name="settings_imsi_catcher_event">IMSI catcher detected</string>
+    <string name="settings_sms_event">SMS/SS7 attack detected</string>
+    <string name="notification_silent">none</string>
+    <string name="notification_vibrate">Vibration</string>
+    <string name="notification_ring">Sound notification</string>
+    <string name="notification_vibrate_and_ring">Vibration and Sound notification</string>
+    <string name="settings_imsi_catcher_notification_summary">You can choose how you want to get notified, when an IMSI catcher is detected.</string>
+    <string name="settings_sms_event_notification_summary">You can choose how you want to get notified, when a SMS/SS7 attack is detected.</string>
+    <string name="alert_active_test_permissions_not_granted">Please grant ALL requested permissions to run an Active network Test.</string>
+    <string name="alert_active_test_permissions_not_granted_persistent"> You have to grant ALL requested permissions to be able to run an Active network Test with SnoopSnitch</string>
+    <string name="alert_msdservice_permissions_not_granted">Please grant ALL requested permissions to enable running SnoopSnitch\'s background service.</string>
+    <string name="alert_msdservice_permissions_not_granted_persistent">You have to grant ALL requested permissions to enable SnoopSnitch\'s background service.</string>
+    <string name="alert_pcap_export_permissions_not_granted">Please grant the access to the storage for PCAP exports.</string>
+    <string name="alert_pcap_export_permissions_not_granted_persistent">You have to grant access to the storage to use the PCAP export feature.</string>
+    <string name="alert_msdservice_recording_not_possible">You have not granted the access to the location information, so Recording will not be possible.</string>
+    <string name="alert_network_activity_permissions_not_granted">Please grant ALL requested information, to get all available Network</string>
+    <string name="alert_network_activity_permissions_not_granted_persistent">You have to grant ALL requested permissions, to get further Network information.</string>
+    <string name="alert_db_creation_failed_detail">Creating Database failed. Please remove the App data in the Android App settings and restart SnoopSnitch. If this does not solve the problem, please reinstall SnoopSnitch.</string>
+    <string name="device_never_compatible">Your device does not have a MSM Qualcomm chip, and is therefore not able to run SnoopSnitch main features.</string>
+    <string name="device_not_compatible_now_no_diag">Your device is not compatible currently. This might change with an upcoming firmware update.</string>
+    <string name="snsn_notification_channel_title">Mobile Network Security</string>
+    <string name="snsn_notification_channel_desc">Main and network security test notifications</string>
+
+    <!-- Compat check -->
+    <string name="compat_snsn_features_not_working">SnoopSnitch\'s network scan will not work properly.</string>
+    <string name="compat_snsn_features_not_working_short">Network test and attack detection require root.</string>
+    <string name="compat_no_diag">Device /dev/diag does not exist: No Qualcomm chipset or unsuitable firmware.</string>
+    <string name="compat_broken_diag">Could not initialize DIAG interface.</string>
+
+    <string name="compat_su_not_working">Your device is not properly rooted (su binary does not work).</string>
+    <string name="compat_su_not_present">Your device is not rooted (no su binary found).</string>
+    <string name="compat_root_denied">Root access denied by su. Check permissions.</string>
+    <string name="compat_no_root">Root access failed.</string>
+
+    <string name="compat_no_baseband_messages_in_active_test">Error, no baseband messages received during active network test.</string>
+    <string name="compat_no_baseband_messages">Error, no baseband messages.</string>
+    <string name="compat_no_baseband_messages_warning">SnoopSnitch was not able to parse baseband messages, during the last run.\nIt might be that your device is not compatible,\n and therefore the main features of SnoopSnitch will not work properly.</string>
+
+    <!-- Settings-->
+    <string name="no_service_running">service running</string>
+    <string name="no_catcher_title">IMSI catcher events</string>
+    <string name="no_catcher_ticker">IMSI catcher events detected</string>
+    <string name="no_catcher_events_detected"> IMSI catcher events detected</string>
+
+    <string name="no_events_title">Security events</string>
+    <string name="no_events_ticker">Security events detected</string>
+    <string name="no_events_detected"> security events detected</string>
+
 </resources>
