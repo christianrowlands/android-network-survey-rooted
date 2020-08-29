@@ -1,7 +1,8 @@
 package com.craxiom.networksurveyplus;
 
-import android.content.Context;
+import android.os.Environment;
 
+import com.craxiom.networksurveyplus.messages.DiagCommand;
 import com.craxiom.networksurveyplus.messages.GsmtapConstants;
 import com.craxiom.networksurveyplus.messages.LteRrcSubtypes;
 import com.craxiom.networksurveyplus.messages.ParserUtils;
@@ -12,6 +13,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteOrder;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 
 import timber.log.Timber;
@@ -34,7 +38,8 @@ import static com.craxiom.networksurveyplus.messages.QcdmConstants.*;
  */
 public class QcdmPcapWriter implements IQcdmMessageListener
 {
-    private static final int PCAP_MAGIC_NUMBER_LITTLE_ENDIAN = 0xD4C3B2A1;
+    private static final String LOG_DIRECTORY_NAME = "NetworkSurveyPlusData";
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneId.systemDefault());
     private static final byte[] ETHERNET_HEADER = {(byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x08, (byte) 0x00};
 
     /**
@@ -49,9 +54,16 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     };
     private final BufferedOutputStream outputStream;
 
-    QcdmPcapWriter(Context context) throws IOException
+    /**
+     * Constructs a new QCDM pcap file writer.
+     * <p>
+     * This constructor creates the file, and writes out the PCAP global header.
+     *
+     * @throws IOException If an error occurs when creating or writing to the file.
+     */
+    QcdmPcapWriter() throws IOException
     {
-        outputStream = new BufferedOutputStream(new FileOutputStream(context.getFilesDir() + "/test_nsp_app.pcap"));
+        outputStream = new BufferedOutputStream(new FileOutputStream(createNewFilePath()));
         outputStream.write(PCAP_FILE_GLOBAL_HEADER);
         outputStream.flush();
     }
@@ -61,7 +73,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     {
         try
         {
-            if (qcdmMessage.getOpCode() == 16)
+            if (qcdmMessage.getOpCode() == DiagCommand.DIAG_LOG_F)
             {
                 Timber.d("Pcap Writer listener: %s", qcdmMessage);
 
@@ -70,14 +82,14 @@ public class QcdmPcapWriter implements IQcdmMessageListener
                 final int logType = qcdmMessage.getLogType();
                 switch (logType)
                 {
-                    case LOG_LTE_RRC_OTA_MSG_LOG_C: //-20288:// TODO ? LOG_LTE_RRC_OTA_MSG_LOG_C:
+                    case LOG_LTE_RRC_OTA_MSG_LOG_C:
                         pcapRecord = convertLteRrcOtaMessage(qcdmMessage);
                         break;
                 }
 
                 if (pcapRecord != null)
                 {
-                    Timber.d("Writing a message to the pcap file"); // TODO Delete me
+                    Timber.v("Writing a message to the pcap file"); // TODO Delete me
                     outputStream.write(pcapRecord);
                     outputStream.flush();
                 }
@@ -88,7 +100,9 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         }
     }
 
-    // TODO Javadoc
+    /**
+     * Closes the pcap file's output stream.
+     */
     public void close()
     {
         try
@@ -103,7 +117,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     // TODO Javadoc
     private static byte[] convertLteRrcOtaMessage(QcdmMessage qcdmMessage)
     {
-        Timber.d("Handlig an LTE RRC message");
+        Timber.v("Handling an LTE RRC message"); // TODO Delete me
 
         final byte[] logPayload = qcdmMessage.getLogPayload();
 
@@ -346,5 +360,15 @@ public class QcdmPcapWriter implements IQcdmMessageListener
                 (byte) (length & 0xFF), (byte) ((length & 0xFF00) >>> 8), (byte) ((length & 0xFF0000) >>> 16), (byte) (length >>> 24), // Frame length
                 (byte) (length & 0xFF), (byte) ((length & 0xFF00) >>> 8), (byte) ((length & 0xFF0000) >>> 16), (byte) (length >>> 24), // Capture length
         };
+    }
+
+    /**
+     * @return The full path to the public directory where we store the pcap files.
+     */
+    private String createNewFilePath()
+    {
+        return Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOWNLOADS) + "/" + LOG_DIRECTORY_NAME + "/" +
+                Constants.PCAP_FILE_NAME_PREFIX + DATE_TIME_FORMATTER.format(LocalDateTime.now()) + ".pcap";
     }
 }

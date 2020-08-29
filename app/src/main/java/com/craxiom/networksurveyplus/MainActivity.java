@@ -298,6 +298,7 @@ public class MainActivity extends AppCompatActivity
             Timber.i("%s service connected", name);
             final QcdmService.QcdmServiceBinder binder = (QcdmService.QcdmServiceBinder) iBinder;
             qcdmService = binder.getService();
+            // TODO Update this
             /*qcdmService.onUiVisible(NetworkSurveyActivity.this);
 
             final boolean cellularLoggingEnabled = qcdmService.isCellularLoggingEnabled();

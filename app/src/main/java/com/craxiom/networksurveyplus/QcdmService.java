@@ -67,17 +67,6 @@ public class QcdmService extends Service
 
         Timber.i("Creating the QCDM Service");
 
-        try // TODO update this try block to be something real
-        {
-            qcdmPcapWriter = new QcdmPcapWriter(getApplicationContext());
-        } catch (IOException e)
-        {
-            Timber.e(e, "Could not create the QCDM PCAP writer");
-        }
-
-        // FIXME Move this line to the toggle pcap logging method
-        qcdmMessageProcessor.registerQcdmMessageListener(qcdmPcapWriter);
-
         diagHandlerThread = new HandlerThread("DiagRevealer");
         diagHandlerThread.start();
         diagHandler = new Handler(diagHandlerThread.getLooper());
@@ -330,33 +319,42 @@ public class QcdmService extends Service
      */
     public Boolean togglePcapLogging(boolean enable)
     {
-        /*TODO synchronized (pcapLoggingEnabled)
+        synchronized (pcapLoggingEnabled)
         {
-            final boolean originalLoggingState = cellularLoggingEnabled.get();
+            final boolean originalLoggingState = pcapLoggingEnabled.get();
             if (originalLoggingState == enable) return originalLoggingState;
 
-            Log.i(LOG_TAG, "Toggling cellular logging to " + enable);
+            Timber.i("Toggling cellular logging to %s", enable);
 
-            final boolean successful = cellularSurveyRecordLogger.enableLogging(enable);
-            if (successful)
+            boolean successful;
+
+            if (enable)
             {
-                cellularLoggingEnabled.set(enable);
-                if (enable)
+                try
                 {
-                    registerCellularSurveyRecordListener(cellularSurveyRecordLogger);
-                } else
+                    qcdmPcapWriter = new QcdmPcapWriter();
+                    qcdmMessageProcessor.registerQcdmMessageListener(qcdmPcapWriter);
+                    successful = true;
+                } catch (IOException e)
                 {
-                    unregisterCellularSurveyRecordListener(cellularSurveyRecordLogger);
+                    Timber.e(e, "Could not create the QCDM PCAP writer");
+                    successful = false;
                 }
+            } else
+            {
+                qcdmMessageProcessor.unregisterQcdmMessageListener(qcdmPcapWriter);
+                qcdmPcapWriter.close();
+                successful = true;
             }
+
+            if (successful) pcapLoggingEnabled.set(enable);
+
             updateServiceNotification();
 
-            final boolean newLoggingState = cellularLoggingEnabled.get();
-            if (successful && newLoggingState) initializePing();
+            final boolean newLoggingState = pcapLoggingEnabled.get();
 
             return successful ? newLoggingState : null;
-        }*/
-        return false;
+        }
     }
 
     /**

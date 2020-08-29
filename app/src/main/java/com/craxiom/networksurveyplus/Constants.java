@@ -14,6 +14,8 @@ public class Constants
     public static final String NOTIFICATION_CHANNEL_ID = "network_survey_plus_notification";
     public static final int LOGGING_NOTIFICATION_ID = 1;
 
+    public static final String PCAP_FILE_NAME_PREFIX = "nsp-";
+
     /**
      * The key for the Intent extra that indicates the {@link QcdmService} is being started at boot.
      */

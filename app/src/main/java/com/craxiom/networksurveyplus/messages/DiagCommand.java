@@ -655,95 +655,121 @@ public final class DiagCommand
 
     public static final int LG_DIAG_CMD_LINE_LEN = 256;
 
-    // TODO Is this enum needed?
-//enum DiagSubsystem {
-//  DIAG_SUBSYS_OEM                = 0,       /* Reserved for OEM use */
-//  DIAG_SUBSYS_ZREX               = 1,       /* ZREX */
-//  DIAG_SUBSYS_SD                 = 2,       /* System Determination */
-//  DIAG_SUBSYS_BT                 = 3,       /* Bluetooth */
-//  DIAG_SUBSYS_WCDMA              = 4,       /* WCDMA */
-//  DIAG_SUBSYS_HDR                = 5,       /* 1xEvDO */
-//  DIAG_SUBSYS_DIABLO             = 6,       /* DIABLO */
-//  DIAG_SUBSYS_TREX               = 7,       /* TREX - Off-target testing environments */
-//  DIAG_SUBSYS_GSM                = 8,       /* GSM */
-//  DIAG_SUBSYS_UMTS               = 9,       /* UMTS */
-//  DIAG_SUBSYS_HWTC               = 10,      /* HWTC */
-//  DIAG_SUBSYS_FTM                = 11,      /* Factory Test Mode */
-//  DIAG_SUBSYS_REX                = 12,      /* Rex */
-//  DIAG_SUBSYS_OS                 = DIAG_SUBSYS_REX,
-//  DIAG_SUBSYS_GPS                = 13,      /* Global Positioning System */
-//  DIAG_SUBSYS_WMS                = 14,      /* Wireless Messaging Service (WMS, SMS) */
-//  DIAG_SUBSYS_CM                 = 15,      /* Call Manager */
-//  DIAG_SUBSYS_HS                 = 16,      /* Handset */
-//  DIAG_SUBSYS_AUDIO_SETTINGS     = 17,      /* Audio Settings */
-//  DIAG_SUBSYS_DIAG_SERV          = 18,      /* DIAG Services */
-//  DIAG_SUBSYS_FS                 = 19,      /* File System - EFS2 */
-//  DIAG_SUBSYS_PORT_MAP_SETTINGS  = 20,      /* Port Map Settings */
-//  DIAG_SUBSYS_MEDIAPLAYER        = 21,      /* QCT Mediaplayer */
-//  DIAG_SUBSYS_QCAMERA            = 22,      /* QCT QCamera */
-//  DIAG_SUBSYS_MOBIMON            = 23,      /* QCT MobiMon */
-//  DIAG_SUBSYS_GUNIMON            = 24,      /* QCT GuniMon */
-//  DIAG_SUBSYS_LSM                = 25,      /* Location Services Manager */
-//  DIAG_SUBSYS_QCAMCORDER         = 26,      /* QCT QCamcorder */
-//  DIAG_SUBSYS_MUX1X              = 27,      /* Multiplexer */
-//  DIAG_SUBSYS_DATA1X             = 28,      /* Data */
-//  DIAG_SUBSYS_SRCH1X             = 29,      /* Searcher */
-//  DIAG_SUBSYS_CALLP1X            = 30,      /* Call Processor */
-//  DIAG_SUBSYS_APPS               = 31,      /* Applications */
-//  DIAG_SUBSYS_SETTINGS           = 32,      /* Settings */
-//  DIAG_SUBSYS_GSDI               = 33,      /* Generic SIM Driver Interface */
-//  DIAG_SUBSYS_UIMDIAG            = DIAG_SUBSYS_GSDI,
-//  DIAG_SUBSYS_TMC                = 34,      /* Task Main Controller */
-//  DIAG_SUBSYS_USB                = 35,      /* Universal Serial Bus */
-//  DIAG_SUBSYS_PM                 = 36,      /* Power Management */
-//  DIAG_SUBSYS_DEBUG              = 37,
-//  DIAG_SUBSYS_QTV                = 38,
-//  DIAG_SUBSYS_CLKRGM             = 39,      /* Clock Regime */
-//  DIAG_SUBSYS_DEVICES            = 40,
-//  DIAG_SUBSYS_WLAN               = 41,      /* 802.11 Technology */
-//  DIAG_SUBSYS_PS_DATA_LOGGING    = 42,      /* Data Path Logging */
-//  DIAG_SUBSYS_PS                 = DIAG_SUBSYS_PS_DATA_LOGGING,
-//  DIAG_SUBSYS_MFLO               = 43,      /* MediaFLO */
-//  DIAG_SUBSYS_DTV                = 44,      /* Digital TV */
-//  DIAG_SUBSYS_RRC                = 45,      /* WCDMA Radio Resource Control state */
-//  DIAG_SUBSYS_PROF               = 46,      /* Miscellaneous Profiling Related */
-//  DIAG_SUBSYS_TCXOMGR            = 47,
-//  DIAG_SUBSYS_NV                 = 48,      /* Non Volatile Memory */
-//  DIAG_SUBSYS_AUTOCONFIG         = 49,
-//  DIAG_SUBSYS_PARAMS             = 50,      /* Parameters required for debugging subsystems */
-//  DIAG_SUBSYS_MDDI               = 51,      /* Mobile Display Digital Interface */
-//  DIAG_SUBSYS_DS_ATCOP           = 52,
-//  DIAG_SUBSYS_L4LINUX            = 53,      /* L4/Linux */
-//  DIAG_SUBSYS_MVS                = 54,      /* Multimode Voice Services */
-//  DIAG_SUBSYS_CNV                = 55,      /* Compact NV */
-//  DIAG_SUBSYS_APIONE_PROGRAM     = 56,      /* apiOne */
-//  DIAG_SUBSYS_HIT                = 57,      /* Hardware Integration Test */
-//  DIAG_SUBSYS_DRM                = 58,      /* Digital Rights Management */
-//  DIAG_SUBSYS_DM                 = 59,      /* Device Management */
-//  DIAG_SUBSYS_FC                 = 60,      /* Flow Controller */
-//  DIAG_SUBSYS_MEMORY             = 61,      /* Malloc Manager */
-//  DIAG_SUBSYS_FS_ALTERNATE       = 62,      /* Alternate File System */
-//  DIAG_SUBSYS_REGRESSION         = 63,      /* Regression Test Commands */
-//  DIAG_SUBSYS_SENSORS            = 64,      /* The sensors subsystem */
-//  DIAG_SUBSYS_FLUTE              = 65,      /* FLUTE */
-//  DIAG_SUBSYS_ANALOG             = 66,      /* Analog die subsystem */
-//  DIAG_SUBSYS_APIONE_PROGRAM_MODEM = 67,    /* apiOne Program On Modem Processor */
-//  DIAG_SUBSYS_LTE                = 68,      /* LTE */
-//  DIAG_SUBSYS_BREW               = 69,      /* BREW */
-//  DIAG_SUBSYS_PWRDB              = 70,      /* Power Debug Tool */
-//  DIAG_SUBSYS_CHORD              = 71,      /* Chaos Coordinator */
-//  DIAG_SUBSYS_SEC                = 72,      /* Security */
-//  DIAG_SUBSYS_TIME               = 73,      /* Time Services */
-//  DIAG_SUBSYS_Q6_CORE            = 74,		  /* Q6 core services */
-//
-//  DIAG_SUBSYS_LAST,
-//
-//  /* Subsystem IDs reserved for OEM use */
-//  DIAG_SUBSYS_RESERVED_OEM_0     = 250,
-//  DIAG_SUBSYS_RESERVED_OEM_1     = 251,
-//  DIAG_SUBSYS_RESERVED_OEM_2     = 252,
-//  DIAG_SUBSYS_RESERVED_OEM_3     = 253,
-//  DIAG_SUBSYS_RESERVED_OEM_4     = 254,
-//  DIAG_SUBSYS_LEGACY             = 255
-//}
+    /**
+     * The mapping for the Diag subsystems to the corresponding numerical value that is used in the message.
+     */
+    enum DiagSubsystem
+    {
+        DIAG_SUBSYS_OEM(0),     /* Reserved for OEM use */
+        DIAG_SUBSYS_ZREX(1),     /* ZREX */
+        DIAG_SUBSYS_SD(2),     /* System Determination */
+        DIAG_SUBSYS_BT(3),     /* Bluetooth */
+        DIAG_SUBSYS_WCDMA(4),     /* WCDMA */
+        DIAG_SUBSYS_HDR(5),     /* 1xEvDO */
+        DIAG_SUBSYS_DIABLO(6),     /* DIABLO */
+        DIAG_SUBSYS_TREX(7),     /* TREX - Off-target testing environments */
+        DIAG_SUBSYS_GSM(8),     /* GSM */
+        DIAG_SUBSYS_UMTS(9),     /* UMTS */
+        DIAG_SUBSYS_HWTC(10),    /* HWTC */
+        DIAG_SUBSYS_FTM(11),    /* Factory Test Mode */
+        DIAG_SUBSYS_REX(12),    /* Rex */
+        DIAG_SUBSYS_OS(DIAG_SUBSYS_REX.numericalValue),
+        DIAG_SUBSYS_GPS(13),    /* Global Positioning System */
+        DIAG_SUBSYS_WMS(14),    /* Wireless Messaging Service (WMS, SMS) */
+        DIAG_SUBSYS_CM(15),    /* Call Manager */
+        DIAG_SUBSYS_HS(16),    /* Handset */
+        DIAG_SUBSYS_AUDIO_SETTINGS(17),    /* Audio Settings */
+        DIAG_SUBSYS_DIAG_SERV(18),    /* DIAG Services */
+        DIAG_SUBSYS_FS(19),    /* File System - EFS2 */
+        DIAG_SUBSYS_PORT_MAP_SETTINGS(20),    /* Port Map Settings */
+        DIAG_SUBSYS_MEDIAPLAYER(21),    /* QCT Mediaplayer */
+        DIAG_SUBSYS_QCAMERA(22),    /* QCT QCamera */
+        DIAG_SUBSYS_MOBIMON(23),    /* QCT MobiMon */
+        DIAG_SUBSYS_GUNIMON(24),    /* QCT GuniMon */
+        DIAG_SUBSYS_LSM(25),    /* Location Services Manager */
+        DIAG_SUBSYS_QCAMCORDER(26),    /* QCT QCamcorder */
+        DIAG_SUBSYS_MUX1X(27),    /* Multiplexer */
+        DIAG_SUBSYS_DATA1X(28),    /* Data */
+        DIAG_SUBSYS_SRCH1X(29),    /* Searcher */
+        DIAG_SUBSYS_CALLP1X(30),    /* Call Processor */
+        DIAG_SUBSYS_APPS(31),    /* Applications */
+        DIAG_SUBSYS_SETTINGS(32),    /* Settings */
+        DIAG_SUBSYS_GSDI(33),    /* Generic SIM Driver Interface */
+        DIAG_SUBSYS_UIMDIAG(DIAG_SUBSYS_GSDI.numericalValue),
+        DIAG_SUBSYS_TMC(34),    /* Task Main Controller */
+        DIAG_SUBSYS_USB(35),    /* Universal Serial Bus */
+        DIAG_SUBSYS_PM(36),    /* Power Management */
+        DIAG_SUBSYS_DEBUG(37),
+        DIAG_SUBSYS_QTV(38),
+        DIAG_SUBSYS_CLKRGM(39),    /* Clock Regime */
+        DIAG_SUBSYS_DEVICES(40),
+        DIAG_SUBSYS_WLAN(41),    /* 802.11 Technology */
+        DIAG_SUBSYS_PS_DATA_LOGGING(42),    /* Data Path Logging */
+        DIAG_SUBSYS_PS(DIAG_SUBSYS_PS_DATA_LOGGING.numericalValue),
+        DIAG_SUBSYS_MFLO(43),    /* MediaFLO */
+        DIAG_SUBSYS_DTV(44),    /* Digital TV */
+        DIAG_SUBSYS_RRC(45),    /* WCDMA Radio Resource Control state */
+        DIAG_SUBSYS_PROF(46),    /* Miscellaneous Profiling Related */
+        DIAG_SUBSYS_TCXOMGR(47),
+        DIAG_SUBSYS_NV(48),    /* Non Volatile Memory */
+        DIAG_SUBSYS_AUTOCONFIG(49),
+        DIAG_SUBSYS_PARAMS(50),    /* Parameters required for debugging subsystems */
+        DIAG_SUBSYS_MDDI(51),    /* Mobile Display Digital Interface */
+        DIAG_SUBSYS_DS_ATCOP(52),
+        DIAG_SUBSYS_L4LINUX(53),    /* L4/Linux */
+        DIAG_SUBSYS_MVS(54),    /* Multimode Voice Services */
+        DIAG_SUBSYS_CNV(55),    /* Compact NV */
+        DIAG_SUBSYS_APIONE_PROGRAM(56),    /* apiOne */
+        DIAG_SUBSYS_HIT(57),    /* Hardware Integration Test */
+        DIAG_SUBSYS_DRM(58),    /* Digital Rights Management */
+        DIAG_SUBSYS_DM(59),    /* Device Management */
+        DIAG_SUBSYS_FC(60),    /* Flow Controller */
+        DIAG_SUBSYS_MEMORY(61),    /* Malloc Manager */
+        DIAG_SUBSYS_FS_ALTERNATE(62),    /* Alternate File System */
+        DIAG_SUBSYS_REGRESSION(63),    /* Regression Test Commands */
+        DIAG_SUBSYS_SENSORS(64),    /* The sensors subsystem */
+        DIAG_SUBSYS_FLUTE(65),    /* FLUTE */
+        DIAG_SUBSYS_ANALOG(66),    /* Analog die subsystem */
+        DIAG_SUBSYS_APIONE_PROGRAM_MODEM(67),  /* apiOne Program On Modem Processor */
+        DIAG_SUBSYS_LTE(68),    /* LTE */
+        DIAG_SUBSYS_BREW(69),    /* BREW */
+        DIAG_SUBSYS_PWRDB(70),    /* Power Debug Tool */
+        DIAG_SUBSYS_CHORD(71),    /* Chaos Coordinator */
+        DIAG_SUBSYS_SEC(72),    /* Security */
+        DIAG_SUBSYS_TIME(73),    /* Time Services */
+        DIAG_SUBSYS_Q6_CORE(74),        /* Q6 core services */
+
+        /* Subsystem IDs reserved for OEM use */
+        DIAG_SUBSYS_RESERVED_OEM_0(250),
+        DIAG_SUBSYS_RESERVED_OEM_1(251),
+        DIAG_SUBSYS_RESERVED_OEM_2(252),
+        DIAG_SUBSYS_RESERVED_OEM_3(253),
+        DIAG_SUBSYS_RESERVED_OEM_4(254),
+        DIAG_SUBSYS_LEGACY(255);
+
+        private final int numericalValue;
+
+        private static final DiagSubsystem[] VALUES = values();
+
+        DiagSubsystem(int numericalValue)
+        {
+            this.numericalValue = numericalValue;
+        }
+
+        /**
+         * @param numericalValue The number that represents the Diag Subsystem.
+         * @return The {@link DiagSubsystem} enum that matches the provided numerical value, or null if it could not be found.
+         */
+        public static DiagSubsystem valueOf(int numericalValue)
+        {
+            for (DiagSubsystem subsystem : VALUES)
+            {
+                if (subsystem.numericalValue == numericalValue)
+                {
+                    return subsystem;
+                }
+            }
+            return null;
+        }
+    }
 }

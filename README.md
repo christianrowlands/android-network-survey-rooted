@@ -4,15 +4,28 @@
 [![License](https://img.shields.io/badge/license-Apache%202-green.svg?style=flat)](https://github.com/christianrowlands/android-network-survey-rooted/blob/develop/LICENSE)
 
 ## What is it?
-Network Survey Plus is the Rooted version of the [Network Survey Android App](https://github.com/christianrowlands/android-network-survey).
+
+Network Survey+ is the Rooted version of the [Network Survey Android App](https://github.com/christianrowlands/android-network-survey).
 
 
 ## Why?
+
 Why do we need a rooted version of the Network Survey Android app? Well, the unrooted version can only get
 access to a limited set of cellular details. With root access on certain devices with the right Qualcomm
 chipset, this app can get access to detailed cellular network messages via Qualcomm Diagnostic Monitor (QCDM).
 
 This app logs several messages coming from QCDM to a pcap file for follow on processing.
+
+
+## Supported Devices
+
+In theory, any Android device with a Qualcomm chip should work, but it seems that only certain devices work as expected.
+The following is a list of devices that have been confirmed to work with this Network Survey+ app.
+
+| Device        | Comments      |
+| ------------- | ------------- |
+| Pixel 3a      |               |
+| Pixel 4       |               |
 
 
 ## Getting Started
@@ -36,6 +49,8 @@ This project is not alone in trying to leverage QCDM to get access to low level 
 are a list of other projects that might be of interest to you.
  * [QCSuper](https://github.com/P1sec/QCSuper)
  * [SnoopSnitch](https://opensource.srlabs.de/projects/snoopsnitch)
+ * [Mobile Sentinel](https://github.com/RUB-SysSec/mobile_sentinel)
+ * [MobileInsight](https://github.com/mobile-insight/mobileinsight-mobile)
 
 
 ## Changelog
