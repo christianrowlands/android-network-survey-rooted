@@ -10,6 +10,7 @@ import com.craxiom.networksurveyplus.messages.QcdmMessage;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteOrder;
@@ -63,7 +64,10 @@ public class QcdmPcapWriter implements IQcdmMessageListener
      */
     QcdmPcapWriter() throws IOException
     {
-        outputStream = new BufferedOutputStream(new FileOutputStream(createNewFilePath()));
+        final File pcapFile = new File(createNewFilePath());
+        pcapFile.getParentFile().mkdirs();
+
+        outputStream = new BufferedOutputStream(new FileOutputStream(pcapFile));
         outputStream.write(PCAP_FILE_GLOBAL_HEADER);
         outputStream.flush();
     }

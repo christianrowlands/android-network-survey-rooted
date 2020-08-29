@@ -20,6 +20,15 @@ public class QcdmMessageProcessor
 {
     private final Set<IQcdmMessageListener> messageListeners = new CopyOnWriteArraySet<>();
 
+    /**
+     * @return True if either the UI or a listener needs this survey record processor.  False if the UI is hidden and
+     * there are not any listeners.
+     */
+    synchronized boolean isBeingUsed()
+    {
+        return !messageListeners.isEmpty();
+    }
+
     void registerQcdmMessageListener(IQcdmMessageListener qcdmMessageListener)
     {
         messageListeners.add(qcdmMessageListener);

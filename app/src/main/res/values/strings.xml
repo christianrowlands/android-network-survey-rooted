@@ -18,4 +18,11 @@
     <string name="and">" and "</string>
     <string name="mqtt_connection_notification_text">Streaming records to an MQTT Broker</string>
     <string name="mqtt_reconnecting_notification_text">Reconnecting to MQTT Broker</string>
+
+    <string name="pcap_logging_start_toast">Started Writing the Pcap Log File</string>
+    <string name="pcap_logging_stop_toast">Pcap Log File Closed</string>
+    <string name="pcap_logging_toggle_failed">Failed to toggle the pcap logging state</string>
+
+    <string name="action_start_pcap_logging">Start Pcap Logging</string>
+    <string name="action_stop_pcap_logging">Stop Pcap Logging</string>
 </resources>

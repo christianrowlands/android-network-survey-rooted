@@ -1,6 +1,7 @@
 package com.craxiom.networksurveyplus;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.ComponentName;
@@ -8,9 +9,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.content.res.Resources;
+import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.Toast;
 
 import androidx.annotation.RawRes;
@@ -32,6 +38,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import timber.log.Timber;
 
@@ -44,6 +52,8 @@ public class MainActivity extends AppCompatActivity
 
     private QcdmService qcdmService;
     private QcdmServiceConnection qcdmServiceConnection;
+
+    private MenuItem startStopPcapLoggingMenuItem;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -85,7 +95,7 @@ public class MainActivity extends AppCompatActivity
 
             // TODO qcdmService.onUiHidden();
 
-            // TODO if (!qcdmService.isBeingUsed())
+            if (!qcdmService.isBeingUsed())
             {
                 // We can safely shutdown the service since both logging and the connections are turned off
                 final Intent networkSurveyServiceIntent = new Intent(applicationContext, QcdmService.class);
@@ -96,6 +106,33 @@ public class MainActivity extends AppCompatActivity
         }
 
         super.onPause();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu)
+    {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_toolbar, menu);
+        startStopPcapLoggingMenuItem = menu.findItem(R.id.action_start_stop_pcap_logging);
+
+        if (qcdmService != null) updatePcapLoggingButton(qcdmService.isPcapLoggingEnabled());
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item)
+    {
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_start_stop_pcap_logging)
+        {
+            if (qcdmService != null) togglePcapLogging(!qcdmService.isPcapLoggingEnabled());
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     /**
@@ -268,6 +305,41 @@ public class MainActivity extends AppCompatActivity
     }
 
     /**
+     * Starts or stops writing the pcap log file based on the specified parameter.
+     *
+     * @param enable True if logging should be enabled, false if it should be turned off.
+     */
+    private void togglePcapLogging(boolean enable)
+    {
+        new ToggleLoggingTask(() -> {
+            if (qcdmService != null) return qcdmService.togglePcapLogging(enable);
+            return null;
+        }, enabled -> {
+            if (enabled == null) return getString(R.string.pcap_logging_toggle_failed);
+            updatePcapLoggingButton(enabled);
+            return getString(enabled ? R.string.pcap_logging_start_toast : R.string.pcap_logging_stop_toast);
+        }).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    }
+
+    /**
+     * Updates the Cellular logging button based on the specified logging state.
+     *
+     * @param enabled True if logging is currently enabled, false otherwise.
+     */
+    private void updatePcapLoggingButton(boolean enabled)
+    {
+        if (startStopPcapLoggingMenuItem == null) return;
+
+        final String menuTitle = getString(enabled ? R.string.action_stop_pcap_logging : R.string.action_start_pcap_logging);
+        startStopPcapLoggingMenuItem.setTitle(menuTitle);
+
+        ColorStateList colorStateList = null;
+        if (enabled) colorStateList = ColorStateList.valueOf(Color.GREEN);
+
+        startStopPcapLoggingMenuItem.setIconTintList(colorStateList);
+    }
+
+    /**
      * Start the Network Survey Service (it won't start if it is already started), and then bind to the service.
      * <p>
      * Starting the service will cause the cellular records to be pulled from the Android system so they can be shown
@@ -285,6 +357,41 @@ public class MainActivity extends AppCompatActivity
         final Intent serviceIntent = new Intent(applicationContext, QcdmService.class);
         final boolean bound = applicationContext.bindService(serviceIntent, qcdmServiceConnection, Context.BIND_ABOVE_CLIENT);
         Timber.i("QcdmService bound in the MainActivity: %s", bound);
+    }
+
+    /**
+     * A task to move the action of starting or stopping logging off of the UI thread.
+     */
+    @SuppressLint("StaticFieldLeak")
+    private class ToggleLoggingTask extends AsyncTask<Void, Void, Boolean>
+    {
+        private final Supplier<Boolean> toggleLoggingFunction;
+        private final Function<Boolean, String> postExecuteFunction;
+
+        private ToggleLoggingTask(Supplier<Boolean> toggleLoggingFunction, Function<Boolean, String> postExecuteFunction)
+        {
+            this.toggleLoggingFunction = toggleLoggingFunction;
+            this.postExecuteFunction = postExecuteFunction;
+        }
+
+        @Override
+        protected Boolean doInBackground(Void... nothing)
+        {
+            return toggleLoggingFunction.get();
+        }
+
+        @Override
+        protected void onPostExecute(Boolean enabled)
+        {
+            if (enabled == null)
+            {
+                // An exception occurred or something went wrong, so don't do anything
+                Toast.makeText(getApplicationContext(), "Error: Could not enable Logging", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            Toast.makeText(getApplicationContext(), postExecuteFunction.apply(enabled), Toast.LENGTH_SHORT).show();
+        }
     }
 
     /**

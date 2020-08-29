@@ -130,6 +130,26 @@ public class QcdmService extends Service
     }
 
     /**
+     * Used to check if this service is still needed.
+     * <p>
+     * This service is still needed if logging is enabled, if the UI is visible, or if a connection is active.  In other
+     * words, if there is an active consumer of the survey records.
+     *
+     * @return True if there is an active consumer of the records produced by this service, false otherwise.
+     */
+    public boolean isBeingUsed()
+    {
+        return pcapLoggingEnabled.get()
+                //|| getMqttConnectionState() != ConnectionState.DISCONNECTED
+                || qcdmMessageProcessor.isBeingUsed();
+    }
+
+    public boolean isPcapLoggingEnabled()
+    {
+        return pcapLoggingEnabled.get();
+    }
+
+    /**
      * Registers with the Android {@link LocationManager} for location updates.
      */
     private void initializeLocationListener()
