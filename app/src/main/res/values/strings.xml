@@ -3,4 +3,19 @@
     <string name="title_home">Home</string>
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>
+
+    <string name="permissions_rationale_title">Network Survey+ Permissions</string>
+    <string name="permissions_rationale">The Network Survey+ app requires a couple permissions to work.  Denying these permissions will result in the app not functioning properly.
+        \n\n1. <b>Access this Device\'s Location</b>:  This app creates a log file which includes the location at which the cellular record was captured.
+        \n\n2. <b>Access Photos, Media, and Files on Your Device</b>:  This permission allows the log file to be written.</string>
+
+    <string name="network_survey_service_description">The Network Survey+ Service runs when the app needs to do work in the background such as write to the log file or stream data out over active connection</string>
+
+    <string name="notification_channel_name">Network Survey+</string>
+    <string name="network_survey_notification_title">Network Survey Plus Active</string>
+    <string name="logging_notification_title">Pcap Logging Active</string>
+    <string name="logging_notification_text">Writing to the pcap log file</string>
+    <string name="and">" and "</string>
+    <string name="mqtt_connection_notification_text">Streaming records to an MQTT Broker</string>
+    <string name="mqtt_reconnecting_notification_text">Reconnecting to MQTT Broker</string>
 </resources>

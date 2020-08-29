@@ -44,15 +44,15 @@
 
 #define  LOG_TAG    "diag_revealer"
 
-/*FIXME Revert this code #define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
+#define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
 #define  LOGW(...)  __android_log_print(ANDROID_LOG_WARN,LOG_TAG,__VA_ARGS__)
 #define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG,LOG_TAG,__VA_ARGS__)
-#define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)*/
+#define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
 
-#define  LOGE(...) printf(__VA_ARGS__)
+/*#define  LOGE(...) printf(__VA_ARGS__)
 #define  LOGW(...) printf(__VA_ARGS__)
 #define  LOGD(...) printf(__VA_ARGS__)
-#define  LOGI(...) printf(__VA_ARGS__)
+#define  LOGI(...) printf(__VA_ARGS__)*/
 
 typedef int (*D_FUNC)(int, int);
 
