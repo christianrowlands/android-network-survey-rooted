@@ -1,6 +1,6 @@
 package com.craxiom.networksurveyplus.messages;
 
-import org.codehaus.preon.annotation.BoundEnumOption;
+//import org.codehaus.preon.annotation.BoundEnumOption;
 
 /**
  * As a part of the {@link PayloadDataMessage}, the PCS
@@ -13,13 +13,13 @@ import org.codehaus.preon.annotation.BoundEnumOption;
  */
 public enum DiagRevealerType
 {
-    @BoundEnumOption(0)
+    //@BoundEnumOption(0)
     UNKNOWN(0),
-    @BoundEnumOption(1)
+    //@BoundEnumOption(1)
     LOG(1),
-    @BoundEnumOption(2)
+    //@BoundEnumOption(2)
     START_LOG_FILE(2),
-    @BoundEnumOption(3)
+    //@BoundEnumOption(3)
     END_LOG_FILE(3);
 
     private static final DiagRevealerType[] VALUES = values();

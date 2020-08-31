@@ -1,8 +1,8 @@
 package com.craxiom.networksurveyplus.messages;
 
-import org.codehaus.preon.annotation.BoundObject;
+/*import org.codehaus.preon.annotation.BoundObject;
 import org.codehaus.preon.annotation.Choices;
-import org.codehaus.preon.annotation.Slice;
+import org.codehaus.preon.annotation.Slice;*/
 
 /**
  * The Diag Revealer native application reads from the /dev/diag port, and writes the output to a FIFO named pipe. Diag
@@ -29,7 +29,7 @@ import org.codehaus.preon.annotation.Slice;
  */
 public class DiagRevealerMessagePreon
 {
-    @BoundObject(type = DiagRevealerMessageHeaderPreon.class)
+    /*@BoundObject(type = DiagRevealerMessageHeaderPreon.class)
     public DiagRevealerMessageHeaderPreon header;
 
     @Slice(size = "(packetRecordLength - 24) * 8")
@@ -39,5 +39,5 @@ public class DiagRevealerMessagePreon
             @Choices.Choice(condition = "header.messageType == 2 || header.messageType == 3", type = LogFilePayload.class)}
     )
     )
-    private Object payload;
+    private Object payload;*/
 }
