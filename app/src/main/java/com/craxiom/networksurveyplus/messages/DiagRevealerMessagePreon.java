@@ -1,12 +1,10 @@
 package com.craxiom.networksurveyplus.messages;
 
-/*import org.codehaus.preon.annotation.BoundList;
+import org.codehaus.preon.annotation.BoundList;
 import org.codehaus.preon.annotation.BoundNumber;
 import org.codehaus.preon.annotation.BoundObject;
-import org.codehaus.preon.annotation.Choices;
 import org.codehaus.preon.annotation.If;
-import org.codehaus.preon.annotation.Slice;
-import org.codehaus.preon.buffer.ByteOrder;*/
+import org.codehaus.preon.buffer.ByteOrder;
 
 /**
  * The Diag Revealer native application reads from the /dev/diag port, and writes the output to a FIFO named pipe. Diag
@@ -33,7 +31,7 @@ import org.codehaus.preon.buffer.ByteOrder;*/
  */
 public class DiagRevealerMessagePreon
 {
-    //@BoundObject(type = DiagRevealerMessageHeaderPreon.class)
+    @BoundObject(type = DiagRevealerMessageHeaderPreon.class)
     public DiagRevealerMessageHeaderPreon header;
 
     /*@Slice(size = "header.length * 8")
@@ -45,11 +43,11 @@ public class DiagRevealerMessagePreon
     )
     public Object payload;*/
 
-    //@If(value = "header.messageType == 1")
-    //@BoundNumber(size = "64", byteOrder = ByteOrder.LittleEndian)
+    @If(value = "header.messageType == 1")
+    @BoundNumber(size = "64", byteOrder = ByteOrder.LittleEndian)
     public long timestamp;
 
-    //@If(value = "header.messageType == 1")
-    //@BoundList(size = "(header.messageLength - 8) * 8")
+    @If(value = "header.messageType == 1")
+    @BoundList(size = "(header.messageLength - 8) * 8")
     public byte[] payload;
 }

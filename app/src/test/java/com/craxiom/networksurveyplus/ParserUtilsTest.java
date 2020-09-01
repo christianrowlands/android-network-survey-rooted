@@ -1,7 +1,12 @@
 package com.craxiom.networksurveyplus;
 
+import com.craxiom.networksurveyplus.messages.DiagRevealerMessageHeaderPreon;
 import com.craxiom.networksurveyplus.messages.ParserUtils;
 
+import org.codehaus.preon.Codec;
+import org.codehaus.preon.Codecs;
+import org.codehaus.preon.DecodingException;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -48,5 +53,27 @@ public class ParserUtilsTest
 
         final short crc = ParserUtils.calculateCrc16X25(qcdmBytes, qcdmBytes.length);
         assertEquals(expectedCrc, crc);
+    }
+
+    @Test
+    public void testPreonParsingForDiagHeader()
+    {
+        final byte[] headerBytes = {1, 0, 13, 9};
+        final short expectedMessageType = 1;
+        final short expectedMessageLength = 2317;
+
+        final Codec<DiagRevealerMessageHeaderPreon> headerCodec = Codecs.create(DiagRevealerMessageHeaderPreon.class);
+        final DiagRevealerMessageHeaderPreon headerPreon;
+        try
+        {
+            headerPreon = Codecs.decode(headerCodec, headerBytes);
+        } catch (DecodingException e)
+        {
+            fail("Could not decode the diag revealer header bytes");
+            return;
+        }
+
+        assertEquals(expectedMessageType, headerPreon.messageType);
+        assertEquals(expectedMessageLength, headerPreon.messageLength);
     }
 }

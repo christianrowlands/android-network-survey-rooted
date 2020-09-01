@@ -4,6 +4,10 @@ import android.content.Context;
 
 import com.craxiom.networksurveyplus.messages.DiagRevealerMessage;
 import com.craxiom.networksurveyplus.messages.DiagRevealerMessageHeader;
+import com.craxiom.networksurveyplus.messages.DiagRevealerMessageHeaderPreon;
+
+import org.codehaus.preon.Codec;
+import org.codehaus.preon.Codecs;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -84,8 +88,8 @@ public class FifoReadRunnable implements Runnable
             while ((bufferedInputStream.read(headerBytes)) != -1 && !done)
             {
                 // TODO Delete me
-                //Codec<DiagRevealerMessageHeaderPreon> headerCodec = Codecs.create(DiagRevealerMessageHeaderPreon.class);
-                //final DiagRevealerMessageHeaderPreon headerPreon = Codecs.decode(headerCodec, headerBytes);
+                final Codec<DiagRevealerMessageHeaderPreon> headerCodec = Codecs.create(DiagRevealerMessageHeaderPreon.class);
+                final DiagRevealerMessageHeaderPreon headerPreon = Codecs.decode(headerCodec, headerBytes);
 
                 // TODO Verify the number of bytes read is == 4
 
