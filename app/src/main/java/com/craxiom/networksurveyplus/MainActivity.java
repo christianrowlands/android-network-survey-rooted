@@ -11,7 +11,6 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
-import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -334,7 +333,10 @@ public class MainActivity extends AppCompatActivity
         startStopPcapLoggingMenuItem.setTitle(menuTitle);
 
         ColorStateList colorStateList = null;
-        if (enabled) colorStateList = ColorStateList.valueOf(Color.GREEN);
+        if (enabled)
+        {
+            colorStateList = ColorStateList.valueOf(getColor(R.color.carrotOrangeBrighter));
+        }
 
         startStopPcapLoggingMenuItem.setIconTintList(colorStateList);
     }

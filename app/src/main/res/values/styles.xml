@@ -1,9 +1,66 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.AppCompat.DayNight.DarkActionBar">
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
+
+    <style name="Theme.Illini" parent="Theme.AppCompat.DayNight.DarkActionBar">
+        <item name="android:windowTranslucentStatus" tools:targetApi="kitkat">true</item>
+        <!-- General theme colors -->
+        <item name="colorPrimary">@color/illiniColorPrimary</item>
+        <item name="colorPrimaryDark">@color/illiniColorPrimaryDark</item>
+        <item name="colorAccent">@color/illiniColorAccent</item>
+        <item name="android:colorBackground">@color/illiniBackground</item>
+        <item name="android:colorForeground">@color/illiniForeground</item>
+        <!-- Text Appearance styles -->
+        <item name="android:textViewStyle">@style/TextViewStyle.Condensed</item>
+        <item name="android:textColorPrimary">@color/illiniTextColorPrimary</item>
+        <item name="android:textColorSecondary">@color/illiniTextColorSecondary</item>
+        <item name="android:textColorTertiary">@color/illiniTextColorTertiary</item>
+        <item name="android:textColorLink">@color/illiniTextColorLink</item>
+        <item name="android:textColorHint">@color/illiniTextColorTertiary</item>
+        <item name="android:textColorPrimaryInverse">@color/illiniTextColorPrimaryInverse</item>
+        <item name="android:textColorSecondaryInverse">@color/illiniTextColorSecondaryInverse</item>
+        <item name="android:textColorTertiaryInverse">@color/illiniTextColorTertiaryInverse</item>
+        <item name="android:textColorLinkInverse">@color/illiniTextColorLinkInverse</item>
+        <item name="android:textColorHintInverse">@color/illiniTextColorTertiaryInverse</item>
+        <!-- Custom attributes defined in attrs.xml -->
+        <item name="dividerColor">@color/illiniDividerColor</item>
+        <item name="tabLayoutStyle">@style/TabStyle.Dark</item>
+    </style>
+
+    <style name="ThemeOverlay.Illini" parent="ThemeOverlay.AppCompat.Dark">
+        <item name="colorPrimary">@color/illiniColorPrimary</item>
+        <item name="colorPrimaryDark">@color/illiniColorPrimaryDark</item>
+        <item name="colorAccent">@color/illiniColorAccent</item>
+        <item name="android:colorBackground">@color/illiniBackground</item>
+        <item name="android:colorForeground">@color/illiniForeground</item>
+
+        <item name="android:textViewStyle">@style/TextViewStyle.Condensed</item>
+        <item name="android:textColorPrimary">@color/illiniTextColorPrimary</item>
+        <item name="android:textColorSecondary">@color/illiniTextColorSecondary</item>
+        <item name="android:textColorTertiary">@color/illiniTextColorTertiary</item>
+        <item name="android:textColorLink">@color/illiniTextColorLink</item>
+        <item name="android:textColorHint">@color/illiniTextColorTertiary</item>
+        <item name="android:textColorPrimaryInverse">@color/illiniTextColorPrimaryInverse</item>
+        <item name="android:textColorSecondaryInverse">@color/illiniTextColorSecondaryInverse</item>
+        <item name="android:textColorTertiaryInverse">@color/illiniTextColorTertiaryInverse</item>
+        <item name="android:textColorLinkInverse">@color/illiniTextColorLinkInverse</item>
+        <item name="android:textColorHintInverse">@color/illiniTextColorTertiaryInverse</item>
+    </style>
+
+    <style name="BottomNavigationTheme" parent="Theme.Illini">
+        <item name="colorPrimary">@color/illiniColorAccent</item>
+    </style>
+
+    <style name="TabTextAppearance.Light" parent="TextAppearance.Design.Tab">
+        <item name="android:textColor">@color/white_87</item>
+    </style>
+
+    <style name="TabStyle.Dark" parent="Widget.Design.TabLayout">
+        <item name="tabTextAppearance">@style/TabTextAppearance.Light</item>
+        <item name="tabSelectedTextColor">@android:color/white</item>
+    </style>
+
+    <style name="TextViewStyle.Condensed" parent="android:Widget.TextView">
+        <item name="android:fontFamily">sans-serif-condensed</item>
     </style>
 
 </resources>
