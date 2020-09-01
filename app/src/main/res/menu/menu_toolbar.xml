@@ -1,0 +1,11 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="com.craxiom.networksurveyplus.MainActivity">
+    <item
+        android:id="@+id/action_start_stop_pcap_logging"
+        android:orderInCategory="100"
+        android:title="@string/action_start_pcap_logging"
+        android:icon="@drawable/ic_logging_thick"
+        app:showAsAction="ifRoom" />
+</menu>

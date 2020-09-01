@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="CustomTheme">
+        <attr name="dividerColor" format="color|reference" />
+        <attr name="themeName" format="string" />
+        <attr name="tabLayoutStyle" format="reference" />
+    </declare-styleable>
+</resources>

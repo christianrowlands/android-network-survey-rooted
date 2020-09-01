@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="carrotOrange">#FA961F</color>
+    <color name="carrotOrangeBrighter">#FBB057</color>
+
+    <color name="lakeBlue">#5894BC</color>
+    <color name="winterBlue">#9BE7FF</color>
+
+    <color name="eerieBlack">#111319</color>
+    <color name="raisinBlack">#222222</color>
+    <color name="darkGunmetal">#1D212B</color>
+    <color name="darkGunmetal_87">#DE1D212B</color>
+    <color name="darkGunmetal_54">#8A1D212B</color>
+    <color name="darkGunmetal_38">#611D212B</color>
+    <color name="gunmetal">#2A2F3D</color>
+
+    <color name="white_87">#DEFFFFFF</color>
+
+    <color name="eggshell">#F2E6DE</color>
+    <color name="eggshell_87">#DEF2E6DE</color>
+    <color name="eggshell_54">#8AF2E6DE</color>
+    <color name="eggshell_38">#61F2E6DE</color>
+
+    <color name="putty">#C1B8B2</color>
+</resources>

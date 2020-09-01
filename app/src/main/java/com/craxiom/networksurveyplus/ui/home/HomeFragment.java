@@ -4,37 +4,37 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProviders;
 
-import com.craxiom.networksurveyplus.R;
+import com.craxiom.networksurveyplus.databinding.FragmentHomeBinding;
 
 public class HomeFragment extends Fragment
 {
+    private static final String LOG_TAG = HomeFragment.class.getSimpleName();
 
+    private FragmentHomeBinding binding;
     private HomeViewModel homeViewModel;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState)
     {
-        homeViewModel =
+        binding = FragmentHomeBinding.inflate(inflater, container, false);
+        final View view = binding.getRoot();
+
+        return view;
+
+        /*homeViewModel =
                 ViewModelProviders.of(this).get(HomeViewModel.class);
         View root = inflater.inflate(R.layout.fragment_home, container, false);
         final TextView textView = root.findViewById(R.id.text_home);
-        homeViewModel.getText().observe(getViewLifecycleOwner(), new Observer<String>()
-        {
-            @Override
-            public void onChanged(@Nullable String s)
-            {
-                textView.setText(s);
-            }
-        });
-        return root;
+        homeViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);
+
+        final Button startButton = root.findViewById(R.id.startButton);
+        startButton.setOnClickListener(v -> startDiagStuff());
+
+        return root;*/
     }
 }

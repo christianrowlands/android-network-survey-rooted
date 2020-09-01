@@ -1,6 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#6200EE</color>
-    <color name="colorPrimaryDark">#3700B3</color>
-    <color name="colorAccent">#03DAC5</color>
+
+    <!-- Illini Theme -->
+    <color name="illiniColorPrimary">@color/darkGunmetal</color>
+    <color name="illiniColorPrimaryDark">@color/eerieBlack</color>
+    <color name="illiniColorAccent">@color/carrotOrange</color>
+    <color name="illiniBackground">@color/gunmetal</color>
+    <color name="illiniForeground">@color/putty</color>
+    <color name="illiniDividerColor">@color/eggshell_38</color>
+    <color name="illiniTextColorPrimary">@color/eggshell</color>
+    <color name="illiniTextColorSecondary">@color/eggshell_87</color>
+    <color name="illiniTextColorTertiary">@color/eggshell_54</color>
+    <color name="illiniTextColorLink">@color/winterBlue</color>
+    <color name="illiniTextColorPrimaryInverse">@color/darkGunmetal</color>
+    <color name="illiniTextColorSecondaryInverse">@color/darkGunmetal_54</color>
+    <color name="illiniTextColorTertiaryInverse">@color/darkGunmetal_38</color>
+    <color name="illiniTextColorLinkInverse">@color/lakeBlue</color>
+
+    <color name="connectionStatusDisconnected">#A21919</color>
+    <color name="connectionStatusConnecting">#FF6D00</color>
+    <color name="connectionStatusConnected">#00912F</color>
+
 </resources>
