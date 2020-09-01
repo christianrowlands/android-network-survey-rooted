@@ -112,7 +112,7 @@ public class QcdmService extends Service
     {
         Timber.i("onDestroy");
 
-        qcdmPcapWriter.close();
+        if (qcdmPcapWriter != null) qcdmPcapWriter.close();
 
         // TODO setCellularScanningDone();
         removeLocationListener();

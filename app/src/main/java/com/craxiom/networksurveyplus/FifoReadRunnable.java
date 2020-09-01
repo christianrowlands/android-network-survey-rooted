@@ -6,6 +6,7 @@ import com.craxiom.networksurveyplus.messages.DiagRevealerMessage;
 import com.craxiom.networksurveyplus.messages.DiagRevealerMessageHeader;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -53,12 +54,39 @@ public class FifoReadRunnable implements Runnable
         Timber.i("Starting the FIFO Reader");
 
         try (final FileInputStream fileInputStream = new FileInputStream(fifoPipeName);
-             final BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream))
+             final BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
+             /*final ByteArrayOutputStream outputStream = new ByteArrayOutputStream()*/)
         {
-            final byte[] headerBytes = new byte[4];
-            int numHeaderBytes;
-            while ((numHeaderBytes = bufferedInputStream.read(headerBytes)) != -1 && !done)
+            /* TODO This is how the other apps handle reading from the diag port. They use the 0x7e delimiter to mark
+                the end of the message. However, I have a hard time believing that the actual data will never have a
+                byte of 0x7e. Leaving this code if that is actually true or if we could simply put the bytes back
+                if we can't parse the message, but that seems error prone. My concern about the other approach is that
+                if we get out of sync with the message header, then we don't have a good way to get back in alignment
+                with the messages. At least with the 0x7e delimiter approach we will always get back to parsing correctly
+            int nextByte;
+            while ((nextByte = bufferedInputStream.read()) != -1)
             {
+                if (nextByte != QcdmMessage.QCDM_FOOTER)
+                {
+                    outputStream.write(nextByte);
+                    continue;
+                }
+
+                // We have reached the QCDM message delimiter.
+                final Codec<DiagRevealerMessagePreon> messageCodec = Codecs.create(DiagRevealerMessagePreon.class);
+                final DiagRevealerMessagePreon message = Codecs.decode(messageCodec, outputStream.toByteArray());
+                outputStream.reset();
+
+                notifyMessageProcessor(message);
+            }*/
+
+            final byte[] headerBytes = new byte[4];
+            while ((bufferedInputStream.read(headerBytes)) != -1 && !done)
+            {
+                // TODO Delete me
+                //Codec<DiagRevealerMessageHeaderPreon> headerCodec = Codecs.create(DiagRevealerMessageHeaderPreon.class);
+                //final DiagRevealerMessageHeaderPreon headerPreon = Codecs.decode(headerCodec, headerBytes);
+
                 // TODO Verify the number of bytes read is == 4
 
                 final DiagRevealerMessageHeader header = DiagRevealerMessageHeader.parseDiagRevealerMessageHeader(headerBytes);

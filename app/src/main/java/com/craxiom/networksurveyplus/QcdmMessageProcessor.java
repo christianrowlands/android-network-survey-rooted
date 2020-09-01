@@ -1,9 +1,11 @@
 package com.craxiom.networksurveyplus;
 
 import com.craxiom.networksurveyplus.messages.DiagRevealerMessage;
+import com.craxiom.networksurveyplus.messages.ParserUtils;
 import com.craxiom.networksurveyplus.messages.QcdmMessage;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -67,10 +69,21 @@ public class QcdmMessageProcessor
                     hasQcdmPrefix = true;
                 }
 
-                // TODO Need to validate the CRC
                 final byte[] qcdmBytes = Arrays.copyOfRange(diagRevealerMessage.payload, hasQcdmPrefix ? 8 : 0, diagRevealerMessage.payload.length - 3);
 
-                notifyQcdmMessageListeners(new QcdmMessage(qcdmBytes));
+                final int expectedCrc = ParserUtils.getShort(diagRevealerMessage.payload, diagRevealerMessage.payload.length - 3, ByteOrder.LITTLE_ENDIAN);
+                final int crc = ParserUtils.calculateCrc16X25(diagRevealerMessage.payload, diagRevealerMessage.payload.length - 3);
+
+                Timber.i(diagRevealerMessage.toString()); // TODO Delete me
+
+                if (crc != expectedCrc)
+                {
+                    Timber.w("Invalid CRC found on a diag message expected=%s, actual=%s", Integer.toHexString(expectedCrc), Integer.toHexString(crc));
+                } else
+                {
+                    Timber.d("CRC Check passed!");
+                    notifyQcdmMessageListeners(new QcdmMessage(qcdmBytes));
+                }
             } else
             {
                 Timber.d("Throwing away a diag revealer message because it does not have the QCDM footer");

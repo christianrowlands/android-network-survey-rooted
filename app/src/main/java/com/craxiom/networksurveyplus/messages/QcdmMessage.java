@@ -18,7 +18,7 @@ import java.util.Arrays;
  */
 public class QcdmMessage
 {
-    public static final byte[] QCDM_PREFIX = {(byte) 0x98, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00};
+    public static final byte[] QCDM_PREFIX = {(byte) 0x98, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00};
     public static final int QCDM_FOOTER = 0x7e;
 
     /**
