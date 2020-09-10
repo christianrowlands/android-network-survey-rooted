@@ -198,7 +198,7 @@ public class QcdmService extends Service
         final String fifoPipeName = applicationContext.getFilesDir() + "/" + Constants.FIFO_PIPE;
         createNamedPipe(fifoPipeName);
 
-        fifoReadRunnable = new FifoReadRunnable(applicationContext, fifoPipeName, qcdmMessageProcessor);
+        fifoReadRunnable = new FifoReadRunnable(fifoPipeName, qcdmMessageProcessor);
         fifoReadHandler.post(fifoReadRunnable);
 
         diagRevealerRunnable = new DiagRevealerRunnable(applicationContext, fifoPipeName);

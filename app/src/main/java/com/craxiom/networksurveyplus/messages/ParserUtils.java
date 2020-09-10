@@ -1,6 +1,11 @@
 package com.craxiom.networksurveyplus.messages;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteOrder;
+
+import timber.log.Timber;
 
 /**
  * Some helpful parsing and utility methods that this app uses.
@@ -12,7 +17,7 @@ public class ParserUtils
     // 0001 0000 0010 0001  (0, 5, 12)
     public static final int CRC_16_CCITT_POLYNOMIAL = 0x1021;
 
-    private static final short[] crctab16 =
+    private static final short[] CTC_TABLE_16 =
             {
                     (short) 0x0000, (short) 0x1189, (short) 0x2312, (short) 0x329b, (short) 0x4624, (short) 0x57ad, (short) 0x6536, (short) 0x74bf,
                     (short) 0x8c48, (short) 0x9dc1, (short) 0xaf5a, (short) 0xbed3, (short) 0xca6c, (short) 0xdbe5, (short) 0xe97e, (short) 0xf8f7,
@@ -63,6 +68,18 @@ public class ParserUtils
     }
 
     /**
+     * A custom implementation of {@link Short#reverseBytes(short)} because the JDK version uses the
+     * regular right shift operator `>>` and we need to use the unsigned right shift operator `>>>`.
+     *
+     * @param s the value whose bytes are to be reversed
+     * @return the value obtained by reversing (or, equivalently, swapping) the bytes in the specified {@code short} value.
+     */
+    public static short reverseBytes(short s)
+    {
+        return (short) (((s & 0xFF00) >>> 8) | (s << 8));
+    }
+
+    /**
      * Parse the provided bytes to extract an int value using the specified byte order.
      *
      * @param bytes     Bytes to parse
@@ -96,8 +113,68 @@ public class ParserUtils
                 ((long) (bytes[offset + 4] & 0xff) << 24) |
                 ((long) (bytes[offset + 5] & 0xff) << 16) |
                 ((long) (bytes[offset + 6] & 0xff) << 8) |
-                ((long) (bytes[offset + 7] & 0xff));
+                (bytes[offset + 7] & 0xff);
         return byteOrder == ByteOrder.LITTLE_ENDIAN ? Long.reverseBytes(value) : value;
+    }
+
+    /**
+     * Given a buffered input stream that is pulling from the Diag Revealer FIFO pipe, pull out each individual Diag
+     * message and return it as a byte array.
+     * <p>
+     * Each diag message is delimited by the byte 0x7e.
+     * <p>
+     * However, because the byte 0x7e can be contained in the actual diag message, it has to be escaped in the message
+     * payload. So, to unescape the 0x7e byte we have to look for instances of "0x7d 0x5e" and replace it with "0x7e".
+     * <p>
+     * In addition, since 0x7d represents an escape character, 0x7d is escaped as "0x7d 0x5d".
+     * <p>
+     * Another way to look at these escape sequences is to know that 0x7d is the escape byte, and then the value that
+     * follows is the original byte XORed with 0x20. So 0x7e is escaped with 0x7d and the next byte is set to
+     * (0x7e ^ 0x20 ... aka 0x5e). For 0x7d, it is escaped with 0x7d and the next byte is set to (0x7d ^ 0x20 ... aka 0x5d).
+     *
+     * @param bufferedInputStream The buffered input stream that is reading from the FIFO pipe.
+     * @return The unescaped next diag message.
+     */
+    public static byte[] getNextDiagMessageBytes(BufferedInputStream bufferedInputStream)
+    {
+        try (final ByteArrayOutputStream outputStream = new ByteArrayOutputStream())
+        {
+            int nextByte;
+            while ((nextByte = bufferedInputStream.read()) != -1)
+            {
+                if (nextByte != QcdmMessage.QCDM_FOOTER)
+                {
+                    if (nextByte == (byte) 0x7d)
+                    {
+                        nextByte = bufferedInputStream.read();
+                        if (nextByte == (byte) 0x5e)
+                        {
+                            // We found the escape sequence for the 0x7e byte, drop it into the output stream
+                            outputStream.write(0x7e);
+                        } else if (nextByte == (byte) 0x5d)
+                        {
+                            // We found the escape sequence for the 0x7d byte, drop it into the output stream
+                            outputStream.write(0x7d);
+                        } else
+                        {
+                            Timber.e("Found the 0x7d escape byte, but did not find 0x5e or 0x5d after it, instead found %s", Integer.toHexString(nextByte));
+                        }
+                    } else
+                    {
+                        outputStream.write(nextByte);
+                    }
+
+                    continue;
+                }
+
+                return outputStream.toByteArray();
+            }
+        } catch (IOException e)
+        {
+            Timber.e(e, "Caught an exception when trying to get the next Diag Message bytes");
+        }
+
+        return null;
     }
 
     /**
@@ -139,7 +216,7 @@ public class ParserUtils
         int i;
         for (i = 0; i < stopPosition; i++)
         {
-            fcs = (short) (((fcs & 0xFFFF) >>> 8) ^ crctab16[(fcs ^ bytes[i]) & 0xff]);
+            fcs = (short) (((fcs & 0xFFFF) >>> 8) ^ CTC_TABLE_16[(fcs ^ bytes[i]) & 0xff]);
         }
         return (short) ~fcs;
     }
@@ -161,17 +238,5 @@ public class ParserUtils
             stringBuilder.append(String.format("%02x ", bytes[i]));
         }
         return stringBuilder.toString();
-    }
-
-    /**
-     * A custom implementation of {@link Short#reverseBytes(short)} because the JDK version uses the
-     * regular right shift operator `>>` and we need to use the unsigned right shift operator `>>>`.
-     *
-     * @param s the value whose bytes are to be reversed
-     * @return the value obtained by reversing (or, equivalently, swapping) the bytes in the specified {@code short} value.
-     */
-    public static short reverseBytes(short s)
-    {
-        return (short) (((s & 0xFF00) >>> 8) | (s << 8));
     }
 }

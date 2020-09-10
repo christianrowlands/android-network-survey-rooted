@@ -59,34 +59,26 @@ public class QcdmMessageProcessor
         // No reason to process the message if we don't have any listeners
         if (!messageListeners.isEmpty())
         {
-            // Validate that the last byte is 0x7e
-            if (diagRevealerMessage.payload[diagRevealerMessage.payload.length - 1] == QcdmMessage.QCDM_FOOTER)
+            boolean hasQcdmPrefix = false;
+            // Check to see if we need to remove the QCDM prefix
+            if (ByteBuffer.wrap(QcdmMessage.QCDM_PREFIX).equals(ByteBuffer.wrap(diagRevealerMessage.payload, 0, 8)))
             {
-                boolean hasQcdmPrefix = false;
-                // Check to see if we need to remove the QCDM prefix
-                if (ByteBuffer.wrap(QcdmMessage.QCDM_PREFIX).equals(ByteBuffer.wrap(diagRevealerMessage.payload, 0, 8)))
-                {
-                    hasQcdmPrefix = true;
-                }
+                hasQcdmPrefix = true;
+            }
 
-                final byte[] qcdmBytes = Arrays.copyOfRange(diagRevealerMessage.payload, hasQcdmPrefix ? 8 : 0, diagRevealerMessage.payload.length - 3);
+            final short expectedCrc = ParserUtils.getShort(diagRevealerMessage.payload, diagRevealerMessage.payload.length - 3, ByteOrder.LITTLE_ENDIAN);
+            final short crc = ParserUtils.calculateCrc16X25(diagRevealerMessage.payload, diagRevealerMessage.payload.length - 3);
 
-                final int expectedCrc = ParserUtils.getShort(diagRevealerMessage.payload, diagRevealerMessage.payload.length - 3, ByteOrder.LITTLE_ENDIAN);
-                final int crc = ParserUtils.calculateCrc16X25(diagRevealerMessage.payload, diagRevealerMessage.payload.length - 3);
+            Timber.i(diagRevealerMessage.toString()); // TODO Delete me
 
-                Timber.i(diagRevealerMessage.toString()); // TODO Delete me
-
-                if (crc != expectedCrc)
-                {
-                    Timber.w("Invalid CRC found on a diag message expected=%s, actual=%s", Integer.toHexString(expectedCrc), Integer.toHexString(crc));
-                } else
-                {
-                    Timber.d("CRC Check passed!");
-                    notifyQcdmMessageListeners(new QcdmMessage(qcdmBytes));
-                }
+            if (crc != expectedCrc)
+            {
+                Timber.w("Invalid CRC found on a diag message expected=%s, actual=%s", Integer.toHexString(expectedCrc), Integer.toHexString(crc));
             } else
             {
-                Timber.d("Throwing away a diag revealer message because it does not have the QCDM footer");
+                Timber.d("CRC Check passed!");
+                final byte[] qcdmBytes = Arrays.copyOfRange(diagRevealerMessage.payload, hasQcdmPrefix ? 8 : 0, diagRevealerMessage.payload.length - 3);
+                notifyQcdmMessageListeners(new QcdmMessage(qcdmBytes));
             }
         }
     }

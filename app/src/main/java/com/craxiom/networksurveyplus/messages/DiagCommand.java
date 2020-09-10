@@ -17,6 +17,8 @@ package com.craxiom.networksurveyplus.messages;
  *     DON'T CHANGE THE NUMBERS ( REPLACE UNUSED IDS WITH FILLERS ). NEW IDs
  *     MUST BE ASSIGNED AT THE END.
  * </pre>
+ * <p>
+ * This webpage also has some details on these Diag commands:  https://moonsky219.github.io/post/diag_qcdm/
  *
  * @since 0.1.0
  */

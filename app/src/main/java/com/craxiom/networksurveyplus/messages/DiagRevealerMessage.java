@@ -26,6 +26,14 @@ import timber.log.Timber;
  * </pre>
  * <p>
  * Worthy of note is that the `length` does not include the type or length bytes.
+ * <p>
+ * The general structure of the Diag Revealer message for a log record is:
+ * <pre>
+ * *******************************************************
+ * | Message Type | Message Length | Timestamp | Payload |
+ * |   2 bytes    |    2 bytes     |  8 bytes  | n bytes |
+ * *******************************************************
+ * </pre>
  *
  * @since 0.1.0
  */
@@ -45,6 +53,7 @@ public class DiagRevealerMessage
     {
         this.header = header;
         this.timestamp = timestamp;
+        //noinspection AssignmentOrReturnOfFieldWithMutableType
         this.payload = payload;
     }
 
@@ -55,43 +64,49 @@ public class DiagRevealerMessage
     }
 
     /**
-     * Parses the payload of a message from the Diag Revealer C program. The payload varies depending on the messageType
+     * Parses a message from the Diag Revealer C program. The payload varies depending on the messageType
      * specified in the header.
      *
      * @param messageBytes The message bytes.
      * @return null if the parsing was unsuccessful or the DiagRevealerMessage object if a message could be parsed.
      */
-    public static DiagRevealerMessage parseDiagRevealerMessage(byte[] messageBytes, DiagRevealerMessageHeader header)
+    public static DiagRevealerMessage parseDiagRevealerMessage(byte[] messageBytes)
     {
         try
         {
-            final String filename;
+            final byte[] headerBytes = Arrays.copyOfRange(messageBytes, 0, 4);
+            final DiagRevealerMessageHeader header = DiagRevealerMessageHeader.parseDiagRevealerMessageHeader(headerBytes);
+
+            if (header == null)
+            {
+                Timber.e("Could not parse out the Diag Revealer header");
+                return null;
+            }
 
             if (header.messageType == 1)
             {
-                // TODO we should also verify that the last byte is 0x7e, and I think we need to remove it as well.
-                if (messageBytes.length < 8)
+                if (messageBytes.length < 12)
                 {
                     Timber.e("The diag_revealer message did not have enough bytes for the timestamp");
                     return null;
                 }
 
-                if (messageBytes.length < header.messageLength)
+                if (messageBytes.length < header.messageLength + 4)
                 {
                     Timber.e("The diag_revealer message length (%d) was longer than the provided byte array (%d)", header.messageLength, messageBytes.length);
                     return null;
                 }
 
-                final long timestamp = ParserUtils.getLong(messageBytes, 0, java.nio.ByteOrder.LITTLE_ENDIAN);
+                final long timestamp = ParserUtils.getLong(messageBytes, 4, java.nio.ByteOrder.LITTLE_ENDIAN);
 
                 // The payload runs from just after the timestamp to the end of the message
-                final byte[] payload = Arrays.copyOfRange(messageBytes, 8, header.messageLength);
+                final byte[] payload = Arrays.copyOfRange(messageBytes, 12, header.messageLength);
 
                 return new DiagRevealerMessage(header, timestamp, payload);
             } else if (header.messageType == 2 || header.messageType == 3)
             {
                 // The entire payload is just the filename that is either being started (2) or ended (3)
-                filename = new String(messageBytes, 0, header.messageLength);
+                final String filename = new String(messageBytes, 4, header.messageLength);
 
                 return new DiagRevealerMessage(header, filename);
             } else
@@ -106,6 +121,7 @@ public class DiagRevealerMessage
         }
     }
 
+    @SuppressWarnings("NullableProblems")
     @Override
     public String toString()
     {
