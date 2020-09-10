@@ -60,21 +60,7 @@ public class FifoReadRunnable implements Runnable
         {
             while (!done)
             {
-                final byte[] diagMessageBytes = ParserUtils.getNextDiagMessageBytes(bufferedInputStream);
-
-                if (diagMessageBytes == null)
-                {
-                    Timber.e("Could not get the diag revealer message bytes from the FIFO named pipe.");
-                    continue;
-                }
-
-                if (diagMessageBytes.length > 4)
-                {
-                    notifyMessageProcessor(DiagRevealerMessage.parseDiagRevealerMessage(diagMessageBytes));
-                } else
-                {
-                    Timber.e("The Diag Revealer message length was <= 4, actual length=%d", diagMessageBytes.length);
-                }
+                notifyMessageProcessor(ParserUtils.getNextDiagRevealerMessage(bufferedInputStream));
             }
         } catch (FileNotFoundException e)
         {

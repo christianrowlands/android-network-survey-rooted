@@ -35,6 +35,7 @@ public class QcdmMessage
      */
     public QcdmMessage(byte[] messageBytes)
     {
+        //noinspection AssignmentOrReturnOfFieldWithMutableType
         this.messageBytes = messageBytes;
     }
 
@@ -71,11 +72,12 @@ public class QcdmMessage
         return Arrays.copyOfRange(messageBytes, 16, messageBytes.length); // TODO Should we use the length instead?
     }
 
+    @SuppressWarnings("NullableProblems")
     @Override
     public String toString()
     {
         return "QcdmMessage{" +
-                "messageBytes=" + ParserUtils.convertBytesToHexString(messageBytes, 0, messageBytes.length) +//Arrays.toString(messageBytes) +
+                "messageBytes=" + ParserUtils.convertBytesToHexString(messageBytes, 0, messageBytes.length) +
                 '}';
     }
 }

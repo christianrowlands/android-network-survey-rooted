@@ -4,7 +4,6 @@ import com.craxiom.networksurveyplus.messages.ParserUtils;
 
 import org.junit.Test;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 
@@ -59,7 +58,7 @@ public class ParserUtilsTest
 
         final byte[] qcdmMessage = {(byte) 0x98, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x60, (byte) 0x2b, (byte) 0x00, (byte) 0x92, (byte) 0x47, (byte) 0xb4, (byte) 0x0c, (byte) 0x64, (byte) 0x0b, (byte) 0x76, (byte) 0xfb, (byte) 0xee, (byte) 0x00, (byte) 0x06, (byte) 0x01, (byte) 0x86, (byte) 0xca, (byte) 0x0c, (byte) 0x64, (byte) 0x14, (byte) 0x00, (byte) 0x7d, (byte) 0x5e, (byte) 0xea, (byte) 0x0c, (byte) 0x64, (byte) 0x04, (byte) 0xff, (byte) 0xff, (byte) 0x7c, (byte) 0xc6, (byte) 0x85, (byte) 0xaa, (byte) 0x0c, (byte) 0x64, (byte) 0x09, (byte) 0x85, (byte) 0x2a, (byte) 0x28, (byte) 0x5a, (byte) 0xac, (byte) 0x0b, (byte) 0x76, (byte) 0xfb, (byte) 0xee, (byte) 0x00, (byte) 0x09, (byte) 0xd8, (byte) 0x3a, (byte) 0x7e};
 
-        final byte[] unwrappedQcdmMessage = ParserUtils.getNextDiagMessageBytes(new BufferedInputStream(new ByteArrayInputStream(qcdmMessage)));
+        final byte[] unwrappedQcdmMessage = ParserUtils.getNextDiagMessageBytes(new ByteArrayInputStream(qcdmMessage));
 
         assertArrayEquals(expectedResult, unwrappedQcdmMessage);
     }
@@ -71,7 +70,7 @@ public class ParserUtilsTest
 
         final byte[] qcdmMessage = {(byte) 60, (byte) 0x3e, (byte) 0x00, (byte) 0x2d, (byte) 0x6b, (byte) 0x32, (byte) 0x92, (byte) 0x9f, (byte) 0x6d, (byte) 0x30, (byte) 0x1c, (byte) 0xef, (byte) 0x00, (byte) 0x03, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x9f, (byte) 0xe7, (byte) 0x92, (byte) 0x9f, (byte) 0x0f, (byte) 0x00, (byte) 0xb9, (byte) 0x6b, (byte) 0x9b, (byte) 0x24, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x4a, (byte) 0x08, (byte) 0x19, (byte) 0xa7, (byte) 0x7d, (byte) 0x5e, (byte) 0x13, (byte) 0xc3, (byte) 0x68, (byte) 0x8f, (byte) 0x7d, (byte) 0x5d, (byte) 0xb0, (byte) 0x6d, (byte) 0x30, (byte) 0x1c, (byte) 0xef, (byte) 0x00, (byte) 0x03, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0xc3, (byte) 0x68, (byte) 0x59, (byte) 0x9c, (byte) 0xb2, (byte) 0x6d, (byte) 0x30, (byte) 0x1c, (byte) 0xef, (byte) 0x00, (byte) 0x03, (byte) 0x02, (byte) 0x00, (byte) 0x00, (byte) 0x11, (byte) 0x1b, (byte) 0x7e};
 
-        final byte[] unwrappedQcdmMessage = ParserUtils.getNextDiagMessageBytes(new BufferedInputStream(new ByteArrayInputStream(qcdmMessage)));
+        final byte[] unwrappedQcdmMessage = ParserUtils.getNextDiagMessageBytes(new ByteArrayInputStream(qcdmMessage));
 
         assertArrayEquals(expectedResult, unwrappedQcdmMessage);
     }

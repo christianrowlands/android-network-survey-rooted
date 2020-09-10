@@ -39,7 +39,7 @@ import timber.log.Timber;
  */
 public class DiagRevealerMessage
 {
-    private final DiagRevealerMessageHeader header;
+    public final DiagRevealerMessageHeader header;
 
     // The instance variables if the messageType == 1
     private long timestamp;
@@ -48,7 +48,14 @@ public class DiagRevealerMessage
     // The instance variables if the messageType == 2 || 3
     private String fileName;
 
-    // TODO Javadocs
+    /**
+     * Creates a Diag Revealer message object assuming the messageType == 1. In other words, the file name variable
+     * will be null and the timestamp and payload are set.
+     *
+     * @param header    The header which specifies the message type and message length.
+     * @param timestamp The timestamp for this Diag Revealer message.
+     * @param payload   The byte array containing the QCDM message as a payload.
+     */
     public DiagRevealerMessage(DiagRevealerMessageHeader header, long timestamp, byte[] payload)
     {
         this.header = header;
@@ -57,6 +64,13 @@ public class DiagRevealerMessage
         this.payload = payload;
     }
 
+    /**
+     * Creates a Diag Revealer message object assuming the messageType == 2 || 3. In other words, the timestamp and
+     * payload variables will be null and the file name is set.
+     *
+     * @param header   The header which specifies the message type and message length.
+     * @param fileName The file name that is either being started or stopped.
+     */
     public DiagRevealerMessage(DiagRevealerMessageHeader header, String fileName)
     {
         this.header = header;
@@ -68,21 +82,13 @@ public class DiagRevealerMessage
      * specified in the header.
      *
      * @param messageBytes The message bytes.
+     * @param header       The Diag Revealer header that indicates the message type and the message length.
      * @return null if the parsing was unsuccessful or the DiagRevealerMessage object if a message could be parsed.
      */
-    public static DiagRevealerMessage parseDiagRevealerMessage(byte[] messageBytes)
+    public static DiagRevealerMessage parseDiagRevealerMessage(byte[] messageBytes, DiagRevealerMessageHeader header)
     {
         try
         {
-            final byte[] headerBytes = Arrays.copyOfRange(messageBytes, 0, 4);
-            final DiagRevealerMessageHeader header = DiagRevealerMessageHeader.parseDiagRevealerMessageHeader(headerBytes);
-
-            if (header == null)
-            {
-                Timber.e("Could not parse out the Diag Revealer header");
-                return null;
-            }
-
             if (header.messageType == 1)
             {
                 if (messageBytes.length < 12)
@@ -91,22 +97,22 @@ public class DiagRevealerMessage
                     return null;
                 }
 
-                if (messageBytes.length < header.messageLength + 4)
+                if (messageBytes.length < header.messageLength)
                 {
                     Timber.e("The diag_revealer message length (%d) was longer than the provided byte array (%d)", header.messageLength, messageBytes.length);
                     return null;
                 }
 
-                final long timestamp = ParserUtils.getLong(messageBytes, 4, java.nio.ByteOrder.LITTLE_ENDIAN);
+                final long timestamp = ParserUtils.getLong(messageBytes, 0, java.nio.ByteOrder.LITTLE_ENDIAN);
 
                 // The payload runs from just after the timestamp to the end of the message
-                final byte[] payload = Arrays.copyOfRange(messageBytes, 12, header.messageLength);
+                final byte[] payload = Arrays.copyOfRange(messageBytes, 8, header.messageLength);
 
                 return new DiagRevealerMessage(header, timestamp, payload);
             } else if (header.messageType == 2 || header.messageType == 3)
             {
                 // The entire payload is just the filename that is either being started (2) or ended (3)
-                final String filename = new String(messageBytes, 4, header.messageLength);
+                final String filename = new String(messageBytes, 0, header.messageLength);
 
                 return new DiagRevealerMessage(header, filename);
             } else
@@ -128,7 +134,7 @@ public class DiagRevealerMessage
         return "DiagRevealerMessage{" +
                 "header=" + header +
                 ", timestamp=" + timestamp +
-                ", payload=" + ParserUtils.convertBytesToHexString(payload, 0, payload.length) +//Arrays.toString(payload) +
+                ", payload=" + ParserUtils.convertBytesToHexString(payload, 0, payload.length) +
                 ", fileName='" + fileName + '\'' +
                 '}';
     }

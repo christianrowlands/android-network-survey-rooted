@@ -60,9 +60,9 @@ public class QcdmPcapWriter implements IQcdmMessageListener
      * <p>
      * This constructor creates the file, and writes out the PCAP global header.
      *
-     * @throws IOException If an error occurs when creating or writing to the file.
+     * @throws Exception If an error occurs when creating or writing to the file.
      */
-    QcdmPcapWriter() throws IOException
+    QcdmPcapWriter() throws Exception
     {
         final File pcapFile = new File(createNewFilePath());
         pcapFile.getParentFile().mkdirs();
@@ -79,7 +79,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         {
             if (qcdmMessage.getOpCode() == DiagCommand.DIAG_LOG_F)
             {
-                Timber.d("Pcap Writer listener: %s", qcdmMessage);
+                Timber.v("Pcap Writer listener: %s", qcdmMessage);
 
                 byte[] pcapRecord = null;
 
@@ -93,7 +93,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
 
                 if (pcapRecord != null)
                 {
-                    Timber.v("Writing a message to the pcap file"); // TODO Delete me
+                    Timber.v("Writing a message to the pcap file");
                     outputStream.write(pcapRecord);
                     outputStream.flush();
                 }
@@ -118,10 +118,16 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         }
     }
 
-    // TODO Javadoc
-    private static byte[] convertLteRrcOtaMessage(QcdmMessage qcdmMessage)
+    /**
+     * Given an {@link QcdmMessage} that contains an LTE RRC OTA message, convert it to a pcap record byte array that
+     * can be consumed by tools like Wireshark.
+     *
+     * @param qcdmMessage The QCDM message to convert into a pcap record.
+     * @return The pcap record byte array to write to a pcap file.
+     */
+    public static byte[] convertLteRrcOtaMessage(QcdmMessage qcdmMessage)
     {
-        Timber.v("Handling an LTE RRC message"); // TODO Delete me
+        Timber.v("Handling an LTE RRC message");
 
         final byte[] logPayload = qcdmMessage.getLogPayload();
 
@@ -181,7 +187,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
             return null;
         }
 
-        Timber.d("baseAndExtHeaderLength=%d, providedLength=%d", baseAndExtHeaderLength, length);
+        Timber.v("baseAndExtHeaderLength=%d, providedLength=%d", baseAndExtHeaderLength, length);
 
         final byte[] message = Arrays.copyOfRange(logPayload, baseAndExtHeaderLength, baseAndExtHeaderLength + length);
         final byte[] gsmtapHeader = getGsmtapHeader(GsmtapConstants.GSMTAP_TYPE_LTE_RRC, gsmtapChannelType, earfcn, isUplink, sfnAndPci, subframeNumber);
@@ -194,7 +200,12 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         return concatenateByteArrays(pcapRecordHeader, layer3Header, layer4Header, gsmtapHeader, message);
     }
 
-    // TODO Javadoc
+    /**
+     * Given the QCDM LTE channel type in int form, convert it ot the GSMTAP LTE channel type also in int form.
+     *
+     * @param channelType The QCDM message LTE channel type.
+     * @return The GSMTAP LTE channel type.
+     */
     private static int getGsmtapChannelType(int channelType)
     {
         switch (channelType)

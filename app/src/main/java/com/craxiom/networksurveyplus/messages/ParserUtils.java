@@ -1,9 +1,13 @@
 package com.craxiom.networksurveyplus.messages;
 
-import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
+import java.util.function.Consumer;
 
 import timber.log.Timber;
 
@@ -118,7 +122,120 @@ public class ParserUtils
     }
 
     /**
-     * Given a buffered input stream that is pulling from the Diag Revealer FIFO pipe, pull out each individual Diag
+     * Reads the provided input stream and grabs the next Diag Revealer message.
+     * <p>
+     * It is first assumed that the next Diag Revealer message will be at the beginning of the input stream. If the
+     * Diag Revealer header can not be read, the input stream is advanced just past the next 0x7e byte, and the header
+     * is attempted to be read again.
+     * <p>
+     * This process of advancing to the next 0x7e byte is added to make this method more resilient to error states. If
+     * the Diag port and the Diag Revealer application are working correctly we will never need to advance to the next
+     * 0x7e byte because the header will always be the next 4 bytes to read.
+     *
+     * @param inputStream The input stream that is reading from the FIFO pipe. It is highly recommended to use a buffered
+     *                    input stream when reading from a file to prevent excessive disk read operations.
+     * @return The next Diag Revealer message that is found in the input stream, or null if something goes wrong.
+     * @throws IOException if an error occurs when trying to read from the provided input stream.
+     */
+    public static DiagRevealerMessage getNextDiagRevealerMessage(InputStream inputStream) throws IOException
+    {
+        final byte[] headerBytes = new byte[4];
+        while ((inputStream.read(headerBytes)) != -1)
+        {
+            final DiagRevealerMessageHeader header = DiagRevealerMessageHeader.parseDiagRevealerMessageHeader(headerBytes);
+            if (header == null || header.messageType < 1 || 3 < header.messageType || header.messageLength < 1)
+            {
+                Timber.e("Could not parse out the Diag Revealer header");
+                advanceTo7e(inputStream);
+                continue;
+            }
+
+            final byte[] messageBytes = new byte[header.messageLength];
+
+            final int bytesRead = inputStream.read(messageBytes);
+            if (bytesRead != messageBytes.length)
+            {
+                Timber.e("Could not get the correct number of bytes from the FIFO diag revealer queue; bytesRead=%d, expectedLength=%d", bytesRead, messageBytes.length);
+                return null;
+            }
+
+            return DiagRevealerMessage.parseDiagRevealerMessage(messageBytes, header);
+        }
+
+        return null;
+    }
+
+    /**
+     * Moves the provide input stream to just after the next 0x7e byte.
+     *
+     * @param inputStream The input stream to advance past the 0x7e byte.
+     */
+    public static void advanceTo7e(InputStream inputStream) throws IOException
+    {
+        int nextByte;
+        while ((nextByte = inputStream.read()) != -1)
+        {
+            if (nextByte == QcdmMessage.QCDM_FOOTER)
+            {
+                Timber.i("Advanced to the next 0x7e byte");
+                return;
+            }
+        }
+    }
+
+    /**
+     * Given a Diag Revealer message, pull out all the QCDM messages from the payload.
+     * <p>
+     * There can be more than one QCDM message in each Diag Revealer message. Each QCDM message is delimited by the 0x7e
+     * byte. We also need to unescape any 0x7e or 0x7d bytes. For more details on that see the method
+     * {@link ParserUtils#getNextDiagMessageBytes(InputStream)}
+     *
+     * @param diagRevealerMessage The Diag Revealer Message that contains the QCDM message(s) as a payload.
+     */
+    public static void processDiagRevealerMessage(DiagRevealerMessage diagRevealerMessage, Consumer<QcdmMessage> messageConsumer)
+    {
+        try (final ByteArrayInputStream inputStream = new ByteArrayInputStream(diagRevealerMessage.payload))
+        {
+            while (inputStream.available() > 0)
+            {
+                final byte[] diagMessageBytes = getNextDiagMessageBytes(inputStream);
+
+                if (diagMessageBytes == null)
+                {
+                    Timber.e("Could not get the diag message bytes from the Diag Revealer message");
+                    continue;
+                }
+
+                boolean hasQcdmPrefix = false;
+                // Check to see if we need to remove the QCDM prefix
+                if (ByteBuffer.wrap(QcdmMessage.QCDM_PREFIX).equals(ByteBuffer.wrap(diagMessageBytes, 0, 8)))
+                {
+                    hasQcdmPrefix = true;
+                }
+
+                final int diagMessageLengthWithoutCrc = diagMessageBytes.length - 2;
+                final short expectedCrc = getShort(diagMessageBytes, diagMessageLengthWithoutCrc, ByteOrder.LITTLE_ENDIAN);
+                final short crc = calculateCrc16X25(diagMessageBytes, diagMessageLengthWithoutCrc);
+
+                //Timber.d("Escaped QCDM Message=%s", convertBytesToHexString(diagMessageBytes, 0, diagMessageBytes.length));
+
+                if (crc != expectedCrc)
+                {
+                    Timber.w("Invalid CRC found on a diag message expected=%s, actual=%s", Integer.toHexString(expectedCrc), Integer.toHexString(crc));
+                } else
+                {
+                    final byte[] qcdmBytes = Arrays.copyOfRange(diagMessageBytes, hasQcdmPrefix ? 8 : 0, diagMessageLengthWithoutCrc);
+                    messageConsumer.accept(new QcdmMessage(qcdmBytes));
+                }
+            }
+        } catch (IOException e)
+        {
+            Timber.e(e, "Could not read the Diag Revealer message payload to extract the QCDM message bytes");
+        }
+    }
+
+    /**
+     * Given an input stream that contains QCDM messages (aka diag messages), pull out each individual Diag
      * message and return it as a byte array.
      * <p>
      * Each diag message is delimited by the byte 0x7e.
@@ -132,21 +249,22 @@ public class ParserUtils
      * follows is the original byte XORed with 0x20. So 0x7e is escaped with 0x7d and the next byte is set to
      * (0x7e ^ 0x20 ... aka 0x5e). For 0x7d, it is escaped with 0x7d and the next byte is set to (0x7d ^ 0x20 ... aka 0x5d).
      *
-     * @param bufferedInputStream The buffered input stream that is reading from the FIFO pipe.
+     * @param inputStream The input stream that contains the diag messages. It is highly recommended to use a buffered
+     *                    input stream when reading from a file to prevent excessive disk read operations.
      * @return The unescaped next diag message.
      */
-    public static byte[] getNextDiagMessageBytes(BufferedInputStream bufferedInputStream)
+    public static byte[] getNextDiagMessageBytes(InputStream inputStream)
     {
         try (final ByteArrayOutputStream outputStream = new ByteArrayOutputStream())
         {
             int nextByte;
-            while ((nextByte = bufferedInputStream.read()) != -1)
+            while ((nextByte = inputStream.read()) != -1)
             {
                 if (nextByte != QcdmMessage.QCDM_FOOTER)
                 {
                     if (nextByte == (byte) 0x7d)
                     {
-                        nextByte = bufferedInputStream.read();
+                        nextByte = inputStream.read();
                         if (nextByte == (byte) 0x5e)
                         {
                             // We found the escape sequence for the 0x7e byte, drop it into the output stream
