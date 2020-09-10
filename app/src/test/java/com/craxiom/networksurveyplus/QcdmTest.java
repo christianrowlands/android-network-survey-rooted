@@ -4,6 +4,7 @@ import com.craxiom.networksurveyplus.messages.DiagRevealerMessage;
 import com.craxiom.networksurveyplus.messages.GsmtapConstants;
 import com.craxiom.networksurveyplus.messages.LteRrcSubtypes;
 import com.craxiom.networksurveyplus.messages.ParserUtils;
+import com.craxiom.networksurveyplus.messages.QcdmMessage;
 
 import org.junit.Test;
 
@@ -164,10 +165,32 @@ public class QcdmTest
 
             final byte[] pcapRecordBytes = QcdmPcapWriter.convertLteRrcOtaMessage(m);
 
+            assertNotNull(pcapRecordBytes);
+
             // Ignore the first 8 bytes since it contains the record timestamp.
             assertArrayEquals(expectedPcapRecordBytes, Arrays.copyOfRange(pcapRecordBytes, 8, pcapRecordBytes.length));
         });
 
         assertEquals("Did not parse the correct number of messages from the Diag Revealer message payload", 1, messageCount.get());
+    }
+
+    @Test
+    public void testQcdmMessage_UlDcch_UlHandoverPreparationTransfer()
+    {
+        final byte[] qcdmMessageBytes = {(byte) 0x10, (byte) 0x00, (byte) 0x25, (byte) 0x00, (byte) 0x25, (byte) 0x00, (byte) 0xc0, (byte) 0xb0, (byte) 0xfc, (byte) 0x85, (byte) 0xc1, (byte) 0xdf, (byte) 0x57, (byte) 0x20, (byte) 0xef, (byte) 0x00, (byte) 0x14, (byte) 0x0e, (byte) 0x30, (byte) 0x00, (byte) 0xed, (byte) 0x01, (byte) 0x6b, (byte) 0x03, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x08, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x06, (byte) 0x00, (byte) 0x41, (byte) 0x3d, (byte) 0x13, (byte) 0x6c, (byte) 0x58, (byte) 0xf8};
+        final byte[] expectedQcdmMessagePayloadBytes = {(byte) 0x14, (byte) 0x0e, (byte) 0x30, (byte) 0x00, (byte) 0xed, (byte) 0x01, (byte) 0x6b, (byte) 0x03, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x08, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x06, (byte) 0x00, (byte) 0x41, (byte) 0x3d, (byte) 0x13, (byte) 0x6c, (byte) 0x58, (byte) 0xf8};
+        final byte[] expectedPcapRecordBytes = {(byte) 0x32, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x32, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x45, (byte) 0x00, (byte) 0x00, (byte) 0x32, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x40, (byte) 0x11, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x12, (byte) 0x79, (byte) 0x12, (byte) 0x79, (byte) 0x00, (byte) 0x1e, (byte) 0x00, (byte) 0x00, (byte) 0x02, (byte) 0x04, (byte) 0x0d, (byte) 0x00, (byte) 0x43, (byte) 0x6b, (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0xed, (byte) 0x00, (byte) 0x00, (byte) 0x03, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x41, (byte) 0x3d, (byte) 0x13, (byte) 0x6c, (byte) 0x58, (byte) 0xf8};
+
+        final QcdmMessage qcdmMessage = new QcdmMessage(qcdmMessageBytes);
+        assertEquals(16, qcdmMessage.getOpCode());
+        assertEquals(LOG_LTE_RRC_OTA_MSG_LOG_C, qcdmMessage.getLogType());
+        assertArrayEquals("The qcdm message bytes did not match what was expected", expectedQcdmMessagePayloadBytes, qcdmMessage.getLogPayload());
+
+        final byte[] pcapRecordBytes = QcdmPcapWriter.convertLteRrcOtaMessage(qcdmMessage);
+
+        assertNotNull(pcapRecordBytes);
+
+        // Ignore the first 8 bytes since it contains the record timestamp.
+        assertArrayEquals(expectedPcapRecordBytes, Arrays.copyOfRange(pcapRecordBytes, 8, pcapRecordBytes.length));
     }
 }
