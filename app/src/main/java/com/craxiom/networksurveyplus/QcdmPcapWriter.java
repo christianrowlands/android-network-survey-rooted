@@ -297,7 +297,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     {
         // GSMTAP assumes the ARFCN fits in 14 bits, but the LTE spec has the EARFCN range go up to 65535
         if (arfcn < 0 || arfcn > 16_383) arfcn = 0;
-        int arfcnAndUplink = isUplink ? arfcn | 0x40 : arfcn;
+        int arfcnAndUplink = isUplink ? arfcn | 0x4000 : arfcn;
 
         return new byte[]{
                 (byte) 0x02, // GSMTAP version (2) (There is a version 3 but Wireshark does not seem to parse it
