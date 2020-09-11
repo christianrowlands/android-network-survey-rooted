@@ -30,5 +30,8 @@ android:
     - extra-android-m2repository
     - addon-google_apis-google-$ANDROID_API_LEVEL
 
+install:
+  - echo y | sdkmanager "ndk;21.3.6528147"
+
 script:
   - ./gradlew build check
