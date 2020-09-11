@@ -34,6 +34,8 @@ android {
         targetCompatibility = 1.8
     }
 
+    buildToolsVersion '29.0.3'
+
     externalNativeBuild {
         ndkBuild {
             path file('jni/Android.mk')
