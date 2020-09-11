@@ -172,8 +172,8 @@ public class QcdmPcapWriter implements IQcdmMessageListener
             length = ParserUtils.getShort(logPayload, baseAndExtHeaderLength - 2, ByteOrder.LITTLE_ENDIAN);
         }
 
-        // TODO QCSuper seems to ignore if the channel type is != 254, 255, 9, or 10. Not sure why that is.
-        int channelType = ParserUtils.getShort(logPayload, 6 + frequencyLength + 2, ByteOrder.LITTLE_ENDIAN);
+        // TODO QCSuper seems to ignore if the channel type is == 254, 255, 9, or 10. Not sure why that is.
+        int channelType = logPayload[6 + frequencyLength + 2];
 
         boolean isUplink = channelType == LTE_UL_CCCH || channelType == LTE_UL_DCCH;
 
