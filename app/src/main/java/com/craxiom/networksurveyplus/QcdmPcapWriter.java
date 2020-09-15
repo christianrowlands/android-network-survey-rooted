@@ -79,7 +79,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         {
             if (qcdmMessage.getOpCode() == DiagCommand.DIAG_LOG_F)
             {
-                Timber.v("Pcap Writer listener: %s", qcdmMessage);
+                Timber.d("Pcap Writer listener: %s", qcdmMessage);
 
                 byte[] pcapRecord = null;
 
@@ -93,7 +93,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
 
                 if (pcapRecord != null)
                 {
-                    Timber.v("Writing a message to the pcap file");
+                    Timber.d("Writing a message to the pcap file");
                     outputStream.write(pcapRecord);
                     outputStream.flush();
                 }
@@ -177,10 +177,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
 
         boolean isUplink = channelType == LTE_UL_CCCH || channelType == LTE_UL_DCCH;
 
-        // TODO QCSuper subtracts 7 from the channelType if it is greater than LTE_UL_DCCH (8), but I have no idea why
-        if (channelType > LTE_UL_DCCH) channelType -= 7;
-
-        final int gsmtapChannelType = getGsmtapChannelType(channelType);
+        final int gsmtapChannelType = getGsmtapChannelType(extHeaderVersion, channelType);
         if (gsmtapChannelType == -1)
         {
             Timber.w("Unknown channel type received for LOG_LTE_RRC_OTA_MSG_LOG_C: %d", channelType);
@@ -201,36 +198,176 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     }
 
     /**
-     * Given the QCDM LTE channel type in int form, convert it ot the GSMTAP LTE channel type also in int form.
+     * It seems that the channel type included in the QCDM header is a bit complicated. Based on all the different
+     * versions of the header, the channel type maps differently to the GSMTAP subtype field. This method attempts to
+     * map everything.
+     * <p>
+     * I could not find a specification document that outlined the mapping for each version number so I had to rely
+     * solely on the Mobile Sentinel source code from the diagltelogparser.py file:
+     * https://github.com/RUB-SysSec/mobile_sentinel/blob/8485ef811cfbba7ab8b9d39bee7b38ae9072cce8/app/src/main/python/parsers/qualcomm/diagltelogparser.py#L894
      *
-     * @param channelType The QCDM message LTE channel type.
-     * @return The GSMTAP LTE channel type.
+     * @param versionNumber The version number at the start of the QCDM message header.
+     * @param channelType   The channel type found in the QCDM header
+     * @return The GSMTAP Channel Type / Subtype that specifies what kind of message the payload of the GSMTAP
+     * frame contains.
      */
-    private static int getGsmtapChannelType(int channelType)
+    private static int getGsmtapChannelType(int versionNumber, int channelType)
     {
-        switch (channelType)
+        switch (versionNumber)
         {
-            case LTE_BCCH_DL_SCH:
-                return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message.ordinal();
+            case 2: // 0x02
+            case 3: // 0x03
+            case 4: // 0x04
+            case 6: // 0x06
+            case 7: // 0x07
+            case 8: // 0x08
+            case 13: // 0x0d
+            case 22: // 0x16
+                switch (channelType)
+                {
+                    case 1:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message.ordinal(); // 4
+                    case 2:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message.ordinal(); // 5
+                    case 3:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_MCCH_Message.ordinal(); // 7
+                    case 4:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_PCCH_Message.ordinal(); // 6
+                    case 5:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_CCCH_Message.ordinal(); // 0
+                    case 6:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_DCCH_Message.ordinal(); // 1
+                    case 7:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_CCCH_Message.ordinal(); // 2
+                    case 8:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_DCCH_Message.ordinal(); // 3
+                }
 
-            case LTE_PCCH:
-                return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_PCCH_Message.ordinal();
+                break;
 
-            case LTE_DL_CCCH:
-                return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_CCCH_Message.ordinal();
+            case 9: // 0x09
+            case 12: // 0x0c
+                switch (channelType)
+                {
+                    case 8:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message.ordinal(); // 4
+                    case 9:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message.ordinal(); // 5
+                    case 10:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_MCCH_Message.ordinal(); // 7
+                    case 11:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_PCCH_Message.ordinal(); // 6
+                    case 12:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_CCCH_Message.ordinal(); // 0
+                    case 13:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_DCCH_Message.ordinal(); // 1
+                    case 14:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_CCCH_Message.ordinal(); // 2
+                    case 15:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_DCCH_Message.ordinal(); // 3
+                }
+                break;
 
-            case LTE_DL_DCCH:
-                return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_DCCH_Message.ordinal();
+            case 14: // 0x0e
+            case 15: // 0x0f
+            case 16: // 0x10
+                switch (channelType)
+                {
+                    case 1:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message.ordinal(); // 4
+                    case 2:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message.ordinal(); // 5
+                    case 4:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_MCCH_Message.ordinal(); // 7
+                    case 5:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_PCCH_Message.ordinal(); // 6
+                    case 6:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_CCCH_Message.ordinal(); // 0
+                    case 7:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_DCCH_Message.ordinal(); // 1
+                    case 8:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_CCCH_Message.ordinal(); // 2
+                    case 9:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_DCCH_Message.ordinal(); // 3
+                }
+                break;
 
-            case LTE_UL_CCCH:
-                return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_CCCH_Message.ordinal();
+            case 19: // 0x13
+            case 26: // 0x1a
+                switch (channelType)
+                {
+                    case 1:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message.ordinal(); // 4
+                    case 3:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message.ordinal(); // 5
+                    case 6:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_MCCH_Message.ordinal(); // 7
+                    case 7:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_PCCH_Message.ordinal(); // 6
+                    case 8:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_CCCH_Message.ordinal(); // 0
+                    case 9:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_DCCH_Message.ordinal(); // 1
+                    case 10:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_CCCH_Message.ordinal(); // 2
+                    case 11:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_DCCH_Message.ordinal(); // 3
+                    case 45:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message_NB.ordinal(); // 18
+                    case 46:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message_NB.ordinal(); // 20
+                    case 47:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_PCCH_Message_NB.ordinal(); // 21
+                    case 48:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_CCCH_Message_NB.ordinal(); // 14
+                    case 49:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_DCCH_Message_NB.ordinal(); // 15
+                    case 50:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_CCCH_Message_NB.ordinal(); // 16
+                    case 52:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_DCCH_Message_NB.ordinal(); // 17
+                }
+                break;
 
-            case LTE_UL_DCCH:
-                return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_DCCH_Message.ordinal();
-
-            default:
-                return -1;
+            case 20: // 0x14
+                switch (channelType)
+                {
+                    case 1:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message.ordinal(); // 4
+                    case 2:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message.ordinal(); // 5
+                    case 4:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_MCCH_Message.ordinal(); // 7
+                    case 5:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_PCCH_Message.ordinal(); // 6
+                    case 6:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_CCCH_Message.ordinal(); // 0
+                    case 7:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_DCCH_Message.ordinal(); // 1
+                    case 8:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_CCCH_Message.ordinal(); // 2
+                    case 9:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_DCCH_Message.ordinal(); // 3
+                    case 54:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message_NB.ordinal(); // 18
+                    case 55:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message_NB.ordinal(); // 20
+                    case 56:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_PCCH_Message_NB.ordinal(); // 21
+                    case 57:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_CCCH_Message_NB.ordinal(); // 14
+                    case 58:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_DCCH_Message_NB.ordinal(); // 15
+                    case 59:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_CCCH_Message_NB.ordinal(); // 16
+                    case 61:
+                        return LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_DCCH_Message_NB.ordinal(); // 17
+                }
+                break;
         }
+
+        Timber.e("Could not map the provide version number (%d) and channel type (%d) to a GSM tap subtype", versionNumber, channelType);
+        return -1;
     }
 
     /**
@@ -285,6 +422,10 @@ public class QcdmPcapWriter implements IQcdmMessageListener
      *
      *     } +attribute+((packed));
      * </pre>
+     * <p>
+     * I could not find much information for GSMTAP Version 3. The only place I see it is coming from Mobile Sentinel,
+     * and the only difference I could see was that it add 12 bytes at the end of the GSMTAP header. The first 8 of
+     * those bytes is for the device seconds, and the last 4 bytes is the device usec.
      *
      * @param payloadType       The type of payload that follows this GSMTAP header.
      * @param gsmtapChannelType The channel subtype.
@@ -300,11 +441,11 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         int arfcnAndUplink = isUplink ? arfcn | 0x4000 : arfcn;
 
         return new byte[]{
-                (byte) 0x02, // GSMTAP version (2) (There is a version 3 but Wireshark does not seem to parse it
-                (byte) 0x04, // Header length (4 aka 16 bytes)
+                (byte) 0x02, // GSMTAP version (2) (There is a version 3 but Wireshark does not seem to parse it)
+                (byte) 0x04, // Header length in 32-bit words (4 words aka 16 bytes)
                 (byte) (payloadType & 0xFF), // Payload type (1 byte)
                 (byte) 0x00, // Time Slot
-                (byte) ((arfcnAndUplink & 0xFF00) >>> 8), (byte) (arfcnAndUplink & 0x00FF), // Uplink (bit 15) ARFCN (last 14 bits)
+                (byte) ((arfcnAndUplink & 0xFF00) >>> 8), (byte) (arfcnAndUplink & 0x00FF), // PCS flag (bit 16), Uplink flag (bit 15), ARFCN (last 14 bits)
                 (byte) 0x00, // Signal Level dBm
                 (byte) 0x00, // Signal/Noise Ratio dB
                 (byte) (sfnAndPci >>> 24), (byte) ((sfnAndPci & 0xFF0000) >>> 16), (byte) ((sfnAndPci & 0xFF00) >>> 8), (byte) (sfnAndPci & 0xFF), // GSM Frame Number

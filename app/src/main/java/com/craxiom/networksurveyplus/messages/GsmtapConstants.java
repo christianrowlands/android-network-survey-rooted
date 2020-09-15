@@ -72,4 +72,13 @@ public final class GsmtapConstants
     public static final int GSMTAP_CHANNEL_VOICE_H = 0x11;        /* voice codec payload (HR/AMR) */
     public static final int GSMTAP_CHANNEL_TCH_F = GSMTAP_CHANNEL_FACCH_F;        /* We used the wrong naming in 2008 when we were young */
     public static final int GSMTAP_CHANNEL_TCH_H = GSMTAP_CHANNEL_FACCH_H;        /* We used the wrong naming in 2008 when we were young */
+
+    /* sub-types for TYPE_LTE_RRC */
+    public static final int GSMTAP_LTE_CH_BCCH = 0x01;
+    public static final int GSMTAP_LTE_CH_CCCH = 0x02;
+    public static final int GSMTAP_LTE_CH_DCCH = 0x03;
+    public static final int GSMTAP_LTE_CH_MCCH = 0x04;
+    public static final int GSMTAP_LTE_CH_PCCH = 0x05;
+    public static final int GSMTAP_LTE_CH_DTCH = 0x06;
+    public static final int GSMTAP_LTE_CH_MTCH = 0x07;
 }
