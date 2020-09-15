@@ -28,7 +28,8 @@ The following is a list of devices that have been confirmed to work with this Ne
 | Pixel 4       |               |
 
 
-## Getting Started
+## Build and development instructions
+#### Basic Instructions
 
 To build and install the project follow the steps below:
 
@@ -36,6 +37,26 @@ To build and install the project follow the steps below:
     2) Open Android Studio, and then open the root directory of the cloned repo.
     3) Connect an Android Phone (make sure debugging is enabled on the device).
     4) Install and run the app by clicking the "Play" button in Android Studio.
+
+#### Detailed Instructions
+
+This app included a native application written in C (called Diag Revealer) that is used to initialize the /dev/diag 
+QCDM device on the phone, and stream the output from the /dev/diag device to the a FIFO named pipe. The Java portion of 
+this app reads from that FIFO queue and consumes the QCDM messages.
+
+Worth of note is that the Diag Revealer application source code was pulled from the MobileInsight Android app source code.
+
+To make things easy, the full compiled binary of the Diag Revealer app is included in this repo. Eventually, we will 
+make the gradle build script compile the Diag Revealer binary, but for now it is included in the repo. If you want to 
+make changes to the Diag Revealer C application, you can do so and then compile it using the following steps:
+
+ 1) `cd app`
+ 1) `ndk-build`
+ 1)  Add the `.so` extension to the output file (probably something like `libs/arm64-v8a/diag_revealer` to `libs/arm64-v8a/diag_revealer.so`)
+ 
+The reason the file needs to have the `.so` extension is that Android only unpacks the native application if it is a 
+shared library instead of just a regular executable. At some point it would be nice to investigate if we can get around
+this and leave off the .so extension since it is misleading.
 
 
 ### Prerequisites
