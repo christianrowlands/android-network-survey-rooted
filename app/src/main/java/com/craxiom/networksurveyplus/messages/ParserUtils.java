@@ -1,6 +1,15 @@
 package com.craxiom.networksurveyplus.messages;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
+import java.util.function.Consumer;
+
+import timber.log.Timber;
 
 /**
  * Some helpful parsing and utility methods that this app uses.
@@ -12,7 +21,7 @@ public class ParserUtils
     // 0001 0000 0010 0001  (0, 5, 12)
     public static final int CRC_16_CCITT_POLYNOMIAL = 0x1021;
 
-    private static final short[] crctab16 =
+    private static final short[] CTC_TABLE_16 =
             {
                     (short) 0x0000, (short) 0x1189, (short) 0x2312, (short) 0x329b, (short) 0x4624, (short) 0x57ad, (short) 0x6536, (short) 0x74bf,
                     (short) 0x8c48, (short) 0x9dc1, (short) 0xaf5a, (short) 0xbed3, (short) 0xca6c, (short) 0xdbe5, (short) 0xe97e, (short) 0xf8f7,
@@ -63,6 +72,18 @@ public class ParserUtils
     }
 
     /**
+     * A custom implementation of {@link Short#reverseBytes(short)} because the JDK version uses the
+     * regular right shift operator `>>` and we need to use the unsigned right shift operator `>>>`.
+     *
+     * @param s the value whose bytes are to be reversed
+     * @return the value obtained by reversing (or, equivalently, swapping) the bytes in the specified {@code short} value.
+     */
+    public static short reverseBytes(short s)
+    {
+        return (short) (((s & 0xFF00) >>> 8) | (s << 8));
+    }
+
+    /**
      * Parse the provided bytes to extract an int value using the specified byte order.
      *
      * @param bytes     Bytes to parse
@@ -96,8 +117,182 @@ public class ParserUtils
                 ((long) (bytes[offset + 4] & 0xff) << 24) |
                 ((long) (bytes[offset + 5] & 0xff) << 16) |
                 ((long) (bytes[offset + 6] & 0xff) << 8) |
-                ((long) (bytes[offset + 7] & 0xff));
+                (bytes[offset + 7] & 0xff);
         return byteOrder == ByteOrder.LITTLE_ENDIAN ? Long.reverseBytes(value) : value;
+    }
+
+    /**
+     * Reads the provided input stream and grabs the next Diag Revealer message.
+     * <p>
+     * It is first assumed that the next Diag Revealer message will be at the beginning of the input stream. If the
+     * Diag Revealer header can not be read, the input stream is advanced just past the next 0x7e byte, and the header
+     * is attempted to be read again.
+     * <p>
+     * This process of advancing to the next 0x7e byte is added to make this method more resilient to error states. If
+     * the Diag port and the Diag Revealer application are working correctly we will never need to advance to the next
+     * 0x7e byte because the header will always be the next 4 bytes to read.
+     *
+     * @param inputStream The input stream that is reading from the FIFO pipe. It is highly recommended to use a buffered
+     *                    input stream when reading from a file to prevent excessive disk read operations.
+     * @return The next Diag Revealer message that is found in the input stream, or null if something goes wrong.
+     * @throws IOException if an error occurs when trying to read from the provided input stream.
+     */
+    public static DiagRevealerMessage getNextDiagRevealerMessage(InputStream inputStream) throws IOException
+    {
+        final byte[] headerBytes = new byte[4];
+        while ((inputStream.read(headerBytes)) != -1)
+        {
+            final DiagRevealerMessageHeader header = DiagRevealerMessageHeader.parseDiagRevealerMessageHeader(headerBytes);
+            if (header == null || header.messageType < 1 || 3 < header.messageType || header.messageLength < 1)
+            {
+                Timber.e("Could not parse out the Diag Revealer header");
+                advanceTo7e(inputStream);
+                continue;
+            }
+
+            final byte[] messageBytes = new byte[header.messageLength];
+
+            final int bytesRead = inputStream.read(messageBytes);
+            if (bytesRead != messageBytes.length)
+            {
+                Timber.e("Could not get the correct number of bytes from the FIFO diag revealer queue; bytesRead=%d, expectedLength=%d", bytesRead, messageBytes.length);
+                return null;
+            }
+
+            return DiagRevealerMessage.parseDiagRevealerMessage(messageBytes, header);
+        }
+
+        return null;
+    }
+
+    /**
+     * Moves the provide input stream to just after the next 0x7e byte.
+     *
+     * @param inputStream The input stream to advance past the 0x7e byte.
+     */
+    public static void advanceTo7e(InputStream inputStream) throws IOException
+    {
+        int nextByte;
+        while ((nextByte = inputStream.read()) != -1)
+        {
+            if (nextByte == QcdmMessage.QCDM_FOOTER)
+            {
+                Timber.i("Advanced to the next 0x7e byte");
+                return;
+            }
+        }
+    }
+
+    /**
+     * Given a Diag Revealer message, pull out all the QCDM messages from the payload.
+     * <p>
+     * There can be more than one QCDM message in each Diag Revealer message. Each QCDM message is delimited by the 0x7e
+     * byte. We also need to unescape any 0x7e or 0x7d bytes. For more details on that see the method
+     * {@link ParserUtils#getNextDiagMessageBytes(InputStream)}
+     *
+     * @param diagRevealerMessage The Diag Revealer Message that contains the QCDM message(s) as a payload.
+     */
+    public static void processDiagRevealerMessage(DiagRevealerMessage diagRevealerMessage, Consumer<QcdmMessage> messageConsumer)
+    {
+        try (final ByteArrayInputStream inputStream = new ByteArrayInputStream(diagRevealerMessage.payload))
+        {
+            while (inputStream.available() > 0)
+            {
+                final byte[] diagMessageBytes = getNextDiagMessageBytes(inputStream);
+
+                if (diagMessageBytes == null)
+                {
+                    Timber.e("Could not get the diag message bytes from the Diag Revealer message");
+                    continue;
+                }
+
+                boolean hasQcdmPrefix = false;
+                // Check to see if we need to remove the QCDM prefix
+                if (ByteBuffer.wrap(QcdmMessage.QCDM_PREFIX).equals(ByteBuffer.wrap(diagMessageBytes, 0, 8)))
+                {
+                    hasQcdmPrefix = true;
+                }
+
+                final int diagMessageLengthWithoutCrc = diagMessageBytes.length - 2;
+                final short expectedCrc = getShort(diagMessageBytes, diagMessageLengthWithoutCrc, ByteOrder.LITTLE_ENDIAN);
+                final short crc = calculateCrc16X25(diagMessageBytes, diagMessageLengthWithoutCrc);
+
+                //Timber.d("Escaped QCDM Message=%s", convertBytesToHexString(diagMessageBytes, 0, diagMessageBytes.length));
+
+                if (crc != expectedCrc)
+                {
+                    Timber.w("Invalid CRC found on a diag message expected=%s, actual=%s", Integer.toHexString(expectedCrc), Integer.toHexString(crc));
+                } else
+                {
+                    final byte[] qcdmBytes = Arrays.copyOfRange(diagMessageBytes, hasQcdmPrefix ? 8 : 0, diagMessageLengthWithoutCrc);
+                    messageConsumer.accept(new QcdmMessage(qcdmBytes));
+                }
+            }
+        } catch (IOException e)
+        {
+            Timber.e(e, "Could not read the Diag Revealer message payload to extract the QCDM message bytes");
+        }
+    }
+
+    /**
+     * Given an input stream that contains QCDM messages (aka diag messages), pull out each individual Diag
+     * message and return it as a byte array.
+     * <p>
+     * Each diag message is delimited by the byte 0x7e.
+     * <p>
+     * However, because the byte 0x7e can be contained in the actual diag message, it has to be escaped in the message
+     * payload. So, to unescape the 0x7e byte we have to look for instances of "0x7d 0x5e" and replace it with "0x7e".
+     * <p>
+     * In addition, since 0x7d represents an escape character, 0x7d is escaped as "0x7d 0x5d".
+     * <p>
+     * Another way to look at these escape sequences is to know that 0x7d is the escape byte, and then the value that
+     * follows is the original byte XORed with 0x20. So 0x7e is escaped with 0x7d and the next byte is set to
+     * (0x7e ^ 0x20 ... aka 0x5e). For 0x7d, it is escaped with 0x7d and the next byte is set to (0x7d ^ 0x20 ... aka 0x5d).
+     *
+     * @param inputStream The input stream that contains the diag messages. It is highly recommended to use a buffered
+     *                    input stream when reading from a file to prevent excessive disk read operations.
+     * @return The unescaped next diag message.
+     */
+    public static byte[] getNextDiagMessageBytes(InputStream inputStream)
+    {
+        try (final ByteArrayOutputStream outputStream = new ByteArrayOutputStream())
+        {
+            int nextByte;
+            while ((nextByte = inputStream.read()) != -1)
+            {
+                if (nextByte != QcdmMessage.QCDM_FOOTER)
+                {
+                    if (nextByte == (byte) 0x7d)
+                    {
+                        nextByte = inputStream.read();
+                        if (nextByte == (byte) 0x5e)
+                        {
+                            // We found the escape sequence for the 0x7e byte, drop it into the output stream
+                            outputStream.write(0x7e);
+                        } else if (nextByte == (byte) 0x5d)
+                        {
+                            // We found the escape sequence for the 0x7d byte, drop it into the output stream
+                            outputStream.write(0x7d);
+                        } else
+                        {
+                            Timber.e("Found the 0x7d escape byte, but did not find 0x5e or 0x5d after it, instead found %s", Integer.toHexString(nextByte));
+                        }
+                    } else
+                    {
+                        outputStream.write(nextByte);
+                    }
+
+                    continue;
+                }
+
+                return outputStream.toByteArray();
+            }
+        } catch (IOException e)
+        {
+            Timber.e(e, "Caught an exception when trying to get the next Diag Message bytes");
+        }
+
+        return null;
     }
 
     /**
@@ -139,7 +334,7 @@ public class ParserUtils
         int i;
         for (i = 0; i < stopPosition; i++)
         {
-            fcs = (short) (((fcs & 0xFFFF) >>> 8) ^ crctab16[(fcs ^ bytes[i]) & 0xff]);
+            fcs = (short) (((fcs & 0xFFFF) >>> 8) ^ CTC_TABLE_16[(fcs ^ bytes[i]) & 0xff]);
         }
         return (short) ~fcs;
     }
@@ -161,17 +356,5 @@ public class ParserUtils
             stringBuilder.append(String.format("%02x ", bytes[i]));
         }
         return stringBuilder.toString();
-    }
-
-    /**
-     * A custom implementation of {@link Short#reverseBytes(short)} because the JDK version uses the
-     * regular right shift operator `>>` and we need to use the unsigned right shift operator `>>>`.
-     *
-     * @param s the value whose bytes are to be reversed
-     * @return the value obtained by reversing (or, equivalently, swapping) the bytes in the specified {@code short} value.
-     */
-    public static short reverseBytes(short s)
-    {
-        return (short) (((s & 0xFF00) >>> 8) | (s << 8));
     }
 }

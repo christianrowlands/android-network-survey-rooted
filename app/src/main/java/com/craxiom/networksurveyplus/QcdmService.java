@@ -22,7 +22,6 @@ import androidx.core.app.NotificationCompat;
 import com.craxiom.networksurveyplus.mqtt.ConnectionState;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -198,7 +197,7 @@ public class QcdmService extends Service
         final String fifoPipeName = applicationContext.getFilesDir() + "/" + Constants.FIFO_PIPE;
         createNamedPipe(fifoPipeName);
 
-        fifoReadRunnable = new FifoReadRunnable(applicationContext, fifoPipeName, qcdmMessageProcessor);
+        fifoReadRunnable = new FifoReadRunnable(fifoPipeName, qcdmMessageProcessor);
         fifoReadHandler.post(fifoReadRunnable);
 
         diagRevealerRunnable = new DiagRevealerRunnable(applicationContext, fifoPipeName);
@@ -355,7 +354,7 @@ public class QcdmService extends Service
                     qcdmPcapWriter = new QcdmPcapWriter();
                     qcdmMessageProcessor.registerQcdmMessageListener(qcdmPcapWriter);
                     successful = true;
-                } catch (IOException e)
+                } catch (Exception e)
                 {
                     Timber.e(e, "Could not create the QCDM PCAP writer");
                     successful = false;
