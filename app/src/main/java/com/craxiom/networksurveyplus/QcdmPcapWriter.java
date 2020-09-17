@@ -1,5 +1,6 @@
 package com.craxiom.networksurveyplus;
 
+import android.content.SharedPreferences;
 import android.os.Environment;
 
 import com.craxiom.networksurveyplus.messages.DiagCommand;
@@ -17,7 +18,9 @@ import java.nio.ByteOrder;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import timber.log.Timber;
 
@@ -37,12 +40,12 @@ import static com.craxiom.networksurveyplus.messages.QcdmConstants.*;
  *
  * @since 0.1.0
  */
-public class QcdmPcapWriter implements IQcdmMessageListener
+public class QcdmPcapWriter implements IQcdmMessageListener, SharedPreferences.OnSharedPreferenceChangeListener
 {
     private static final String LOG_DIRECTORY_NAME = "NetworkSurveyPlusData";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneId.systemDefault());
     private static final byte[] ETHERNET_HEADER = {(byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x08, (byte) 0x00};
-
+    private static final int BYTES_PER_MEGABYTE = 1_000_000;
     /**
      * The 24 byte PCAP global header.
      */
@@ -53,7 +56,16 @@ public class QcdmPcapWriter implements IQcdmMessageListener
             (byte) 0xff, (byte) 0xff, 0, 0,  // Snapshot (length)
             (byte) 0xe4, 0, 0, 0  // Link Layer Type (4 bytes): 228 is LINKTYPE_IPV4
     };
-    private final BufferedOutputStream outputStream;
+
+    private static int maxLogSizeMb = 5;
+    private static int recordCount = 0;
+
+    private BufferedOutputStream outputStream;
+
+    private File currentPcapFile;
+    private int currentLogSizeMb;
+
+    private List<IServiceMessageListener> serviceMessageListeners = new ArrayList<>();
 
     /**
      * Constructs a new QCDM pcap file writer.
@@ -64,10 +76,29 @@ public class QcdmPcapWriter implements IQcdmMessageListener
      */
     QcdmPcapWriter() throws IOException
     {
-        final File pcapFile = new File(createNewFilePath());
-        pcapFile.getParentFile().mkdirs();
+        createNewPcapFile();
+    }
 
-        outputStream = new BufferedOutputStream(new FileOutputStream(pcapFile));
+    public void registerMessageListener(IServiceMessageListener listener)
+    {
+        serviceMessageListeners.add(listener);
+    }
+
+    /**
+     * Helper method to create a new pcap file and stores the result in {@link #currentPcapFile}.
+     * The {@link #outputStream} is also updated.
+     */
+    private void createNewPcapFile() throws IOException
+    {
+        if (outputStream != null)
+        {
+            outputStream.close();
+        }
+
+        currentPcapFile = new File(createNewFilePath());
+        currentPcapFile.getParentFile().mkdirs();
+
+        outputStream = new BufferedOutputStream(new FileOutputStream(currentPcapFile));
         outputStream.write(PCAP_FILE_GLOBAL_HEADER);
         outputStream.flush();
     }
@@ -94,8 +125,23 @@ public class QcdmPcapWriter implements IQcdmMessageListener
                 if (pcapRecord != null)
                 {
                     Timber.v("Writing a message to the pcap file"); // TODO Delete me
+
+                    // Check if we need to roll over the pcap file
+                    currentLogSizeMb = (int) currentPcapFile.length() * BYTES_PER_MEGABYTE;
+                    final int pcapSizeMb = pcapRecord.length * BYTES_PER_MEGABYTE;
+
+                    if (currentLogSizeMb + pcapSizeMb >= maxLogSizeMb)
+                    {
+                        createNewPcapFile();
+                    }
+
                     outputStream.write(pcapRecord);
                     outputStream.flush();
+
+                    // Notify listeners of record count
+                    recordCount++;
+                    ServiceMessage recordLoggedMessage = new ServiceMessage(Constants.SERVICE_RECORD_LOGGED_MESSAGE, recordCount);
+                    serviceMessageListeners.forEach(listener -> listener.onServiceMessage(recordLoggedMessage));
                 }
             }
         } catch (Exception e)
@@ -374,5 +420,21 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         return Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOWNLOADS) + "/" + LOG_DIRECTORY_NAME + "/" +
                 Constants.PCAP_FILE_NAME_PREFIX + DATE_TIME_FORMATTER.format(LocalDateTime.now()) + ".pcap";
+    }
+
+    /**
+     * Update the max log size if the preference has changed.
+     */
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key)
+    {
+        if (key.equals(Constants.PROPERTY_LOG_ROLLOVER_SIZE_MB))
+        {
+            int newLogSizeMax = sharedPreferences.getInt(key, maxLogSizeMb);
+            if (newLogSizeMax != maxLogSizeMb)
+            {
+                maxLogSizeMb = newLogSizeMax;
+            }
+        }
     }
 }
