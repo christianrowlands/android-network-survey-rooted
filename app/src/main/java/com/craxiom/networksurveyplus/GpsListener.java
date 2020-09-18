@@ -59,13 +59,12 @@ public class GpsListener implements LocationListener
      */
     private void updateLocation(Location newLocation)
     {
-        if (newLocation != null// && LocationManager.GPS_PROVIDER.equals(newLocation.getProvider()) // TODO What if we remove the GPS provider check. As long as it is an accurate location that should work
-                && newLocation.getAccuracy() <= MIN_DISTANCE_ACCURACY)
+        if (newLocation != null && newLocation.getAccuracy() <= MIN_DISTANCE_ACCURACY)
         {
             latestLocation = newLocation;
         } else
         {
-            Timber.d("The accuracy of the last GPS location is less than the required minimum");
+            Timber.d("The accuracy of the last GPS location (%d) is less than the required minimum (%d)", newLocation.getAccuracy(), MIN_DISTANCE_ACCURACY);
             latestLocation = null;
         }
     }

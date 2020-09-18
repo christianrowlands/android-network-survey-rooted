@@ -10,6 +10,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.os.Binder;
+import android.os.FileUtils;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -21,11 +22,21 @@ import androidx.core.app.NotificationCompat;
 
 import com.craxiom.networksurveyplus.mqtt.ConnectionState;
 
+import com.google.common.io.ByteStreams;
+
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import timber.log.Timber;
+
+import static android.util.Xml.Encoding.UTF_8;
 
 /**
  * This service is responsible for initializing all the components necessary to activate the QCDM /dev/diag port and
@@ -213,33 +224,37 @@ public class QcdmService extends Service
      */
     private boolean createNamedPipe(String fifoPipeName)
     {
+        boolean status = false;
         final String[] namedPipeCommand = {"su", "-c", "exec mknod -m=rw " + fifoPipeName + " p"};
 
         try
         {
-            final Process process = Runtime.getRuntime().exec(namedPipeCommand);
-            final int exitValue = process.waitFor();
-            if (exitValue != 0)
+            Path path = Paths.get(fifoPipeName);
+            if (Files.exists(path) &&
+                Files.readAttributes(path, BasicFileAttributes.class).isOther())
             {
-                Timber.e("exit value of creating the named pipe: %s", exitValue);
-                try (BufferedReader stdErr = new BufferedReader(new InputStreamReader(process.getErrorStream())))
-                {
-                    String stdErrLine;
-                    while ((stdErrLine = stdErr.readLine()) != null)
-                    {
-                        Timber.e("mknod ERROR: %s", stdErrLine);
-                    }
-                }
+                status = true; // named pipe already exists
             } else
             {
-                Timber.d("Successfully ran the mknod command to create the named pipe");
+
+                final Process process = new ProcessBuilder(namedPipeCommand).redirectError(ProcessBuilder.Redirect.PIPE).start();
+                final int exitValue = process.waitFor();
+
+                if (exitValue != 0)
+                {
+                    Timber.e("exit value of creating the named pipe: %s", exitValue);
+                    Timber.e("mknod ERROR: %s", new String(ByteStreams.toByteArray(process.getErrorStream())));
+                } else
+                {
+                    status = true;
+                    Timber.d("Successfully ran the mknod command to create the named pipe");
+                }
             }
-        } catch (Exception e)
+        } catch(Exception e)
         {
             Timber.e(e, "Could not execute the mknod command to create the named pipe");
         }
-
-        return true; // FIXME Update once we get the already exists exit value
+        return status;
     }
 
     /**
