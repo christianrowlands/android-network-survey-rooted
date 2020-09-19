@@ -28,7 +28,4 @@ public class Constants
     // or more specifically in strings.xml
     public static final String PROPERTY_AUTO_START_PCAP_LOGGING = "Auto Start Logging";
     public static final String PROPERTY_LOG_ROLLOVER_SIZE_MB = "Log Rollover Size";
-
-    public static final int SERVICE_LOCATION_MESSAGE = 1;
-    public static final int SERVICE_RECORD_LOGGED_MESSAGE = 2;
 }

@@ -8,7 +8,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
@@ -25,11 +24,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
+import androidx.preference.PreferenceManager;
 
+import com.craxiom.networksurveyplus.ui.home.HomeViewModel;
+import com.craxiom.networksurveyplus.ui.settings.PreferencesViewModel;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.io.File;
@@ -55,6 +58,9 @@ public class MainActivity extends AppCompatActivity
 
     private MenuItem startStopPcapLoggingMenuItem;
 
+    private HomeViewModel homeViewModel;
+    private PreferencesViewModel preferencesViewModel;
+
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -64,6 +70,8 @@ public class MainActivity extends AppCompatActivity
         setContentView(R.layout.activity_main);
 
         setupNavigation();
+
+        setupViewModels();
 
         qcdmServiceConnection = new QcdmServiceConnection();
 
@@ -259,6 +267,17 @@ public class MainActivity extends AppCompatActivity
     }
 
     /**
+     * Set up the view models needed for communicating between this activity, the service, and the
+     * fragments in the bottom navigation.
+     */
+    private void setupViewModels()
+    {
+        final ViewModelProvider viewModelProvider = new ViewModelProvider(this);
+        homeViewModel = viewModelProvider.get(HomeViewModel.class);
+        preferencesViewModel = viewModelProvider.get(PreferencesViewModel.class);
+    }
+
+    /**
      * Create the notification channel that this app will use to display notifications in the Android UI.
      */
     private void setupNotificationChannel()
@@ -408,6 +427,18 @@ public class MainActivity extends AppCompatActivity
             Timber.i("%s service connected", name);
             final QcdmService.QcdmServiceBinder binder = (QcdmService.QcdmServiceBinder) iBinder;
             qcdmService = binder.getService();
+
+            if (homeViewModel != null)
+            {
+                qcdmService.registerServiceStatusListener(homeViewModel);
+            }
+
+            // Once this listener is set the PreferencesFragment will manage both un/registration.
+            if (preferencesViewModel != null)
+            {
+                preferencesViewModel.setListener(qcdmService);
+            }
+
             // TODO Update this
             /*qcdmService.onUiVisible(NetworkSurveyActivity.this);
 
@@ -446,6 +477,11 @@ public class MainActivity extends AppCompatActivity
         @Override
         public void onServiceDisconnected(final ComponentName name)
         {
+            if (homeViewModel != null)
+            {
+                qcdmService.unregisterServiceStatusListener(homeViewModel);
+            }
+
             qcdmService = null;
             Timber.i("%s service disconnected", name);
         }

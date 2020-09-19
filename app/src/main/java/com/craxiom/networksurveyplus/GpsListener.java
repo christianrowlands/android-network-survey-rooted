@@ -23,7 +23,7 @@ public class GpsListener implements LocationListener
     private static final float MIN_DISTANCE_ACCURACY = 44f; // Probably need to make this configurable
 
     private Location latestLocation;
-    private List<IServiceMessageListener> serviceMessageListeners = new ArrayList<>();
+    private List<IServiceStatusListener> serviceMessageListeners = new ArrayList<>();
 
     @Override
     public void onLocationChanged(Location location)
@@ -51,9 +51,24 @@ public class GpsListener implements LocationListener
         if (LocationManager.GPS_PROVIDER.equals(provider)) latestLocation = null;
     }
 
-    public void registerListener(IServiceMessageListener listener)
+    /**
+     * Adds a location update listener.
+     *
+     * @param listener The listener to add
+     */
+    public void registerLocationUpdatesListener(IServiceStatusListener listener)
     {
         serviceMessageListeners.add(listener);
+    }
+
+    /**
+     * Removes a location update listeners.
+     *
+     * @param listener The listener to remove
+     */
+    public void unregisterLocationUpdatesListener(IServiceStatusListener listener)
+    {
+        serviceMessageListeners.remove(listener);
     }
 
     public Location getLatestLocation()
@@ -78,7 +93,7 @@ public class GpsListener implements LocationListener
             latestLocation = null;
         }
 
-        ServiceMessage locationMessage = new ServiceMessage(Constants.SERVICE_LOCATION_MESSAGE, latestLocation);
-        serviceMessageListeners.forEach(listener -> listener.onServiceMessage(locationMessage));
+        ServiceStatusMessage locationMessage = new ServiceStatusMessage(ServiceStatusMessage.SERVICE_LOCATION_MESSAGE, latestLocation);
+        serviceMessageListeners.forEach(listener -> listener.onServiceStatusMessage(locationMessage));
     }
 }
