@@ -1,5 +1,6 @@
 package com.craxiom.networksurveyplus;
 
+import android.location.Location;
 import android.os.Environment;
 
 import com.craxiom.networksurveyplus.messages.DiagCommand;
@@ -21,6 +22,8 @@ import java.util.Arrays;
 
 import timber.log.Timber;
 
+import static com.craxiom.networksurveyplus.NetworkSurveyUtils.doubleToFixed37;
+import static com.craxiom.networksurveyplus.NetworkSurveyUtils.doubleToFixed64;
 import static com.craxiom.networksurveyplus.messages.QcdmConstants.*;
 
 /**
@@ -46,14 +49,18 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     /**
      * The 24 byte PCAP global header.
      */
-    private static final byte[] PCAP_FILE_GLOBAL_HEADER = {(byte) 0xd4, (byte) 0xc3, (byte) 0xb2, (byte) 0xa1, // PCAP magic number in little endian
+    private static final byte[] PCAP_FILE_GLOBAL_HEADER = {
+            (byte) 0xd4, (byte) 0xc3, (byte) 0xb2, (byte) 0xa1, // PCAP magic number in little endian
             2, 0, 4, 0, // Major and minor file version (2 bytes each)
             0, 0, 0, 0, // GMT Offset (4 bytes)
             0, 0, 0, 0, // Timestamp Accuracy: (4 bytes)
             (byte) 0xff, (byte) 0xff, 0, 0,  // Snapshot (length)
-            (byte) 0xe4, 0, 0, 0  // Link Layer Type (4 bytes): 228 is LINKTYPE_IPV4
+            (byte) 0xc0, 0, 0, 0  // Link Layer Type (4 bytes): 192 is LINKTYPE_PPI
     };
+
     private final BufferedOutputStream outputStream;
+
+    private static GpsListener gpsListener;
 
     /**
      * Constructs a new QCDM pcap file writer.
@@ -62,8 +69,9 @@ public class QcdmPcapWriter implements IQcdmMessageListener
      *
      * @throws Exception If an error occurs when creating or writing to the file.
      */
-    QcdmPcapWriter() throws Exception
+    QcdmPcapWriter(GpsListener listener) throws Exception
     {
+        gpsListener = listener;
         final File pcapFile = new File(createNewFilePath());
         pcapFile.getParentFile().mkdirs();
 
@@ -190,11 +198,12 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         final byte[] gsmtapHeader = getGsmtapHeader(GsmtapConstants.GSMTAP_TYPE_LTE_RRC, gsmtapChannelType, earfcn, isUplink, sfnAndPci, subframeNumber);
         final byte[] layer4Header = getLayer4Header(gsmtapHeader.length + message.length);
         final byte[] layer3Header = getLayer3Header(layer4Header.length + gsmtapHeader.length + message.length);
+        final byte[] ppiPacketHeader = getPpiPacketHeader();
         final long currentTimeMillis = System.currentTimeMillis();
         final byte[] pcapRecordHeader = getPcapRecordHeader(currentTimeMillis / 1000, (currentTimeMillis * 1000) % 1_000_000,
-                layer3Header.length + layer4Header.length + gsmtapHeader.length + message.length);
+                ppiPacketHeader.length + layer3Header.length + layer4Header.length + gsmtapHeader.length + message.length);
 
-        return concatenateByteArrays(pcapRecordHeader, layer3Header, layer4Header, gsmtapHeader, message);
+        return concatenateByteArrays(pcapRecordHeader, ppiPacketHeader, layer3Header, layer4Header, gsmtapHeader, message);
     }
 
     /**
@@ -498,6 +507,89 @@ public class QcdmPcapWriter implements IQcdmMessageListener
                 (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, // Source IP
                 (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, // Destination IP
         };
+    }
+
+    public static byte[] getPpiPacketHeader()
+    {
+        int ppiPacketHeaderSize = 8; // 1-byte version, 1-byte flags, 2-byte header length, 4-byte data link type (dlt)
+        byte[] ppiFieldHeader = getPpiFieldHeader();
+        int packetHeaderLength = ppiPacketHeaderSize + ppiFieldHeader.length;
+        byte[] ppiPacketHeader =  new byte[] {
+                (byte) 0x00, // version (0)
+                (byte) 0x00, // flags (0)
+                (byte) (packetHeaderLength & 0xFF),  (byte)((packetHeaderLength & 0xFF00) >>> 8),
+                (byte) 0xe4, 0, 0, 0  // Link Layer Type (4 bytes): 228 is LINKTYPE_IPV4
+        };
+
+        return concatenateByteArrays(ppiPacketHeader, ppiFieldHeader);
+    }
+
+    private static byte[] getPpiFieldHeader()
+    {
+        byte[] geoTag = getGeoTag();
+        byte[] fieldHeader = new byte[] {
+                (byte)0x32, (byte)0x75,  // PPI field header type GPS (30002)
+                (byte) (geoTag.length & 0xFF), (byte) ((geoTag.length & 0xFF00) >>> 8) // GPS tag size
+        };
+        return concatenateByteArrays(fieldHeader, geoTag);
+    }
+
+    private static byte[] getGeoTag()
+    {
+        final short PPI_GPS_FLAG_LAT = 2;
+        final short PPI_GPS_FLAG_LON = 4;
+        final short PPI_GPS_FLAG_ALT = 8;
+
+        Location location;
+        int fieldsPresent;
+        byte[] geoTagHeader = new byte[]{};
+
+        int geoTagSize = 8; // 1-byte version + 1-byte magic + 2-byte length + 4-byte fields bitmask
+
+        try
+        {
+            location = gpsListener.getLatestLocation();
+        } catch (Exception e)
+        {
+            Timber.v("Current location could not be determined.");
+            return geoTagHeader;
+        }
+
+        if (location != null)
+        {
+            geoTagSize += 8;
+            fieldsPresent = PPI_GPS_FLAG_LAT | PPI_GPS_FLAG_LON;
+
+            long latitude = doubleToFixed37(location.getLatitude());
+            long longitude = doubleToFixed37(location.getLongitude());
+
+            geoTagHeader = new byte[] {
+                    (byte) 0x02, // version
+                    (byte) 0xCF, // PPI GPS magic
+                    (byte) (geoTagSize & 0xFF), (byte) ((geoTagSize& 0xFF00) >>> 8),
+                    (byte) (fieldsPresent & 0xFF), (byte) ((fieldsPresent & 0xFF00) >>> 8), (byte) ((fieldsPresent & 0xFF0000) >>> 16), (byte) (fieldsPresent >>> 24),
+                    (byte) (latitude & 0xFF), (byte) ((latitude & 0xFF00) >>> 8), (byte) ((latitude & 0xFF0000) >>> 16),  (byte) (latitude >>> 24),
+                    (byte) (longitude & 0xFF), (byte) ((longitude & 0xFF00) >>> 8), (byte) ((longitude & 0xFF0000) >>> 16), (byte) (longitude >>> 24),
+            };
+
+            if (location.hasAltitude())
+            {
+                geoTagSize += 4;
+                fieldsPresent |= PPI_GPS_FLAG_ALT;
+                long altitude = doubleToFixed64(location.getAltitude());
+
+                geoTagHeader = new byte[] {
+                        (byte) 0x02, // version
+                        (byte) 0xCF, // PPI GPS magic
+                        (byte) (geoTagSize & 0xFF), (byte) ((geoTagSize& 0xFF00) >>> 8),
+                        (byte) (fieldsPresent & 0xFF), (byte) ((fieldsPresent & 0xFF00) >>> 8), (byte) ((fieldsPresent & 0xFF0000) >>> 16), (byte) (fieldsPresent >>> 24),
+                        (byte) (latitude & 0xFF), (byte) ((latitude & 0xFF00) >>> 8), (byte) ((latitude & 0xFF0000) >>> 16),  (byte) (latitude >>> 24),
+                        (byte) (longitude & 0xFF), (byte) ((longitude & 0xFF00) >>> 8), (byte) ((longitude & 0xFF0000) >>> 16), (byte) (longitude >>> 24),
+                        (byte) (altitude & 0xFF), (byte) ((altitude & 0xFF00) >>> 8), (byte) ((altitude & 0xFF0000) >>> 16), (byte) (altitude >>> 24)
+                };
+            }
+        }
+        return geoTagHeader;
     }
 
     /**

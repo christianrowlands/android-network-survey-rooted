@@ -366,7 +366,7 @@ public class QcdmService extends Service
             {
                 try
                 {
-                    qcdmPcapWriter = new QcdmPcapWriter();
+                    qcdmPcapWriter = new QcdmPcapWriter(gpsListener);
                     qcdmMessageProcessor.registerQcdmMessageListener(qcdmPcapWriter);
                     successful = true;
                 } catch (Exception e)

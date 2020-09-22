@@ -62,4 +62,34 @@ public final class NetworkSurveyUtils
         }
         return ext;
     }
+
+    /**
+     * Converts floating point values representing latitude and longitude to unsigned 3 integer digit
+     * values followed by a 7 digit mantissa
+     *
+     * @param value Signed floating point value between -180.0000000 and + 180.0000000, inclusive
+     * @return An unsigned 32-bit (native endian) value between 0 and 3600000000 (inclusive)
+     */
+    public static long doubleToFixed37(double value)
+    {
+        if (value < -180.0 || value >= 180.0000001)
+            return 0;
+        long scaledVale =  (long) ((value) * (double) 10000000);
+        return (long) (scaledVale +  ((long) 180 * 10000000));
+    }
+
+    /**
+     * Converts floating point values representing altitude and sensor data to unsigned 6 integer digit
+     * values followed by 4 digit mantissa
+     *
+     * @param value Signed floating point value between -180000.0000 and + 180000.0000, inclusive
+     * @return An unsigned 32-bit (native endian) value between 0 and 3600000000 (inclusive)
+     */
+    public static long doubleToFixed64(double value)
+    {
+        if (value <= -180000.0001 || value >= 180000.0001)
+            return 0;
+        long scaledVale =  (long) ((value) * (double) 10000);
+        return (long) (scaledVale +  ((long) 180000 * 10000));
+    }
 }
