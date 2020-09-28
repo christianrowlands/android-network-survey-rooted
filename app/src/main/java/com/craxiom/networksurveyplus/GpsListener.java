@@ -5,6 +5,9 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import timber.log.Timber;
 
 /**
@@ -20,6 +23,7 @@ public class GpsListener implements LocationListener
     private static final float MIN_DISTANCE_ACCURACY = 44f; // Probably need to make this configurable
 
     private Location latestLocation;
+    private List<IServiceStatusListener> serviceMessageListeners = new ArrayList<>();
 
     @Override
     public void onLocationChanged(Location location)
@@ -47,6 +51,26 @@ public class GpsListener implements LocationListener
         if (LocationManager.GPS_PROVIDER.equals(provider)) latestLocation = null;
     }
 
+    /**
+     * Adds a location update listener.
+     *
+     * @param listener The listener to add
+     */
+    public void registerLocationUpdatesListener(IServiceStatusListener listener)
+    {
+        serviceMessageListeners.add(listener);
+    }
+
+    /**
+     * Removes a location update listeners.
+     *
+     * @param listener The listener to remove
+     */
+    public void unregisterLocationUpdatesListener(IServiceStatusListener listener)
+    {
+        serviceMessageListeners.remove(listener);
+    }
+
     public Location getLatestLocation()
     {
         return latestLocation;
@@ -67,5 +91,8 @@ public class GpsListener implements LocationListener
             Timber.d("The accuracy of the last GPS location (%d) is less than the required minimum (%d)", newLocation.getAccuracy(), MIN_DISTANCE_ACCURACY);
             latestLocation = null;
         }
+
+        ServiceStatusMessage locationMessage = new ServiceStatusMessage(ServiceStatusMessage.SERVICE_LOCATION_MESSAGE, latestLocation);
+        serviceMessageListeners.forEach(listener -> listener.onServiceStatusMessage(locationMessage));
     }
 }

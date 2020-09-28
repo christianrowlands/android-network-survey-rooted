@@ -15,10 +15,10 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
-import android.preference.PreferenceManager;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
+import androidx.preference.PreferenceManager;
 
 import com.craxiom.networksurveyplus.mqtt.ConnectionState;
 
@@ -44,7 +44,7 @@ import static android.util.Xml.Encoding.UTF_8;
  *
  * @since 0.1.0
  */
-public class QcdmService extends Service
+public class QcdmService extends Service implements SharedPreferences.OnSharedPreferenceChangeListener
 {
     private final AtomicBoolean pcapLoggingEnabled = new AtomicBoolean(false);
 
@@ -68,6 +68,37 @@ public class QcdmService extends Service
         qcdmServiceBinder = new QcdmServiceBinder();
         uiThreadHandler = new Handler(Looper.getMainLooper());
         qcdmMessageProcessor = new QcdmMessageProcessor();
+    }
+
+    /**
+     * Add this listener to various services in this class.
+     *
+     * @param listener A listener concerned with the different updates that this service offers.
+     */
+    public void registerServiceStatusListener(IServiceStatusListener listener)
+    {
+        if (gpsListener != null)
+        {
+            gpsListener.registerLocationUpdatesListener(listener);
+        }
+
+        if (qcdmPcapWriter != null)
+        {
+            qcdmPcapWriter.registerRecordsLoggedListener(listener);
+        }
+    }
+
+    public void unregisterServiceStatusListener(IServiceStatusListener listener)
+    {
+        if (gpsListener != null)
+        {
+            gpsListener.unregisterLocationUpdatesListener(listener);
+        }
+
+        if (qcdmPcapWriter != null)
+        {
+            qcdmPcapWriter.unregisterRecordsLoggedListener(listener);
+        }
     }
 
     @Override
@@ -388,6 +419,15 @@ public class QcdmService extends Service
             final boolean newLoggingState = pcapLoggingEnabled.get();
 
             return successful ? newLoggingState : null;
+        }
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key)
+    {
+        if (qcdmPcapWriter != null)
+        {
+            qcdmPcapWriter.onSharedPreferenceChanged(sharedPreferences, key);
         }
     }
 

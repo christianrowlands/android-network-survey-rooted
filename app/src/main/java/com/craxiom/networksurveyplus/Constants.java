@@ -22,6 +22,10 @@ public class Constants
     public static final String EXTRA_STARTED_AT_BOOT = "com.craxiom.networksurveyplus.extra.STARTED_AT_BOOT";
 
     // Preferences
-    public static final String PROPERTY_AUTO_START_PCAP_LOGGING = "auto_start_pcap_logging";
+    public static final String PREFERENCES = "network_survey_preferences";
     public static final String PROPERTY_LOCATION_REFRESH_RATE_MS = "location_refresh_rate_ms";
+    // the following need to match the keys of preference items within network_survey_settings.xml
+    // or more specifically in strings.xml
+    public static final String PROPERTY_AUTO_START_PCAP_LOGGING = "Auto Start Logging";
+    public static final String PROPERTY_LOG_ROLLOVER_SIZE_MB = "Log Rollover Size";
 }

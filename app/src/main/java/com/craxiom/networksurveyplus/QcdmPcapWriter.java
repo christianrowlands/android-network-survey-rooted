@@ -1,6 +1,7 @@
 package com.craxiom.networksurveyplus;
 
 import android.location.Location;
+import android.content.SharedPreferences;
 import android.os.Environment;
 
 import com.craxiom.networksurveyplus.messages.DiagCommand;
@@ -18,7 +19,9 @@ import java.nio.ByteOrder;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import timber.log.Timber;
 
@@ -45,7 +48,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     private static final String LOG_DIRECTORY_NAME = "NetworkSurveyPlusData";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneId.systemDefault());
     private static final byte[] ETHERNET_HEADER = {(byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x08, (byte) 0x00};
-
+    private static final int BYTES_PER_MEGABYTE = 1_000_000;
     /**
      * The 24 byte PCAP global header.
      */
@@ -58,7 +61,32 @@ public class QcdmPcapWriter implements IQcdmMessageListener
             (byte) 0xc0, 0, 0, 0  // Link Layer Type (4 bytes): 192 is LINKTYPE_PPI
     };
 
-    private final BufferedOutputStream outputStream;
+    /**
+     * The current rollover size. The default value is 5; see {@link R.xml#network_survey_settings}
+     */
+    private static int maxLogSizeMb = 5;
+
+    /**
+     * Overall record count since writing started, across all log files that have been generated.
+     */
+    private static int recordsLogged = 0;
+
+    /**
+     * A lock to protect the block of code writing a pcap record to file. This is so the following
+     * steps happen atomically:
+     * <ol>
+     *    <li>Check if file needs to be rolled over</li>
+     *    <li>Write pcap record to file</li>
+     *    <li>Send current record count to listeners</li>
+     * </ol>
+     */
+    private final Object pcapWriteLock = new Object();
+
+    private BufferedOutputStream outputStream;
+
+    private File currentPcapFile;
+
+    private List<IServiceStatusListener> serviceMessageListeners = new ArrayList<>();
 
     private static GpsListener gpsListener;
 
@@ -72,10 +100,24 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     QcdmPcapWriter(GpsListener listener) throws Exception
     {
         gpsListener = listener;
-        final File pcapFile = new File(createNewFilePath());
-        pcapFile.getParentFile().mkdirs();
+        createNewPcapFile();
+    }
 
-        outputStream = new BufferedOutputStream(new FileOutputStream(pcapFile));
+    /**
+     * Helper method to create a new pcap file and store the result in {@link #currentPcapFile}.
+     * The {@link #outputStream} is also updated, and closed if it was previously in use.
+     */
+    private void createNewPcapFile() throws IOException
+    {
+        if (outputStream != null)
+        {
+            outputStream.close();
+        }
+
+        currentPcapFile = new File(createNewFilePath());
+        currentPcapFile.getParentFile().mkdirs();
+
+        outputStream = new BufferedOutputStream(new FileOutputStream(currentPcapFile));
         outputStream.write(PCAP_FILE_GLOBAL_HEADER);
         outputStream.flush();
     }
@@ -104,12 +146,44 @@ public class QcdmPcapWriter implements IQcdmMessageListener
                     Timber.d("Writing a message to the pcap file");
                     outputStream.write(pcapRecord);
                     outputStream.flush();
+
+                    synchronized (pcapWriteLock)
+                    {
+                        if (rolloverNeeded(pcapRecord.length))
+                        {
+                            createNewPcapFile();
+                        }
+
+                        // Write the pcap record to file
+                        outputStream.write(pcapRecord);
+                        outputStream.flush();
+
+                        // Notify listeners of record count
+                        recordsLogged++;
+                        ServiceStatusMessage recordLoggedMessage = new ServiceStatusMessage(ServiceStatusMessage.SERVICE_RECORD_LOGGED_MESSAGE, recordsLogged);
+                        serviceMessageListeners.forEach(listener -> listener.onServiceStatusMessage(recordLoggedMessage));
+                    }
                 }
             }
         } catch (Exception e)
         {
             Timber.e(e, "Could not handle a QCDM message");
         }
+    }
+
+    /**
+     * Check if we need to roll over the pcap file
+     *
+     * @param pcapRecordLength The length of pcap record that is about to be added to the log
+     * @return True, if a new log file needs to be created; false otherwise
+     */
+    private boolean rolloverNeeded(int pcapRecordLength)
+    {
+        // Check if we need to roll over the pcap file
+        int currentLogSizeMb = (int) currentPcapFile.length() * BYTES_PER_MEGABYTE;
+        final int pcapSizeMb = pcapRecordLength * BYTES_PER_MEGABYTE;
+
+        return currentLogSizeMb + pcapSizeMb >= maxLogSizeMb;
     }
 
     /**
@@ -120,10 +194,47 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         try
         {
             outputStream.close();
+            recordsLogged = 0; // TODO determine where we want to reset record count
         } catch (IOException e)
         {
             Timber.e(e, "Could not close the pcap file output stream");
         }
+    }
+
+    /**
+     * Update the max log size if the preference has changed.
+     */
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key)
+    {
+        if (key.equals(Constants.PROPERTY_LOG_ROLLOVER_SIZE_MB))
+        {
+            int newLogSizeMax = sharedPreferences.getInt(key, maxLogSizeMb);
+
+            if (newLogSizeMax != maxLogSizeMb)
+            {
+                maxLogSizeMb = newLogSizeMax;
+            }
+        }
+    }
+
+    /**
+     * Adds a record logged listener.
+     *
+     * @param listener The listener to add
+     */
+    public void registerRecordsLoggedListener(IServiceStatusListener listener)
+    {
+        serviceMessageListeners.add(listener);
+    }
+
+    /**
+     * Removes a record logged listener.
+     *
+     * @param listener The listener to remove
+     */
+    public void unregisterRecordsLoggedListener(IServiceStatusListener listener)
+    {
+        serviceMessageListeners.remove(listener);
     }
 
     /**

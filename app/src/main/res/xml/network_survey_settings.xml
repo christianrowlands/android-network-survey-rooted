@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        tools:context=".ui.settings.PreferencesFragment">
+    <SwitchPreferenceCompat
+            app:key="@string/auto_start_logging"
+            app:title="Auto-start Logging" />
+    <DropDownPreference
+            app:key="@string/log_rollover_size_mb"
+            app:title="Log Rollover Size (MB)"
+            app:entries="@array/log_rollover_size_labels"
+            app:entryValues="@array/log_rollover_size_values"
+            app:defaultValue="5"
+            app:isPreferenceVisible="true"
+           app:useSimpleSummaryProvider="true" />
+</PreferenceScreen>
