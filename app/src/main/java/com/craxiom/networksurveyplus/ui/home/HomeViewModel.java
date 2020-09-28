@@ -36,10 +36,10 @@ public class HomeViewModel extends ViewModel implements IServiceStatusListener
         switch (serviceMessage.what)
         {
             case ServiceStatusMessage.SERVICE_LOCATION_MESSAGE:
-                location.setValue((Location) serviceMessage.data);
+                location.postValue((Location) serviceMessage.data);
                 break;
             case ServiceStatusMessage.SERVICE_RECORD_LOGGED_MESSAGE:
-                recordCount.setValue((int) serviceMessage.data);
+                recordCount.postValue((Integer) serviceMessage.data);
                 break;
             default:
                 Timber.w("Unrecognized service message type: %s", serviceMessage.what);

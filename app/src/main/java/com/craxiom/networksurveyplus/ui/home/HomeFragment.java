@@ -15,6 +15,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.craxiom.networksurveyplus.databinding.FragmentHomeBinding;
 
 import java.text.DecimalFormat;
+import java.util.Locale;
 
 import timber.log.Timber;
 
@@ -37,7 +38,7 @@ public class HomeFragment extends Fragment
         homeViewModel.getLocation().observe(getViewLifecycleOwner(), this::updateLocationTextView);
         homeViewModel.getRecordCount().observe(getViewLifecycleOwner(), recordCount -> {
             Timber.w("Got record count update");
-            binding.tvRecordCount.setText(recordCount);
+            binding.tvRecordCount.setText(String.format(Locale.US, "%d", recordCount));
         });
 
         return binding.getRoot();

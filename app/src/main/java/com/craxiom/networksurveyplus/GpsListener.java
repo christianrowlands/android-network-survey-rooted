@@ -88,7 +88,7 @@ public class GpsListener implements LocationListener
             latestLocation = newLocation;
         } else
         {
-            Timber.d("The accuracy of the last GPS location (%d) is less than the required minimum (%d)", newLocation.getAccuracy(), MIN_DISTANCE_ACCURACY);
+            Timber.d("The accuracy of the last GPS location (%f) is less than the required minimum (%f)", newLocation.getAccuracy(), MIN_DISTANCE_ACCURACY);
             latestLocation = null;
         }
 

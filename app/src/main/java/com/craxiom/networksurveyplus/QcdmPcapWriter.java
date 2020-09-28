@@ -180,8 +180,8 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     private boolean rolloverNeeded(int pcapRecordLength)
     {
         // Check if we need to roll over the pcap file
-        int currentLogSizeMb = (int) currentPcapFile.length() * BYTES_PER_MEGABYTE;
-        final int pcapSizeMb = pcapRecordLength * BYTES_PER_MEGABYTE;
+        int currentLogSizeMb = (int) currentPcapFile.length() / BYTES_PER_MEGABYTE;
+        final int pcapSizeMb = pcapRecordLength / BYTES_PER_MEGABYTE;
 
         return currentLogSizeMb + pcapSizeMb >= maxLogSizeMb;
     }

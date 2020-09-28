@@ -244,6 +244,17 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
 
         diagRevealerRunnable = new DiagRevealerRunnable(applicationContext, fifoPipeName);
         diagHandler.post(diagRevealerRunnable);
+
+        if (qcdmPcapWriter == null)
+        {
+            try
+            {
+                qcdmPcapWriter = new QcdmPcapWriter(gpsListener);
+            } catch (Exception e)
+            {
+                Timber.e(e, "Could not create the QCDM PCAP writer");
+            }
+        }
     }
 
     /**
@@ -391,34 +402,20 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
 
             Timber.i("Toggling cellular logging to %s", enable);
 
-            boolean successful;
-
             if (enable)
             {
-                try
-                {
-                    qcdmPcapWriter = new QcdmPcapWriter(gpsListener);
-                    qcdmMessageProcessor.registerQcdmMessageListener(qcdmPcapWriter);
-                    successful = true;
-                } catch (Exception e)
-                {
-                    Timber.e(e, "Could not create the QCDM PCAP writer");
-                    successful = false;
-                }
+                qcdmMessageProcessor.registerQcdmMessageListener(qcdmPcapWriter);
             } else
             {
                 qcdmMessageProcessor.unregisterQcdmMessageListener(qcdmPcapWriter);
                 qcdmPcapWriter.close();
-                successful = true;
             }
 
-            if (successful) pcapLoggingEnabled.set(enable);
+            pcapLoggingEnabled.set(enable);
 
             updateServiceNotification();
 
-            final boolean newLoggingState = pcapLoggingEnabled.get();
-
-            return successful ? newLoggingState : null;
+            return pcapLoggingEnabled.get();
         }
     }
 
