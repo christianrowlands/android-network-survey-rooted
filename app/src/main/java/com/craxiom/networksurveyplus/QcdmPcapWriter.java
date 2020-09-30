@@ -49,6 +49,11 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneId.systemDefault());
     private static final byte[] ETHERNET_HEADER = {(byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x08, (byte) 0x00};
     private static final int BYTES_PER_MEGABYTE = 1_000_000;
+    private static final short PPI_GPS_FLAG_LAT = 2;
+    private static final short PPI_GPS_FLAG_LON = 4;
+    private static final short PPI_GPS_FLAG_ALT = 8;
+
+
     /**
      * The 24 byte PCAP global header.
      */
@@ -88,8 +93,6 @@ public class QcdmPcapWriter implements IQcdmMessageListener
 
     private List<IServiceStatusListener> serviceMessageListeners = new ArrayList<>();
 
-    private static GpsListener gpsListener;
-
     /**
      * Constructs a new QCDM pcap file writer.
      * <p>
@@ -97,9 +100,8 @@ public class QcdmPcapWriter implements IQcdmMessageListener
      *
      * @throws Exception If an error occurs when creating or writing to the file.
      */
-    QcdmPcapWriter(GpsListener listener) throws Exception
+    QcdmPcapWriter() throws Exception
     {
-        gpsListener = listener;
         createNewPcapFile();
     }
 
@@ -309,7 +311,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         final byte[] gsmtapHeader = getGsmtapHeader(GsmtapConstants.GSMTAP_TYPE_LTE_RRC, gsmtapChannelType, earfcn, isUplink, sfnAndPci, subframeNumber);
         final byte[] layer4Header = getLayer4Header(gsmtapHeader.length + message.length);
         final byte[] layer3Header = getLayer3Header(layer4Header.length + gsmtapHeader.length + message.length);
-        final byte[] ppiPacketHeader = getPpiPacketHeader();
+        final byte[] ppiPacketHeader = getPpiPacketHeader(GpsListener.getLatestLocation());
         final long currentTimeMillis = System.currentTimeMillis();
         final byte[] pcapRecordHeader = getPcapRecordHeader(currentTimeMillis / 1000, (currentTimeMillis * 1000) % 1_000_000,
                 ppiPacketHeader.length + layer3Header.length + layer4Header.length + gsmtapHeader.length + message.length);
@@ -620,10 +622,19 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         };
     }
 
-    public static byte[] getPpiPacketHeader()
+    /**
+     * Constructs a byte array in the CACE PPI packet header format as documented here:
+     * https://media.blackhat.com/bh-us-11/Cache/BH_US_11_Cache_PPI-Geolocation_WP.pdf
+     * The header specifies the version, length and data link type of the following packet. The length
+     * field accounts only for PPI encapsulated data (i.e. does not include the Layer 3 size).
+     *
+     * @param location The current location to be used for adding latitude, longitude and altitude to the packet
+     * @return The byte array for the PPI packet header
+     */
+    public static byte[] getPpiPacketHeader(Location location)
     {
         int ppiPacketHeaderSize = 8; // 1-byte version, 1-byte flags, 2-byte header length, 4-byte data link type (dlt)
-        byte[] ppiFieldHeader = getPpiFieldHeader();
+        byte[] ppiFieldHeader = getPpiFieldHeader(location);
         int packetHeaderLength = ppiPacketHeaderSize + ppiFieldHeader.length;
         byte[] ppiPacketHeader =  new byte[] {
                 (byte) 0x00, // version (0)
@@ -631,13 +642,19 @@ public class QcdmPcapWriter implements IQcdmMessageListener
                 (byte) (packetHeaderLength & 0xFF),  (byte)((packetHeaderLength & 0xFF00) >>> 8),
                 (byte) 0xe4, 0, 0, 0  // Link Layer Type (4 bytes): 228 is LINKTYPE_IPV4
         };
-
         return concatenateByteArrays(ppiPacketHeader, ppiFieldHeader);
     }
 
-    private static byte[] getPpiFieldHeader()
+    /**
+     * Following the PPI packet header, there are zero or more PPI field headers. There will be one
+     * field header for each PPI tag. Possible tags are GPS, VECTOR, SENSOR or ANTENNA)
+     *
+     * @param location The current location to be used for adding latitude, longitude and altitude to the packet
+     * @return The byte array for the PPI field header
+     */
+    private static byte[] getPpiFieldHeader(Location location)
     {
-        byte[] geoTag = getGeoTag();
+        byte[] geoTag = getGeoTag(location);
         byte[] fieldHeader = new byte[] {
                 (byte)0x32, (byte)0x75,  // PPI field header type GPS (30002)
                 (byte) (geoTag.length & 0xFF), (byte) ((geoTag.length & 0xFF00) >>> 8) // GPS tag size
@@ -645,43 +662,35 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         return concatenateByteArrays(fieldHeader, geoTag);
     }
 
-    private static byte[] getGeoTag()
+    /**
+     * Constructs a basic geo-tag header including the actual geo-fields (i.e. latitude, longitude, altitude).
+     * The base header consists of:
+     *      1-byte <i>version</i>; currently always set to 2
+     *      1-byte <i>pad</i>; serves only to make the <i>len</i> field naturally aligned
+     *      2-byte <i>len</i>; the length of the tag including the base header
+     *      4-byte <i>present</i>; the bitmask indicating the fields present in the tag
+     *
+     * @param location The current location to be used for adding latitude, longitude and altitude to the header
+     * @return The byte array for the geo-tag
+     */
+    private static byte[] getGeoTag(Location location)
     {
-        final short PPI_GPS_FLAG_LAT = 2;
-        final short PPI_GPS_FLAG_LON = 4;
-        final short PPI_GPS_FLAG_ALT = 8;
-
-        Location location;
         int fieldsPresent;
         byte[] geoTagHeader = new byte[]{};
 
         int geoTagSize = 8; // 1-byte version + 1-byte magic + 2-byte length + 4-byte fields bitmask
 
-        try
+        if (location == null)
         {
-            location = gpsListener.getLatestLocation();
-        } catch (Exception e)
-        {
-            Timber.v("Current location could not be determined.");
+            Timber.w("Current location could not be determined.");
             return geoTagHeader;
-        }
-
-        if (location != null)
+        } else
         {
             geoTagSize += 8;
             fieldsPresent = PPI_GPS_FLAG_LAT | PPI_GPS_FLAG_LON;
 
             long latitude = doubleToFixed37(location.getLatitude());
             long longitude = doubleToFixed37(location.getLongitude());
-
-            geoTagHeader = new byte[] {
-                    (byte) 0x02, // version
-                    (byte) 0xCF, // PPI GPS magic
-                    (byte) (geoTagSize & 0xFF), (byte) ((geoTagSize& 0xFF00) >>> 8),
-                    (byte) (fieldsPresent & 0xFF), (byte) ((fieldsPresent & 0xFF00) >>> 8), (byte) ((fieldsPresent & 0xFF0000) >>> 16), (byte) (fieldsPresent >>> 24),
-                    (byte) (latitude & 0xFF), (byte) ((latitude & 0xFF00) >>> 8), (byte) ((latitude & 0xFF0000) >>> 16),  (byte) (latitude >>> 24),
-                    (byte) (longitude & 0xFF), (byte) ((longitude & 0xFF00) >>> 8), (byte) ((longitude & 0xFF0000) >>> 16), (byte) (longitude >>> 24),
-            };
 
             if (location.hasAltitude())
             {
@@ -692,11 +701,21 @@ public class QcdmPcapWriter implements IQcdmMessageListener
                 geoTagHeader = new byte[] {
                         (byte) 0x02, // version
                         (byte) 0xCF, // PPI GPS magic
-                        (byte) (geoTagSize & 0xFF), (byte) ((geoTagSize& 0xFF00) >>> 8),
+                        (byte) (geoTagSize & 0xFF), (byte) ((geoTagSize & 0xFF00) >>> 8),
                         (byte) (fieldsPresent & 0xFF), (byte) ((fieldsPresent & 0xFF00) >>> 8), (byte) ((fieldsPresent & 0xFF0000) >>> 16), (byte) (fieldsPresent >>> 24),
                         (byte) (latitude & 0xFF), (byte) ((latitude & 0xFF00) >>> 8), (byte) ((latitude & 0xFF0000) >>> 16),  (byte) (latitude >>> 24),
                         (byte) (longitude & 0xFF), (byte) ((longitude & 0xFF00) >>> 8), (byte) ((longitude & 0xFF0000) >>> 16), (byte) (longitude >>> 24),
                         (byte) (altitude & 0xFF), (byte) ((altitude & 0xFF00) >>> 8), (byte) ((altitude & 0xFF0000) >>> 16), (byte) (altitude >>> 24)
+                };
+            } else
+            {
+                geoTagHeader = new byte[] {
+                        (byte) 0x02, // version
+                        (byte) 0xCF, // PPI GPS magic
+                        (byte) (geoTagSize & 0xFF), (byte) ((geoTagSize & 0xFF00) >>> 8),
+                        (byte) (fieldsPresent & 0xFF), (byte) ((fieldsPresent & 0xFF00) >>> 8), (byte) ((fieldsPresent & 0xFF0000) >>> 16), (byte) (fieldsPresent >>> 24),
+                        (byte) (latitude & 0xFF), (byte) ((latitude & 0xFF00) >>> 8), (byte) ((latitude & 0xFF0000) >>> 16),  (byte) (latitude >>> 24),
+                        (byte) (longitude & 0xFF), (byte) ((longitude & 0xFF00) >>> 8), (byte) ((longitude & 0xFF0000) >>> 16), (byte) (longitude >>> 24),
                 };
             }
         }

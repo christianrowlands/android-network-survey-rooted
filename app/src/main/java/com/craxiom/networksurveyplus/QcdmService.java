@@ -249,7 +249,7 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
         {
             try
             {
-                qcdmPcapWriter = new QcdmPcapWriter(gpsListener);
+                qcdmPcapWriter = new QcdmPcapWriter();
             } catch (Exception e)
             {
                 Timber.e(e, "Could not create the QCDM PCAP writer");
