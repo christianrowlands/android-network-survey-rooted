@@ -1,7 +1,7 @@
 package com.craxiom.networksurveyplus;
 
-import android.location.Location;
 import android.content.SharedPreferences;
+import android.location.Location;
 import android.os.Environment;
 
 import com.craxiom.networksurveyplus.messages.DiagCommand;
@@ -19,14 +19,13 @@ import java.nio.ByteOrder;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import timber.log.Timber;
 
-import static com.craxiom.networksurveyplus.NetworkSurveyUtils.doubleToFixed37;
-import static com.craxiom.networksurveyplus.NetworkSurveyUtils.doubleToFixed64;
+import static com.craxiom.networksurveyplus.NetworkSurveyUtils.*;
 import static com.craxiom.networksurveyplus.messages.QcdmConstants.*;
 
 /**
@@ -47,12 +46,10 @@ public class QcdmPcapWriter implements IQcdmMessageListener
 {
     private static final String LOG_DIRECTORY_NAME = "NetworkSurveyPlusData";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneId.systemDefault());
-    private static final byte[] ETHERNET_HEADER = {(byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x08, (byte) 0x00};
-    private static final int BYTES_PER_MEGABYTE = 1_000_000;
+    private static final int BYTES_PER_MEGABYTE = 1_048_576;
     private static final short PPI_GPS_FLAG_LAT = 2;
     private static final short PPI_GPS_FLAG_LON = 4;
     private static final short PPI_GPS_FLAG_ALT = 8;
-
 
     /**
      * The 24 byte PCAP global header.
@@ -67,14 +64,14 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     };
 
     /**
-     * The current rollover size. The default value is 5; see {@link R.xml#network_survey_settings}
+     * The current rollover size. The default value is 5 MB; see {@link R.xml#network_survey_settings}
      */
-    private static int maxLogSizeMb = 5;
+    private int maxLogSizeBytes = 5 * BYTES_PER_MEGABYTE;
 
     /**
      * Overall record count since writing started, across all log files that have been generated.
      */
-    private static int recordsLogged = 0;
+    private int recordsLogged = 0;
 
     /**
      * A lock to protect the block of code writing a pcap record to file. This is so the following
@@ -87,11 +84,17 @@ public class QcdmPcapWriter implements IQcdmMessageListener
      */
     private final Object pcapWriteLock = new Object();
 
+    private final Set<IServiceStatusListener> serviceMessageListeners = new CopyOnWriteArraySet<>();
+
     private BufferedOutputStream outputStream;
 
     private File currentPcapFile;
+    private int currentFileSizeBytes = 0;
 
-    private List<IServiceStatusListener> serviceMessageListeners = new ArrayList<>();
+    /**
+     * Used to throttle the status notifications to no more than one every n milliseconds.
+     */
+    private long lastStatusNotificationTimeMs = 0;
 
     /**
      * Constructs a new QCDM pcap file writer.
@@ -108,6 +111,9 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     /**
      * Helper method to create a new pcap file and store the result in {@link #currentPcapFile}.
      * The {@link #outputStream} is also updated, and closed if it was previously in use.
+     * <p>
+     * This method is NOT thread safe, so it must be called from within a synchronized block using
+     * the {@link #pcapWriteLock}.
      */
     private void createNewPcapFile() throws IOException
     {
@@ -115,6 +121,8 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         {
             outputStream.close();
         }
+
+        currentFileSizeBytes = 0;
 
         currentPcapFile = new File(createNewFilePath());
         currentPcapFile.getParentFile().mkdirs();
@@ -146,24 +154,18 @@ public class QcdmPcapWriter implements IQcdmMessageListener
                 if (pcapRecord != null)
                 {
                     Timber.d("Writing a message to the pcap file");
-                    outputStream.write(pcapRecord);
-                    outputStream.flush();
 
                     synchronized (pcapWriteLock)
                     {
-                        if (rolloverNeeded(pcapRecord.length))
-                        {
-                            createNewPcapFile();
-                        }
-
                         // Write the pcap record to file
                         outputStream.write(pcapRecord);
                         outputStream.flush();
 
+                        if (isRolloverNeeded(pcapRecord.length)) createNewPcapFile();
+
                         // Notify listeners of record count
                         recordsLogged++;
-                        ServiceStatusMessage recordLoggedMessage = new ServiceStatusMessage(ServiceStatusMessage.SERVICE_RECORD_LOGGED_MESSAGE, recordsLogged);
-                        serviceMessageListeners.forEach(listener -> listener.onServiceStatusMessage(recordLoggedMessage));
+                        notifyStatusListeners();
                     }
                 }
             }
@@ -176,16 +178,14 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     /**
      * Check if we need to roll over the pcap file
      *
-     * @param pcapRecordLength The length of pcap record that is about to be added to the log
+     * @param pcapRecordLength The length of pcap record that is about to be added to the log in bytes.
      * @return True, if a new log file needs to be created; false otherwise
      */
-    private boolean rolloverNeeded(int pcapRecordLength)
+    private boolean isRolloverNeeded(int pcapRecordLength)
     {
         // Check if we need to roll over the pcap file
-        int currentLogSizeMb = (int) currentPcapFile.length() / BYTES_PER_MEGABYTE;
-        final int pcapSizeMb = pcapRecordLength / BYTES_PER_MEGABYTE;
-
-        return currentLogSizeMb + pcapSizeMb >= maxLogSizeMb;
+        currentFileSizeBytes += pcapRecordLength;
+        return currentFileSizeBytes >= maxLogSizeBytes;
     }
 
     /**
@@ -196,7 +196,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         try
         {
             outputStream.close();
-            recordsLogged = 0; // TODO determine where we want to reset record count
+            recordsLogged = 0;
         } catch (IOException e)
         {
             Timber.e(e, "Could not close the pcap file output stream");
@@ -208,13 +208,17 @@ public class QcdmPcapWriter implements IQcdmMessageListener
      */
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key)
     {
-        if (key.equals(Constants.PROPERTY_LOG_ROLLOVER_SIZE_MB))
+        if (Constants.PROPERTY_LOG_ROLLOVER_SIZE_MB.equals(key))
         {
-            int newLogSizeMax = sharedPreferences.getInt(key, maxLogSizeMb);
-
-            if (newLogSizeMax != maxLogSizeMb)
+            final String rolloverSizeStringMb = sharedPreferences.getString(key, String.valueOf(Constants.DEFAULT_LOG_ROLLOVER_SIZE_MB));
+            try
             {
-                maxLogSizeMb = newLogSizeMax;
+                Timber.d("Received a change event for a log rollover size preference change; new value=%s", rolloverSizeStringMb);
+                final int newLogSizeMax = Integer.parseInt(rolloverSizeStringMb) * BYTES_PER_MEGABYTE;
+                if (newLogSizeMax != maxLogSizeBytes) maxLogSizeBytes = newLogSizeMax;
+            } catch (Exception e)
+            {
+                Timber.e(e, "Could not convert the max log size user preference (%s) to an int", rolloverSizeStringMb);
             }
         }
     }
@@ -293,7 +297,6 @@ public class QcdmPcapWriter implements IQcdmMessageListener
             length = ParserUtils.getShort(logPayload, baseAndExtHeaderLength - 2, ByteOrder.LITTLE_ENDIAN);
         }
 
-        // TODO QCSuper seems to ignore if the channel type is == 254, 255, 9, or 10. Not sure why that is.
         int channelType = logPayload[6 + frequencyLength + 2];
 
         boolean isUplink = channelType == LTE_UL_CCCH || channelType == LTE_UL_DCCH;
@@ -333,6 +336,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
      * @return The GSMTAP Channel Type / Subtype that specifies what kind of message the payload of the GSMTAP
      * frame contains.
      */
+    @SuppressWarnings("SwitchStatementWithoutDefaultBranch")
     private static int getGsmtapChannelType(int versionNumber, int channelType)
     {
         switch (versionNumber)
@@ -590,7 +594,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         final int totalLength = 8 + packetLength;
 
         return new byte[]{
-                (byte) 0x12, (byte) 0x79, // Source Port (GSMTAP Port 4729) // TODO Source port should be a client port
+                (byte) 0x12, (byte) 0x79, // Source Port (GSMTAP Port 4729)
                 (byte) 0x12, (byte) 0x79, // Destination Port (GSMTAP Port 4729)
                 (byte) ((totalLength & 0xFF00) >>> 8), (byte) (totalLength & 0x00FF), // Total length (layer 3 header plus all other headers and the payload, aka start of layer 3 header to end of packet)
                 (byte) 0x00, (byte) 0x00, // checksum
@@ -636,10 +640,10 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         int ppiPacketHeaderSize = 8; // 1-byte version, 1-byte flags, 2-byte header length, 4-byte data link type (dlt)
         byte[] ppiFieldHeader = getPpiFieldHeader(location);
         int packetHeaderLength = ppiPacketHeaderSize + ppiFieldHeader.length;
-        byte[] ppiPacketHeader =  new byte[] {
+        byte[] ppiPacketHeader = {
                 (byte) 0x00, // version (0)
                 (byte) 0x00, // flags (0)
-                (byte) (packetHeaderLength & 0xFF),  (byte)((packetHeaderLength & 0xFF00) >>> 8),
+                (byte) (packetHeaderLength & 0xFF), (byte) ((packetHeaderLength & 0xFF00) >>> 8),
                 (byte) 0xe4, 0, 0, 0  // Link Layer Type (4 bytes): 228 is LINKTYPE_IPV4
         };
         return concatenateByteArrays(ppiPacketHeader, ppiFieldHeader);
@@ -655,8 +659,8 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     private static byte[] getPpiFieldHeader(Location location)
     {
         byte[] geoTag = getGeoTag(location);
-        byte[] fieldHeader = new byte[] {
-                (byte)0x32, (byte)0x75,  // PPI field header type GPS (30002)
+        byte[] fieldHeader = {
+                (byte) 0x32, (byte) 0x75,  // PPI field header type GPS (30002)
                 (byte) (geoTag.length & 0xFF), (byte) ((geoTag.length & 0xFF00) >>> 8) // GPS tag size
         };
         return concatenateByteArrays(fieldHeader, geoTag);
@@ -665,10 +669,10 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     /**
      * Constructs a basic geo-tag header including the actual geo-fields (i.e. latitude, longitude, altitude).
      * The base header consists of:
-     *      1-byte <i>version</i>; currently always set to 2
-     *      1-byte <i>pad</i>; serves only to make the <i>len</i> field naturally aligned
-     *      2-byte <i>len</i>; the length of the tag including the base header
-     *      4-byte <i>present</i>; the bitmask indicating the fields present in the tag
+     * 1-byte <i>version</i>; currently always set to 2
+     * 1-byte <i>pad</i>; serves only to make the <i>len</i> field naturally aligned
+     * 2-byte <i>len</i>; the length of the tag including the base header
+     * 4-byte <i>present</i>; the bitmask indicating the fields present in the tag
      *
      * @param location The current location to be used for adding latitude, longitude and altitude to the header
      * @return The byte array for the geo-tag
@@ -676,7 +680,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     private static byte[] getGeoTag(Location location)
     {
         int fieldsPresent;
-        byte[] geoTagHeader = new byte[]{};
+        byte[] geoTagHeader = {};
 
         int geoTagSize = 8; // 1-byte version + 1-byte magic + 2-byte length + 4-byte fields bitmask
 
@@ -698,23 +702,23 @@ public class QcdmPcapWriter implements IQcdmMessageListener
                 fieldsPresent |= PPI_GPS_FLAG_ALT;
                 long altitude = doubleToFixed64(location.getAltitude());
 
-                geoTagHeader = new byte[] {
+                geoTagHeader = new byte[]{
                         (byte) 0x02, // version
                         (byte) 0xCF, // PPI GPS magic
                         (byte) (geoTagSize & 0xFF), (byte) ((geoTagSize & 0xFF00) >>> 8),
                         (byte) (fieldsPresent & 0xFF), (byte) ((fieldsPresent & 0xFF00) >>> 8), (byte) ((fieldsPresent & 0xFF0000) >>> 16), (byte) (fieldsPresent >>> 24),
-                        (byte) (latitude & 0xFF), (byte) ((latitude & 0xFF00) >>> 8), (byte) ((latitude & 0xFF0000) >>> 16),  (byte) (latitude >>> 24),
+                        (byte) (latitude & 0xFF), (byte) ((latitude & 0xFF00) >>> 8), (byte) ((latitude & 0xFF0000) >>> 16), (byte) (latitude >>> 24),
                         (byte) (longitude & 0xFF), (byte) ((longitude & 0xFF00) >>> 8), (byte) ((longitude & 0xFF0000) >>> 16), (byte) (longitude >>> 24),
                         (byte) (altitude & 0xFF), (byte) ((altitude & 0xFF00) >>> 8), (byte) ((altitude & 0xFF0000) >>> 16), (byte) (altitude >>> 24)
                 };
             } else
             {
-                geoTagHeader = new byte[] {
+                geoTagHeader = new byte[]{
                         (byte) 0x02, // version
                         (byte) 0xCF, // PPI GPS magic
                         (byte) (geoTagSize & 0xFF), (byte) ((geoTagSize & 0xFF00) >>> 8),
                         (byte) (fieldsPresent & 0xFF), (byte) ((fieldsPresent & 0xFF00) >>> 8), (byte) ((fieldsPresent & 0xFF0000) >>> 16), (byte) (fieldsPresent >>> 24),
-                        (byte) (latitude & 0xFF), (byte) ((latitude & 0xFF00) >>> 8), (byte) ((latitude & 0xFF0000) >>> 16),  (byte) (latitude >>> 24),
+                        (byte) (latitude & 0xFF), (byte) ((latitude & 0xFF00) >>> 8), (byte) ((latitude & 0xFF0000) >>> 16), (byte) (latitude >>> 24),
                         (byte) (longitude & 0xFF), (byte) ((longitude & 0xFF00) >>> 8), (byte) ((longitude & 0xFF0000) >>> 16), (byte) (longitude >>> 24),
                 };
             }
@@ -738,6 +742,29 @@ public class QcdmPcapWriter implements IQcdmMessageListener
                 (byte) (length & 0xFF), (byte) ((length & 0xFF00) >>> 8), (byte) ((length & 0xFF0000) >>> 16), (byte) (length >>> 24), // Frame length
                 (byte) (length & 0xFF), (byte) ((length & 0xFF00) >>> 8), (byte) ((length & 0xFF0000) >>> 16), (byte) (length >>> 24), // Capture length
         };
+    }
+
+    /**
+     * Notify all the listeners of the updated status if the proper amount of time has passed since the last notification.
+     */
+    private void notifyStatusListeners()
+    {
+        final long currentTimeMillis = System.currentTimeMillis();
+        if (currentTimeMillis > lastStatusNotificationTimeMs + 1_000)
+        {
+            ServiceStatusMessage recordLoggedMessage = new ServiceStatusMessage(ServiceStatusMessage.SERVICE_RECORD_LOGGED_MESSAGE, recordsLogged);
+            for (IServiceStatusListener listener : serviceMessageListeners)
+            {
+                try
+                {
+                    listener.onServiceStatusMessage(recordLoggedMessage);
+                } catch (Exception e)
+                {
+                    Timber.e(e, "Unable to notify a Status Listener because of an exception");
+                }
+            }
+            lastStatusNotificationTimeMs = currentTimeMillis;
+        }
     }
 
     /**

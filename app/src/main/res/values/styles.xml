@@ -1,6 +1,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
 
+    <attr name="cardStyle" format="reference" />
+
+    <!-- Base application theme. -->
     <style name="Theme.Illini" parent="Theme.AppCompat.DayNight.DarkActionBar">
         <item name="android:windowTranslucentStatus" tools:targetApi="kitkat">true</item>
         <!-- General theme colors -->
@@ -24,6 +26,7 @@
         <!-- Custom attributes defined in attrs.xml -->
         <item name="dividerColor">@color/illiniDividerColor</item>
         <item name="tabLayoutStyle">@style/TabStyle.Dark</item>
+        <item name="cardStyle">@style/CardViewTheme</item>
     </style>
 
     <style name="ThemeOverlay.Illini" parent="ThemeOverlay.AppCompat.Dark">
@@ -59,8 +62,21 @@
         <item name="tabSelectedTextColor">@android:color/white</item>
     </style>
 
+    <style name="CardViewTheme" parent="CardView.Dark">
+        <item name="cardBackgroundColor">@color/darkGunmetal</item>
+        <item name="android:layout_gravity">start</item>
+        <item name="android:layout_margin">@dimen/small_margin</item>
+        <item name="cardCornerRadius">4dp</item>
+        <item name="contentPadding">3dp</item>
+    </style>
+
     <style name="TextViewStyle.Condensed" parent="android:Widget.TextView">
         <item name="android:fontFamily">sans-serif-condensed</item>
+    </style>
+
+    <style name="StatusText" parent="TextAppearance.AppCompat">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">@color/white_87</item>
     </style>
 
 </resources>

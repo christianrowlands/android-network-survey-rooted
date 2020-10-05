@@ -29,7 +29,6 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
-import androidx.preference.PreferenceManager;
 
 import com.craxiom.networksurveyplus.ui.home.HomeViewModel;
 import com.craxiom.networksurveyplus.ui.settings.PreferencesViewModel;
@@ -100,8 +99,6 @@ public class MainActivity extends AppCompatActivity
         if (qcdmService != null)
         {
             final Context applicationContext = getApplicationContext();
-
-            // TODO qcdmService.onUiHidden();
 
             if (!qcdmService.isBeingUsed())
             {
@@ -434,10 +431,10 @@ public class MainActivity extends AppCompatActivity
             }
 
             // Once this listener is set the PreferencesFragment will manage both un/registration.
-            if (preferencesViewModel != null)
+            /*if (preferencesViewModel != null) // TODO Delete me
             {
                 preferencesViewModel.setListener(qcdmService);
-            }
+            }*/
 
             // TODO Update this
             /*qcdmService.onUiVisible(NetworkSurveyActivity.this);

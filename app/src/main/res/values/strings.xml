@@ -1,8 +1,6 @@
 <resources>
     <string name="app_name">Network Survey+</string>
     <string name="title_home">Home</string>
-    <string name="title_dashboard">Dashboard</string>
-    <string name="title_notifications">Notifications</string>
     <string name="title_settings">Settings</string>
 
     <string name="permissions_rationale_title">Network Survey+ Permissions</string>
@@ -27,6 +25,15 @@
     <string name="action_start_pcap_logging">Start Pcap Logging</string>
     <string name="action_stop_pcap_logging">Stop Pcap Logging</string>
 
-    <string name="log_rollover_size_mb">Log Rollover Size</string>
-    <string name="auto_start_logging">Auto Start Logging</string>
+    <string name="low_gps_confidence">Low GPS Confidence</string>
+    <string name="location_placeholder">Location:</string>
+    <string name="records_logged_placeholder">Records Logged:</string>
+    <string name="record_count_placeholder">0</string>
+
+    <!-- User Preference Constants -->
+    <string name="auto_start_logging_title">Auto_start_logging</string>
+    <string name="auto_start_logging_summary_on">Logging will be started upon app opening</string>
+    <string name="auto_start_logging_summary_off">Logging will only start when manually enabled</string>
+
+    <string name="log_rollover_size_title">Log Rollover Size (MB)</string>
 </resources>

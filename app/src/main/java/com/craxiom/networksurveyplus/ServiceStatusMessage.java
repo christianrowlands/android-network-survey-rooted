@@ -1,7 +1,7 @@
 package com.craxiom.networksurveyplus;
 
 /**
- * A generic service status message.
+ * A generic service status message that can be sent to any {@link IServiceStatusListener}s.
  */
 public class ServiceStatusMessage
 {
@@ -10,20 +10,18 @@ public class ServiceStatusMessage
     public static final int SERVICE_RECORD_LOGGED_MESSAGE = 2;
 
     /**
-     * The message identifier
+     * The message identifier.
      */
     public int what;
 
     /**
-     * The data content of the message
+     * The data content of the message.
      */
     public Object data;
 
     /**
-     * Constructor.
-     *
-     * @param what The message type
-     * @param data The data content of the message
+     * @param what The message type.
+     * @param data The data content of the message.
      */
     public ServiceStatusMessage(int what, Object data)
     {

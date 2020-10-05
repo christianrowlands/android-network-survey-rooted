@@ -3,11 +3,9 @@ package com.craxiom.networksurveyplus.ui.settings;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 
-import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceFragmentCompat;
 
 import com.craxiom.networksurveyplus.R;
-import com.craxiom.networksurveyplus.databinding.FragmentPreferencesBinding;
 
 /**
  * A fragment for the preference screen. It registers and unregisters the listener that is managed
@@ -15,7 +13,6 @@ import com.craxiom.networksurveyplus.databinding.FragmentPreferencesBinding;
  */
 public class PreferencesFragment extends PreferenceFragmentCompat
 {
-    private FragmentPreferencesBinding binding;
     private PreferencesViewModel preferencesViewModel;
     private SharedPreferences.OnSharedPreferenceChangeListener sharedPreferenceChangeListener;
 
@@ -25,7 +22,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat
         setPreferencesFromResource(R.xml.network_survey_settings, rootKey);
     }
 
-    @Override
+    /*@Override TODO Delete me
     public void onResume()
     {
         super.onResume();
@@ -49,5 +46,5 @@ public class PreferencesFragment extends PreferenceFragmentCompat
     {
         super.onPause();
         getPreferenceManager().getSharedPreferences().unregisterOnSharedPreferenceChangeListener(sharedPreferenceChangeListener);
-    }
+    }*/
 }
