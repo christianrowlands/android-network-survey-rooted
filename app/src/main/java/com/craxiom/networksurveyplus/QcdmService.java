@@ -78,7 +78,7 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
 
         initializeLocationListener();
 
-        initializeQcdmFeed();
+        initializeQcdmFeed(); // Must be called after initializing the location listener.
 
         updateServiceNotification();
     }
@@ -195,6 +195,14 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
 
             if (enable)
             {
+                try
+                {
+                    qcdmPcapWriter.createNewPcapFile();
+                } catch (Throwable t)
+                {
+                    Timber.e(t, "Could not create a new pcap file to write the qcdm messages to");
+                    return null;
+                }
                 qcdmMessageProcessor.registerQcdmMessageListener(qcdmPcapWriter);
             } else
             {
@@ -289,7 +297,7 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
         {
             try
             {
-                qcdmPcapWriter = new QcdmPcapWriter();
+                qcdmPcapWriter = new QcdmPcapWriter(gpsListener);
             } catch (Exception e)
             {
                 Timber.e(e, "Could not create the QCDM PCAP writer");

@@ -63,6 +63,8 @@ public class QcdmPcapWriter implements IQcdmMessageListener
             (byte) 0xc0, 0, 0, 0  // Link Layer Type (4 bytes): 192 is LINKTYPE_PPI
     };
 
+    private final GpsListener gpsListener;
+
     /**
      * The current rollover size. The default value is 5 MB; see {@link R.xml#network_survey_settings}
      */
@@ -92,45 +94,17 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     private int currentFileSizeBytes = 0;
 
     /**
+     * Constructs a new QCDM pcap file writer.
+     */
+    QcdmPcapWriter(GpsListener gpsListener)
+    {
+        this.gpsListener = gpsListener;
+    }
+
+    /**
      * Used to throttle the status notifications to no more than one every n milliseconds.
      */
     private long lastStatusNotificationTimeMs = 0;
-
-    /**
-     * Constructs a new QCDM pcap file writer.
-     * <p>
-     * This constructor creates the file, and writes out the PCAP global header.
-     *
-     * @throws Exception If an error occurs when creating or writing to the file.
-     */
-    QcdmPcapWriter() throws Exception
-    {
-        createNewPcapFile();
-    }
-
-    /**
-     * Helper method to create a new pcap file and store the result in {@link #currentPcapFile}.
-     * The {@link #outputStream} is also updated, and closed if it was previously in use.
-     * <p>
-     * This method is NOT thread safe, so it must be called from within a synchronized block using
-     * the {@link #pcapWriteLock}.
-     */
-    private void createNewPcapFile() throws IOException
-    {
-        if (outputStream != null)
-        {
-            outputStream.close();
-        }
-
-        currentFileSizeBytes = 0;
-
-        currentPcapFile = new File(createNewFilePath());
-        currentPcapFile.getParentFile().mkdirs();
-
-        outputStream = new BufferedOutputStream(new FileOutputStream(currentPcapFile));
-        outputStream.write(PCAP_FILE_GLOBAL_HEADER);
-        outputStream.flush();
-    }
 
     @Override
     public void onQcdmMessage(QcdmMessage qcdmMessage)
@@ -147,7 +121,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
                 switch (logType)
                 {
                     case LOG_LTE_RRC_OTA_MSG_LOG_C:
-                        pcapRecord = convertLteRrcOtaMessage(qcdmMessage);
+                        pcapRecord = convertLteRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation());
                         break;
                 }
 
@@ -172,6 +146,33 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         } catch (Exception e)
         {
             Timber.e(e, "Could not handle a QCDM message");
+        }
+    }
+
+    /**
+     * Creates a new pcap file and stores the result in {@link #currentPcapFile}.
+     * The {@link #outputStream} is also updated, and closed if it was previously in use.
+     * <p>
+     * This method MUST be called before the {@link #onQcdmMessage(QcdmMessage)} method as it sets
+     * up the output stream that the method writes the QCDM message to.
+     */
+    public void createNewPcapFile() throws IOException
+    {
+        synchronized (pcapWriteLock)
+        {
+            if (outputStream != null)
+            {
+                outputStream.close();
+            }
+
+            currentFileSizeBytes = 0;
+
+            currentPcapFile = new File(createNewFilePath());
+            currentPcapFile.getParentFile().mkdirs();
+
+            outputStream = new BufferedOutputStream(new FileOutputStream(currentPcapFile));
+            outputStream.write(PCAP_FILE_GLOBAL_HEADER);
+            outputStream.flush();
         }
     }
 
@@ -248,9 +249,11 @@ public class QcdmPcapWriter implements IQcdmMessageListener
      * can be consumed by tools like Wireshark.
      *
      * @param qcdmMessage The QCDM message to convert into a pcap record.
+     * @param location    The location to tie to the QCDM message when writing it to a pcap file. If null then no
+     *                    location will be added to the PPI header.
      * @return The pcap record byte array to write to a pcap file.
      */
-    public static byte[] convertLteRrcOtaMessage(QcdmMessage qcdmMessage)
+    public static byte[] convertLteRrcOtaMessage(QcdmMessage qcdmMessage, Location location)
     {
         Timber.v("Handling an LTE RRC message");
 
@@ -314,7 +317,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         final byte[] gsmtapHeader = getGsmtapHeader(GsmtapConstants.GSMTAP_TYPE_LTE_RRC, gsmtapChannelType, earfcn, isUplink, sfnAndPci, subframeNumber);
         final byte[] layer4Header = getLayer4Header(gsmtapHeader.length + message.length);
         final byte[] layer3Header = getLayer3Header(layer4Header.length + gsmtapHeader.length + message.length);
-        final byte[] ppiPacketHeader = getPpiPacketHeader(GpsListener.getLatestLocation());
+        final byte[] ppiPacketHeader = getPpiPacketHeader(location);
         final long currentTimeMillis = System.currentTimeMillis();
         final byte[] pcapRecordHeader = getPcapRecordHeader(currentTimeMillis / 1000, (currentTimeMillis * 1000) % 1_000_000,
                 ppiPacketHeader.length + layer3Header.length + layer4Header.length + gsmtapHeader.length + message.length);
@@ -658,6 +661,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
      */
     private static byte[] getPpiFieldHeader(Location location)
     {
+        if (location == null) return new byte[]{};
         byte[] geoTag = getGeoTag(location);
         byte[] fieldHeader = {
                 (byte) 0x32, (byte) 0x75,  // PPI field header type GPS (30002)
@@ -679,10 +683,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
      */
     private static byte[] getGeoTag(Location location)
     {
-        int fieldsPresent;
         byte[] geoTagHeader = {};
-
-        int geoTagSize = 8; // 1-byte version + 1-byte magic + 2-byte length + 4-byte fields bitmask
 
         if (location == null)
         {
@@ -690,8 +691,9 @@ public class QcdmPcapWriter implements IQcdmMessageListener
             return geoTagHeader;
         } else
         {
+            int geoTagSize = 8; // 1-byte version + 1-byte magic + 2-byte length + 4-byte fields bitmask
             geoTagSize += 8;
-            fieldsPresent = PPI_GPS_FLAG_LAT | PPI_GPS_FLAG_LON;
+            int fieldsPresent = PPI_GPS_FLAG_LAT | PPI_GPS_FLAG_LON;
 
             long latitude = doubleToFixed37(location.getLatitude());
             long longitude = doubleToFixed37(location.getLongitude());

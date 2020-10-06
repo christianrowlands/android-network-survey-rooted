@@ -22,8 +22,8 @@ public class GpsListener implements LocationListener
 {
     private static final float MIN_DISTANCE_ACCURACY = 44f; // Probably need to make this configurable
 
-    private static Location latestLocation;
-    private List<IServiceStatusListener> serviceMessageListeners = new ArrayList<>();
+    private Location latestLocation;
+    private final List<IServiceStatusListener> serviceMessageListeners = new ArrayList<>();
 
     @Override
     public void onLocationChanged(Location location)
@@ -71,7 +71,7 @@ public class GpsListener implements LocationListener
         serviceMessageListeners.remove(listener);
     }
 
-    public static Location getLatestLocation()
+    public Location getLatestLocation()
     {
         return latestLocation;
     }

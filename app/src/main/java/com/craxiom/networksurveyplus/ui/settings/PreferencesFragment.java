@@ -1,6 +1,5 @@
 package com.craxiom.networksurveyplus.ui.settings;
 
-import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import androidx.preference.PreferenceFragmentCompat;
@@ -8,43 +7,15 @@ import androidx.preference.PreferenceFragmentCompat;
 import com.craxiom.networksurveyplus.R;
 
 /**
- * A fragment for the preference screen. It registers and unregisters the listener that is managed
- * by the {@link PreferencesViewModel}.
+ * A fragment for the preference screen to present users with a set of user preferences.
+ *
+ * @since 0.1.0
  */
 public class PreferencesFragment extends PreferenceFragmentCompat
 {
-    private PreferencesViewModel preferencesViewModel;
-    private SharedPreferences.OnSharedPreferenceChangeListener sharedPreferenceChangeListener;
-
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey)
     {
         setPreferencesFromResource(R.xml.network_survey_settings, rootKey);
     }
-
-    /*@Override TODO Delete me
-    public void onResume()
-    {
-        super.onResume();
-        binding = FragmentPreferencesBinding.inflate(getLayoutInflater());
-        preferencesViewModel = new ViewModelProvider(requireActivity()).get(PreferencesViewModel.class);
-        binding.setVm(preferencesViewModel);
-
-        preferencesViewModel.getListener().observe(getViewLifecycleOwner(), listener ->
-        {
-            this.sharedPreferenceChangeListener = listener;
-        });
-
-        if (sharedPreferenceChangeListener != null)
-        {
-            getPreferenceManager().getSharedPreferences().registerOnSharedPreferenceChangeListener(sharedPreferenceChangeListener);
-        }
-    }
-
-    @Override
-    public void onPause()
-    {
-        super.onPause();
-        getPreferenceManager().getSharedPreferences().unregisterOnSharedPreferenceChangeListener(sharedPreferenceChangeListener);
-    }*/
 }

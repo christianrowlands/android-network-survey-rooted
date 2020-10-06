@@ -1,7 +1,10 @@
 package com.craxiom.networksurveyplus.ui.home;
 
+import android.content.Context;
 import android.graphics.Color;
 import android.location.Location;
+import android.location.LocationManager;
+import android.location.LocationProvider;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,6 +20,8 @@ import com.craxiom.networksurveyplus.databinding.FragmentHomeBinding;
 
 import java.text.DecimalFormat;
 import java.util.Locale;
+
+import timber.log.Timber;
 
 /**
  * The main fragment that the user interacts with. It is used to display basic status information about the state of
@@ -37,11 +42,58 @@ public class HomeFragment extends Fragment
         final HomeViewModel homeViewModel = new ViewModelProvider(requireActivity()).get(HomeViewModel.class);
         binding.setVm(homeViewModel);
 
+        initializeView();
+
+        // FIXME Also register for updates so that we can change the status as the user turns on and off the location service
+
         homeViewModel.getLocation().observe(getViewLifecycleOwner(), this::updateLocationTextView);
         homeViewModel.getRecordCount().observe(getViewLifecycleOwner(),
                 recordCount -> binding.tvRecordCount.setText(String.format(Locale.US, "%d", recordCount)));
 
         return binding.getRoot();
+    }
+
+    /**
+     * Updates the view to have some basic status information such as the current state of the location.
+     */
+    private void initializeView()
+    {
+        final TextView tvLocation = binding.tvLocation;
+
+        final String displayText;
+        final int textColor;
+
+        final LocationManager locationManager = (LocationManager) requireContext().getSystemService(Context.LOCATION_SERVICE);
+        if (locationManager == null)
+        {
+            Timber.wtf("Could not get the location manager.");
+            displayText = getString(R.string.no_gps_device);
+            textColor = R.color.connectionStatusDisconnected;
+        } else
+        {
+            final LocationProvider locationProvider = locationManager.getProvider(LocationManager.GPS_PROVIDER);
+            if (locationProvider == null)
+            {
+                final String noGpsMessage = getString(R.string.no_gps_device);
+                Timber.w(noGpsMessage);
+                displayText = noGpsMessage;
+                textColor = R.color.connectionStatusConnecting;
+            } else if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER))
+            {
+                // gps exists, but isn't on
+                final String turnOnGpsMessage = getString(R.string.turn_on_gps);
+                Timber.w(turnOnGpsMessage);
+                displayText = turnOnGpsMessage;
+                textColor = R.color.connectionStatusConnecting;
+            } else
+            {
+                displayText = getString(R.string.searching_for_location);
+                textColor = R.color.connectionStatusConnecting;
+            }
+        }
+
+        tvLocation.setText(displayText);
+        tvLocation.setTextColor(getResources().getColor(textColor, null));
     }
 
     /**
@@ -58,7 +110,7 @@ public class HomeFragment extends Fragment
             final String latLonString = decimalFormat.format(latestLocation.getLatitude()) + ", " +
                     decimalFormat.format(latestLocation.getLongitude());
             tvLocation.setText(latLonString);
-            tvLocation.setTextColor(Color.WHITE);
+            tvLocation.setTextColor(getResources().getColor(R.color.illiniTextColorPrimary, null));
             tvLocation.setScaleY(1f);
             tvLocation.setTextScaleX(1f);
         } else
