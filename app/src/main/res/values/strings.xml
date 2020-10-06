@@ -34,9 +34,14 @@
     <string name="record_count_placeholder">0</string>
 
     <!-- User Preference Constants -->
-    <string name="auto_start_logging_title">Auto_start_logging</string>
+    <string name="auto_start_logging_title">Auto start logging</string>
     <string name="auto_start_logging_summary_on">Logging will be started upon app opening</string>
     <string name="auto_start_logging_summary_off">Logging will only start when manually enabled</string>
 
     <string name="log_rollover_size_title">Log Rollover Size (MB)</string>
+
+    <!-- App Restriction Constants -->
+    <string name="auto_start_logging_on_boot_description">If true, when the phone boots cellular pcap logging will be started</string>
+    <string name="log_rollover_description">The maximum size (in MBs) of a single pcap file</string>
+
 </resources>

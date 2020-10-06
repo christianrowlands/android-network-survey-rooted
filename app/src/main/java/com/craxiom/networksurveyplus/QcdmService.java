@@ -4,8 +4,10 @@ import android.Manifest;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
@@ -47,6 +49,7 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
     private Handler fifoReadHandler;
 
     private GpsListener gpsListener;
+    private BroadcastReceiver managedConfigurationListener;
     private FifoReadRunnable fifoReadRunnable;
     private DiagRevealerRunnable diagRevealerRunnable;
 
@@ -81,22 +84,19 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
         initializeQcdmFeed(); // Must be called after initializing the location listener.
 
         updateServiceNotification();
+
+        registerManagedConfigurationListener();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId)
     {
-        // If we are started at boot, then that means the MainActivity was never run.  Therefore, to ensure we
-        // read and respect the auto start logging user preferences, we need to read them and start logging here.
+        // If we are started at boot, then we need to kick off the pcap logging.
         final boolean startedAtBoot = intent.getBooleanExtra(Constants.EXTRA_STARTED_AT_BOOT, false);
         if (startedAtBoot)
         {
-            Timber.i("Received the startedAtBoot flag in the NetworkSurveyService. Reading the auto start preferences");
-
-            final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-
-            final boolean autoStartPcapLogging = preferences.getBoolean(Constants.PROPERTY_AUTO_START_PCAP_LOGGING, false);
-            if (autoStartPcapLogging && !pcapLoggingEnabled.get()) togglePcapLogging(true);
+            Timber.i("Received the startedAtBoot flag in the QcdmService.");
+            if (!pcapLoggingEnabled.get()) togglePcapLogging(true);
         }
 
         return START_REDELIVER_INTENT;
@@ -114,6 +114,8 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
         Timber.i("onDestroy");
 
         PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).unregisterOnSharedPreferenceChangeListener(this);
+
+        unregisterManagedConfigurationListener();
 
         if (qcdmPcapWriter != null) qcdmPcapWriter.close();
 
@@ -274,6 +276,43 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
         {
             final LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
             if (locationManager != null) locationManager.removeUpdates(gpsListener);
+        }
+    }
+
+    /**
+     * Register a listener so that if the Managed Config changes we will be notified of the new config.
+     */
+    private void registerManagedConfigurationListener()
+    {
+        final IntentFilter restrictionsFilter = new IntentFilter(Intent.ACTION_APPLICATION_RESTRICTIONS_CHANGED);
+
+        managedConfigurationListener = new BroadcastReceiver()
+        {
+            @Override
+            public void onReceive(Context context, Intent intent)
+            {
+                if (qcdmPcapWriter != null) qcdmPcapWriter.onMdmPreferenceChanged(context);
+            }
+        };
+
+        registerReceiver(managedConfigurationListener, restrictionsFilter);
+    }
+
+    /**
+     * Remove the managed configuration listener.
+     */
+    private void unregisterManagedConfigurationListener()
+    {
+        if (managedConfigurationListener != null)
+        {
+            try
+            {
+                unregisterReceiver(managedConfigurationListener);
+            } catch (Exception e)
+            {
+                Timber.e(e, "Unable to unregister the Managed Configuration Listener when pausing the app");
+            }
+            managedConfigurationListener = null;
         }
     }
 

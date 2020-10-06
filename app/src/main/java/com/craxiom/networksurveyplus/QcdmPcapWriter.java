@@ -1,7 +1,10 @@
 package com.craxiom.networksurveyplus;
 
+import android.content.Context;
+import android.content.RestrictionsManager;
 import android.content.SharedPreferences;
 import android.location.Location;
+import android.os.Bundle;
 import android.os.Environment;
 
 import com.craxiom.networksurveyplus.messages.DiagCommand;
@@ -221,6 +224,24 @@ public class QcdmPcapWriter implements IQcdmMessageListener
             {
                 Timber.e(e, "Could not convert the max log size user preference (%s) to an int", rolloverSizeStringMb);
             }
+        }
+    }
+
+    /**
+     * Update the max log size if the preference has changed via MDM.
+     */
+    public void onMdmPreferenceChanged(Context context)
+    {
+        final RestrictionsManager restrictionsManager = (RestrictionsManager) context.getSystemService(Context.RESTRICTIONS_SERVICE);
+        if (restrictionsManager == null) return;
+
+        final Bundle mdmProperties = restrictionsManager.getApplicationRestrictions();
+        final int newRolloverSizeMb = mdmProperties.getInt(Constants.PROPERTY_LOG_ROLLOVER_SIZE_MB);
+        if (newRolloverSizeMb != 0)
+        {
+            Timber.d("Received an MDM change event for a log rollover size preference change; new value=%s", newRolloverSizeMb);
+            final int newLogSizeMax = newRolloverSizeMb * BYTES_PER_MEGABYTE;
+            if (newLogSizeMax != maxLogSizeBytes) maxLogSizeBytes = newLogSizeMax;
         }
     }
 
