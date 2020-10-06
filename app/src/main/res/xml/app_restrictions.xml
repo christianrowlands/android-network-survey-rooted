@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<restrictions xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <restriction
+            android:defaultValue="false"
+            android:description="@string/auto_start_logging_on_boot_description"
+            android:key="auto_start_logging"
+            android:restrictionType="bool"
+            android:title="@string/auto_start_logging_title" />
+
+    <restriction
+            android:defaultValue="5"
+            android:description="@string/log_rollover_description"
+            android:key="log_rollover_size"
+            android:restrictionType="integer"
+            android:title="@string/log_rollover_size_title" />
+
+</restrictions>

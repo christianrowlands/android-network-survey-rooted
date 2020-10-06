@@ -6,7 +6,6 @@ public class Constants
     {
     }
 
-    public static final String CONFIG_DIR = "/NetworkSurveyPlus";
     public static final String FIFO_PIPE = "diag_revealer_fifo";
     public static final String DIAG_REVEALER_NAME = "diag_revealer";
     public static final String LIB_DIAG_REVEALER_NAME = DIAG_REVEALER_NAME + ".so";
@@ -21,11 +20,12 @@ public class Constants
      */
     public static final String EXTRA_STARTED_AT_BOOT = "com.craxiom.networksurveyplus.extra.STARTED_AT_BOOT";
 
+    public static final int DEFAULT_LOG_ROLLOVER_SIZE_MB = 5;
+
     // Preferences
-    public static final String PREFERENCES = "network_survey_preferences";
     public static final String PROPERTY_LOCATION_REFRESH_RATE_MS = "location_refresh_rate_ms";
     // the following need to match the keys of preference items within network_survey_settings.xml
     // or more specifically in strings.xml
-    public static final String PROPERTY_AUTO_START_PCAP_LOGGING = "Auto Start Logging";
-    public static final String PROPERTY_LOG_ROLLOVER_SIZE_MB = "Log Rollover Size";
+    public static final String PROPERTY_AUTO_START_PCAP_LOGGING = "auto_start_logging";
+    public static final String PROPERTY_LOG_ROLLOVER_SIZE_MB = "log_rollover_size";
 }

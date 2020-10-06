@@ -22,8 +22,8 @@ public class GpsListener implements LocationListener
 {
     private static final float MIN_DISTANCE_ACCURACY = 44f; // Probably need to make this configurable
 
-    private static Location latestLocation;
-    private List<IServiceStatusListener> serviceMessageListeners = new ArrayList<>();
+    private Location latestLocation;
+    private final List<IServiceStatusListener> serviceMessageListeners = new ArrayList<>();
 
     @Override
     public void onLocationChanged(Location location)
@@ -41,6 +41,13 @@ public class GpsListener implements LocationListener
     public void onProviderEnabled(String provider)
     {
         Timber.i("Location Provider (%s) has been enabled", provider);
+
+        if (LocationManager.GPS_PROVIDER.equals(provider))
+        {
+            ServiceStatusMessage message = new ServiceStatusMessage(ServiceStatusMessage.SERVICE_GPS_LOCATION_PROVIDER_STATUS,
+                    ServiceStatusMessage.LocationProviderStatus.GPS_PROVIDER_ENABLED);
+            serviceMessageListeners.forEach(listener -> listener.onServiceStatusMessage(message));
+        }
     }
 
     @Override
@@ -48,7 +55,14 @@ public class GpsListener implements LocationListener
     {
         Timber.i("Location Provider (%s) has been disabled", provider);
 
-        if (LocationManager.GPS_PROVIDER.equals(provider)) latestLocation = null;
+        if (LocationManager.GPS_PROVIDER.equals(provider))
+        {
+            latestLocation = null;
+
+            ServiceStatusMessage message = new ServiceStatusMessage(ServiceStatusMessage.SERVICE_GPS_LOCATION_PROVIDER_STATUS,
+                    ServiceStatusMessage.LocationProviderStatus.GPS_PROVIDER_DISABLED);
+            serviceMessageListeners.forEach(listener -> listener.onServiceStatusMessage(message));
+        }
     }
 
     /**
@@ -71,7 +85,7 @@ public class GpsListener implements LocationListener
         serviceMessageListeners.remove(listener);
     }
 
-    public static Location getLatestLocation()
+    public Location getLatestLocation()
     {
         return latestLocation;
     }

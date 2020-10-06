@@ -12,12 +12,10 @@
 
     <!-- Connections -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!--    <uses-permission android:name="android.permission.READ_PHONE_STATE" />-->
-    <!--    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />-->
 
-    <!--    <uses-feature-->
-    <!--            android:name="android.hardware.telephony"-->
-    <!--            android:required="false" />-->
+    <uses-feature
+            android:name="android.hardware.telephony"
+            android:required="true" />
 
     <!-- Storage -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
@@ -25,9 +23,7 @@
     <!-- System -->
     <uses-permission android:name="android.permission.ACCESS_SUPERUSER" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <!--    <uses-permission android:name="android.permission.WAKE_LOCK" />-->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <!--    <uses-permission android:name="android.permission.VIBRATE" />-->
 
     <application
             android:name=".ApplicationController"
@@ -55,6 +51,18 @@
                 android:description="@string/network_survey_service_description"
                 android:exported="false"
                 android:foregroundServiceType="location" />
+
+        <meta-data
+                android:name="android.content.APP_RESTRICTIONS"
+                android:resource="@xml/app_restrictions" />
+
+        <receiver
+                android:name=".StartAtBootReceiver"
+                android:label="StartAtBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

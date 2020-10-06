@@ -4,30 +4,25 @@ import android.Manifest;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.os.Binder;
-import android.os.FileUtils;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
-import android.os.Looper;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.preference.PreferenceManager;
 
 import com.craxiom.networksurveyplus.mqtt.ConnectionState;
-
 import com.google.common.io.ByteStreams;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -35,8 +30,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import timber.log.Timber;
-
-import static android.util.Xml.Encoding.UTF_8;
 
 /**
  * This service is responsible for initializing all the components necessary to activate the QCDM /dev/diag port and
@@ -46,10 +39,11 @@ import static android.util.Xml.Encoding.UTF_8;
  */
 public class QcdmService extends Service implements SharedPreferences.OnSharedPreferenceChangeListener
 {
+    public static final int LOCATION_REFRESH_RATE = 4_000;
+
     private final AtomicBoolean pcapLoggingEnabled = new AtomicBoolean(false);
 
     private final QcdmServiceBinder qcdmServiceBinder;
-    private final Handler uiThreadHandler;
 
     private HandlerThread diagHandlerThread;
     private HandlerThread fifoReadHandlerThread;
@@ -57,6 +51,7 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
     private Handler fifoReadHandler;
 
     private GpsListener gpsListener;
+    private BroadcastReceiver managedConfigurationListener;
     private FifoReadRunnable fifoReadRunnable;
     private DiagRevealerRunnable diagRevealerRunnable;
 
@@ -66,8 +61,87 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
     public QcdmService()
     {
         qcdmServiceBinder = new QcdmServiceBinder();
-        uiThreadHandler = new Handler(Looper.getMainLooper());
         qcdmMessageProcessor = new QcdmMessageProcessor();
+    }
+
+    @Override
+    public void onCreate()
+    {
+        super.onCreate();
+
+        Timber.i("Creating the QCDM Service");
+
+        diagHandlerThread = new HandlerThread("DiagRevealer");
+        diagHandlerThread.start();
+        diagHandler = new Handler(diagHandlerThread.getLooper());
+
+        fifoReadHandlerThread = new HandlerThread("FifoRead");
+        fifoReadHandlerThread.start();
+        fifoReadHandler = new Handler(fifoReadHandlerThread.getLooper());
+
+        PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).registerOnSharedPreferenceChangeListener(this);
+
+        initializeLocationListener();
+
+        initializeQcdmFeed(); // Must be called after initializing the location listener.
+
+        updateServiceNotification();
+
+        registerManagedConfigurationListener();
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId)
+    {
+        // If we are started at boot, then we need to kick off the pcap logging.
+        final boolean startedAtBoot = intent.getBooleanExtra(Constants.EXTRA_STARTED_AT_BOOT, false);
+        if (startedAtBoot)
+        {
+            Timber.i("Received the startedAtBoot flag in the QcdmService.");
+            if (!pcapLoggingEnabled.get()) togglePcapLogging(true);
+        }
+
+        return START_REDELIVER_INTENT;
+    }
+
+    @Override
+    public IBinder onBind(Intent intent)
+    {
+        return qcdmServiceBinder;
+    }
+
+    @Override
+    public void onDestroy()
+    {
+        Timber.i("onDestroy");
+
+        PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).unregisterOnSharedPreferenceChangeListener(this);
+
+        unregisterManagedConfigurationListener();
+
+        if (qcdmPcapWriter != null) qcdmPcapWriter.close();
+
+        removeLocationListener();
+
+        diagRevealerRunnable.shutdown();
+        diagHandlerThread.quitSafely();
+        diagHandler = null;
+
+        fifoReadRunnable.shutdown();
+        fifoReadHandlerThread.quitSafely();
+        fifoReadHandler = null;
+
+        shutdownNotifications();
+        super.onDestroy();
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key)
+    {
+        if (qcdmPcapWriter != null)
+        {
+            qcdmPcapWriter.onSharedPreferenceChanged(sharedPreferences, key);
+        }
     }
 
     /**
@@ -88,6 +162,9 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
         }
     }
 
+    /**
+     * @param listener Removes this listener so it is no longer notified of status events.
+     */
     public void unregisterServiceStatusListener(IServiceStatusListener listener)
     {
         if (gpsListener != null)
@@ -101,73 +178,48 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
         }
     }
 
-    @Override
-    public void onCreate()
+    /**
+     * Toggles the cellular logging setting.
+     * <p>
+     * It is possible that an error occurs while trying to enable or disable logging.  In that event null will be
+     * returned indicating that logging could not be toggled.
+     *
+     * @param enable True if logging should be enabled, false if it should be turned off.
+     * @return The new state of logging.  True if it is enabled, or false if it is disabled.  Null is returned if the
+     * toggling was unsuccessful.
+     */
+    public Boolean togglePcapLogging(boolean enable)
     {
-        super.onCreate();
-
-        Timber.i("Creating the QCDM Service");
-
-        diagHandlerThread = new HandlerThread("DiagRevealer");
-        diagHandlerThread.start();
-        diagHandler = new Handler(diagHandlerThread.getLooper());
-
-        fifoReadHandlerThread = new HandlerThread("FifoRead");
-        fifoReadHandlerThread.start();
-        fifoReadHandler = new Handler(fifoReadHandlerThread.getLooper());
-
-        initializeLocationListener();
-
-        initializeQcdmFeed();
-
-        updateServiceNotification();
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId)
-    {
-        // If we are started at boot, then that means the MainActivity was never run.  Therefore, to ensure we
-        // read and respect the auto start logging user preferences, we need to read them and start logging here.
-        final boolean startedAtBoot = intent.getBooleanExtra(Constants.EXTRA_STARTED_AT_BOOT, false);
-        if (startedAtBoot)
+        synchronized (pcapLoggingEnabled)
         {
-            Timber.i("Received the startedAtBoot flag in the NetworkSurveyService. Reading the auto start preferences");
+            final boolean originalLoggingState = pcapLoggingEnabled.get();
+            if (originalLoggingState == enable) return originalLoggingState;
 
-            final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+            Timber.i("Toggling cellular logging to %s", enable);
 
-            final boolean autoStartPcapLogging = preferences.getBoolean(Constants.PROPERTY_AUTO_START_PCAP_LOGGING, false);
-            if (autoStartPcapLogging && !pcapLoggingEnabled.get()) togglePcapLogging(true);
+            if (enable)
+            {
+                try
+                {
+                    qcdmPcapWriter.createNewPcapFile();
+                } catch (Throwable t)
+                {
+                    Timber.e(t, "Could not create a new pcap file to write the qcdm messages to");
+                    return null;
+                }
+                qcdmMessageProcessor.registerQcdmMessageListener(qcdmPcapWriter);
+            } else
+            {
+                qcdmMessageProcessor.unregisterQcdmMessageListener(qcdmPcapWriter);
+                qcdmPcapWriter.close();
+            }
+
+            pcapLoggingEnabled.set(enable);
+
+            updateServiceNotification();
+
+            return pcapLoggingEnabled.get();
         }
-
-        return START_REDELIVER_INTENT;
-    }
-
-    @Override
-    public IBinder onBind(Intent intent)
-    {
-        return qcdmServiceBinder;
-    }
-
-    @Override
-    public void onDestroy()
-    {
-        Timber.i("onDestroy");
-
-        if (qcdmPcapWriter != null) qcdmPcapWriter.close();
-
-        // TODO setCellularScanningDone();
-        removeLocationListener();
-
-        diagRevealerRunnable.shutdown();
-        diagHandlerThread.quitSafely();
-        diagHandler = null;
-
-        fifoReadRunnable.shutdown();
-        fifoReadHandlerThread.quitSafely();
-        fifoReadHandler = null;
-
-        shutdownNotifications();
-        super.onDestroy();
     }
 
     /**
@@ -208,9 +260,7 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
         final LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (locationManager != null)
         {
-            final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-            final int refreshRate = preferences.getInt(Constants.PROPERTY_LOCATION_REFRESH_RATE_MS, 5000);
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, refreshRate, 0f, gpsListener);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, LOCATION_REFRESH_RATE, 0f, gpsListener);
         } else
         {
             Timber.e("The location manager was null when trying to request location updates for the QcdmService");
@@ -226,6 +276,43 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
         {
             final LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
             if (locationManager != null) locationManager.removeUpdates(gpsListener);
+        }
+    }
+
+    /**
+     * Register a listener so that if the Managed Config changes we will be notified of the new config.
+     */
+    private void registerManagedConfigurationListener()
+    {
+        final IntentFilter restrictionsFilter = new IntentFilter(Intent.ACTION_APPLICATION_RESTRICTIONS_CHANGED);
+
+        managedConfigurationListener = new BroadcastReceiver()
+        {
+            @Override
+            public void onReceive(Context context, Intent intent)
+            {
+                if (qcdmPcapWriter != null) qcdmPcapWriter.onMdmPreferenceChanged(context);
+            }
+        };
+
+        registerReceiver(managedConfigurationListener, restrictionsFilter);
+    }
+
+    /**
+     * Remove the managed configuration listener.
+     */
+    private void unregisterManagedConfigurationListener()
+    {
+        if (managedConfigurationListener != null)
+        {
+            try
+            {
+                unregisterReceiver(managedConfigurationListener);
+            } catch (Exception e)
+            {
+                Timber.e(e, "Unable to unregister the Managed Configuration Listener when pausing the app");
+            }
+            managedConfigurationListener = null;
         }
     }
 
@@ -249,7 +336,7 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
         {
             try
             {
-                qcdmPcapWriter = new QcdmPcapWriter();
+                qcdmPcapWriter = new QcdmPcapWriter(gpsListener);
             } catch (Exception e)
             {
                 Timber.e(e, "Could not create the QCDM PCAP writer");
@@ -273,7 +360,7 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
         {
             Path path = Paths.get(fifoPipeName);
             if (Files.exists(path) &&
-                Files.readAttributes(path, BasicFileAttributes.class).isOther())
+                    Files.readAttributes(path, BasicFileAttributes.class).isOther())
             {
                 status = true; // named pipe already exists
             } else
@@ -292,7 +379,7 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
                     Timber.d("Successfully ran the mknod command to create the named pipe");
                 }
             }
-        } catch(Exception e)
+        } catch (Exception e)
         {
             Timber.e(e, "Could not execute the mknod command to create the named pipe");
         }
@@ -381,51 +468,6 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
     private void shutdownNotifications()
     {
         stopForeground(true);
-    }
-
-    /**
-     * Toggles the cellular logging setting.
-     * <p>
-     * It is possible that an error occurs while trying to enable or disable logging.  In that event null will be
-     * returned indicating that logging could not be toggled.
-     *
-     * @param enable True if logging should be enabled, false if it should be turned off.
-     * @return The new state of logging.  True if it is enabled, or false if it is disabled.  Null is returned if the
-     * toggling was unsuccessful.
-     */
-    public Boolean togglePcapLogging(boolean enable)
-    {
-        synchronized (pcapLoggingEnabled)
-        {
-            final boolean originalLoggingState = pcapLoggingEnabled.get();
-            if (originalLoggingState == enable) return originalLoggingState;
-
-            Timber.i("Toggling cellular logging to %s", enable);
-
-            if (enable)
-            {
-                qcdmMessageProcessor.registerQcdmMessageListener(qcdmPcapWriter);
-            } else
-            {
-                qcdmMessageProcessor.unregisterQcdmMessageListener(qcdmPcapWriter);
-                qcdmPcapWriter.close();
-            }
-
-            pcapLoggingEnabled.set(enable);
-
-            updateServiceNotification();
-
-            return pcapLoggingEnabled.get();
-        }
-    }
-
-    @Override
-    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key)
-    {
-        if (qcdmPcapWriter != null)
-        {
-            qcdmPcapWriter.onSharedPreferenceChanged(sharedPreferences, key);
-        }
     }
 
     /**
