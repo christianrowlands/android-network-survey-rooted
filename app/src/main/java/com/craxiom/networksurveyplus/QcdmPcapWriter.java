@@ -104,11 +104,6 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         this.gpsListener = gpsListener;
     }
 
-    /**
-     * Used to throttle the status notifications to no more than one every n milliseconds.
-     */
-    private long lastStatusNotificationTimeMs = 0;
-
     @Override
     public void onQcdmMessage(QcdmMessage qcdmMessage)
     {
@@ -168,6 +163,8 @@ public class QcdmPcapWriter implements IQcdmMessageListener
                 outputStream.close();
             }
 
+            recordsLogged = 0;
+
             currentFileSizeBytes = 0;
 
             currentPcapFile = new File(createNewFilePath());
@@ -177,6 +174,8 @@ public class QcdmPcapWriter implements IQcdmMessageListener
             outputStream.write(PCAP_FILE_GLOBAL_HEADER);
             outputStream.flush();
         }
+
+        notifyStatusListeners();
     }
 
     /**
@@ -199,9 +198,9 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     {
         try
         {
-            outputStream.close();
+            if (outputStream != null) outputStream.close();
             recordsLogged = 0;
-        } catch (IOException e)
+        } catch (Exception e)
         {
             Timber.e(e, "Could not close the pcap file output stream");
         }
@@ -772,21 +771,16 @@ public class QcdmPcapWriter implements IQcdmMessageListener
      */
     private void notifyStatusListeners()
     {
-        final long currentTimeMillis = System.currentTimeMillis();
-        if (currentTimeMillis > lastStatusNotificationTimeMs + 1_000)
+        ServiceStatusMessage recordLoggedMessage = new ServiceStatusMessage(ServiceStatusMessage.SERVICE_RECORD_LOGGED_MESSAGE, recordsLogged);
+        for (IServiceStatusListener listener : serviceMessageListeners)
         {
-            ServiceStatusMessage recordLoggedMessage = new ServiceStatusMessage(ServiceStatusMessage.SERVICE_RECORD_LOGGED_MESSAGE, recordsLogged);
-            for (IServiceStatusListener listener : serviceMessageListeners)
+            try
             {
-                try
-                {
-                    listener.onServiceStatusMessage(recordLoggedMessage);
-                } catch (Exception e)
-                {
-                    Timber.e(e, "Unable to notify a Status Listener because of an exception");
-                }
+                listener.onServiceStatusMessage(recordLoggedMessage);
+            } catch (Exception e)
+            {
+                Timber.e(e, "Unable to notify a Status Listener because of an exception");
             }
-            lastStatusNotificationTimeMs = currentTimeMillis;
         }
     }
 

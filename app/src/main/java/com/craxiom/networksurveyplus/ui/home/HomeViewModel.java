@@ -19,6 +19,7 @@ public class HomeViewModel extends ViewModel implements IServiceStatusListener
 {
     private final MutableLiveData<Location> location = new MutableLiveData<>();
     private final MutableLiveData<Integer> recordCount = new MutableLiveData<>();
+    private final MutableLiveData<ServiceStatusMessage.LocationProviderStatus> providerStatus = new MutableLiveData<>();
 
     public LiveData<Location> getLocation()
     {
@@ -28,6 +29,11 @@ public class HomeViewModel extends ViewModel implements IServiceStatusListener
     public LiveData<Integer> getRecordCount()
     {
         return recordCount;
+    }
+
+    public MutableLiveData<ServiceStatusMessage.LocationProviderStatus> getProviderStatus()
+    {
+        return providerStatus;
     }
 
     @Override
@@ -43,8 +49,12 @@ public class HomeViewModel extends ViewModel implements IServiceStatusListener
                 recordCount.postValue((Integer) serviceMessage.data);
                 break;
 
+            case ServiceStatusMessage.SERVICE_GPS_LOCATION_PROVIDER_STATUS:
+                providerStatus.postValue((ServiceStatusMessage.LocationProviderStatus) serviceMessage.data);
+                break;
+
             default:
-                Timber.w("Unrecognized service message type: %s", serviceMessage.what);
+                Timber.e("Unrecognized service message type: %s", serviceMessage.what);
                 break;
         }
     }

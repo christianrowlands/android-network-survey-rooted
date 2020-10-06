@@ -8,6 +8,7 @@ public class ServiceStatusMessage
     // Message types
     public static final int SERVICE_LOCATION_MESSAGE = 1;
     public static final int SERVICE_RECORD_LOGGED_MESSAGE = 2;
+    public static final int SERVICE_GPS_LOCATION_PROVIDER_STATUS = 3;
 
     /**
      * The message identifier.
@@ -27,5 +28,11 @@ public class ServiceStatusMessage
     {
         this.what = what;
         this.data = data;
+    }
+
+    public enum LocationProviderStatus
+    {
+        GPS_PROVIDER_ENABLED,
+        GPS_PROVIDER_DISABLED
     }
 }

@@ -27,7 +27,7 @@
 
     <string name="no_gps_device">No GPS detected in device</string>
     <string name="turn_on_gps">Turn on GPS</string>
-    <string name="searching_for_location">Searching for Location …</string>
+    <string name="searching_for_location">Searching for GPS …</string>
     <string name="low_gps_confidence">Low GPS Confidence</string>
     <string name="location_placeholder">Location:</string>
     <string name="records_logged_placeholder">Records Logged:</string>

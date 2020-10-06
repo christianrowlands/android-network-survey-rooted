@@ -3,7 +3,7 @@
 
     <restriction
             android:defaultValue="false"
-            android:description="@string/auto_start_logging_description"
+            android:description="@string/auto_start_logging_on_boot_description"
             android:key="auto_start_logging"
             android:restrictionType="bool"
             android:title="@string/auto_start_logging_title" />

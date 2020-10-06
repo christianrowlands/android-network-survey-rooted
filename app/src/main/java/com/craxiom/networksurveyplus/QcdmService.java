@@ -39,6 +39,8 @@ import timber.log.Timber;
  */
 public class QcdmService extends Service implements SharedPreferences.OnSharedPreferenceChangeListener
 {
+    public static final int LOCATION_REFRESH_RATE = 4_000;
+
     private final AtomicBoolean pcapLoggingEnabled = new AtomicBoolean(false);
 
     private final QcdmServiceBinder qcdmServiceBinder;
@@ -258,9 +260,7 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
         final LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (locationManager != null)
         {
-            final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-            final int refreshRate = preferences.getInt(Constants.PROPERTY_LOCATION_REFRESH_RATE_MS, 5000);
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, refreshRate, 0f, gpsListener);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, LOCATION_REFRESH_RATE, 0f, gpsListener);
         } else
         {
             Timber.e("The location manager was null when trying to request location updates for the QcdmService");

@@ -13,9 +13,11 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.craxiom.networksurveyplus.R;
+import com.craxiom.networksurveyplus.ServiceStatusMessage;
 import com.craxiom.networksurveyplus.databinding.FragmentHomeBinding;
 
 import java.text.DecimalFormat;
@@ -44,13 +46,25 @@ public class HomeFragment extends Fragment
 
         initializeView();
 
-        // FIXME Also register for updates so that we can change the status as the user turns on and off the location service
-
-        homeViewModel.getLocation().observe(getViewLifecycleOwner(), this::updateLocationTextView);
-        homeViewModel.getRecordCount().observe(getViewLifecycleOwner(),
+        final LifecycleOwner viewLifecycleOwner = getViewLifecycleOwner();
+        homeViewModel.getLocation().observe(viewLifecycleOwner, this::updateLocationTextView);
+        homeViewModel.getRecordCount().observe(viewLifecycleOwner,
                 recordCount -> binding.tvRecordCount.setText(String.format(Locale.US, "%d", recordCount)));
+        homeViewModel.getProviderStatus().observe(viewLifecycleOwner, this::updateLocationProviderStatus);
 
         return binding.getRoot();
+    }
+
+    @Override
+    public void onDestroyView()
+    {
+        final HomeViewModel homeViewModel = binding.getVm();
+        final LifecycleOwner viewLifecycleOwner = getViewLifecycleOwner();
+        homeViewModel.getLocation().removeObservers(viewLifecycleOwner);
+        homeViewModel.getRecordCount().removeObservers(viewLifecycleOwner);
+        homeViewModel.getProviderStatus().removeObservers(viewLifecycleOwner);
+
+        super.onDestroyView();
     }
 
     /**
@@ -69,21 +83,23 @@ public class HomeFragment extends Fragment
             Timber.wtf("Could not get the location manager.");
             displayText = getString(R.string.no_gps_device);
             textColor = R.color.connectionStatusDisconnected;
+            tvLocation.setScaleY(.7f);
+            tvLocation.setTextScaleX(.7f);
         } else
         {
             final LocationProvider locationProvider = locationManager.getProvider(LocationManager.GPS_PROVIDER);
             if (locationProvider == null)
             {
-                final String noGpsMessage = getString(R.string.no_gps_device);
-                Timber.w(noGpsMessage);
-                displayText = noGpsMessage;
+                displayText = getString(R.string.no_gps_device);
+                Timber.w(displayText);
                 textColor = R.color.connectionStatusConnecting;
+                tvLocation.setScaleY(.7f);
+                tvLocation.setTextScaleX(.7f);
             } else if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER))
             {
                 // gps exists, but isn't on
-                final String turnOnGpsMessage = getString(R.string.turn_on_gps);
-                Timber.w(turnOnGpsMessage);
-                displayText = turnOnGpsMessage;
+                displayText = getString(R.string.turn_on_gps);
+                Timber.w(displayText);
                 textColor = R.color.connectionStatusConnecting;
             } else
             {
@@ -117,8 +133,31 @@ public class HomeFragment extends Fragment
         {
             tvLocation.setText(R.string.low_gps_confidence);
             tvLocation.setTextColor(Color.YELLOW);
-            tvLocation.setScaleY(.5f);
-            tvLocation.setTextScaleX(.5f);
+            tvLocation.setScaleY(.7f);
+            tvLocation.setTextScaleX(.7f);
+        }
+    }
+
+    /**
+     * Updates the location UI based on the provided location provider status.
+     *
+     * @param status The new status of the location provider.
+     */
+    private void updateLocationProviderStatus(ServiceStatusMessage.LocationProviderStatus status)
+    {
+        final TextView tvLocation = binding.tvLocation;
+
+        switch (status)
+        {
+            case GPS_PROVIDER_ENABLED:
+                tvLocation.setText(R.string.searching_for_location);
+                tvLocation.setTextColor(getResources().getColor(R.color.connectionStatusConnecting, null));
+                break;
+
+            case GPS_PROVIDER_DISABLED:
+                tvLocation.setText(R.string.turn_on_gps);
+                tvLocation.setTextColor(getResources().getColor(R.color.connectionStatusConnecting, null));
+                break;
         }
     }
 }
