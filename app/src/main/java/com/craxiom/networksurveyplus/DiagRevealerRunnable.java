@@ -2,10 +2,9 @@ package com.craxiom.networksurveyplus;
 
 import android.content.Context;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 
+import com.google.common.io.ByteStreams;
 import timber.log.Timber;
 
 /**
@@ -46,7 +45,10 @@ public class DiagRevealerRunnable implements Runnable
      */
     public void shutdown()
     {
-        process.destroy();
+        if (process != null)
+        {
+            process.destroy();
+        }
     }
 
     /**
@@ -57,9 +59,13 @@ public class DiagRevealerRunnable implements Runnable
     {
         Timber.i("Starting the Diag Revealer");
 
-        // TODO Add some code that validates that the su binary is present, and that we can use it. Also that /dev/diag works
-
-        executeCommand(createDiagRevealerCommand(fifoPipeName));
+        if (RootUtil.isDeviceReadyForDiagReceiver())
+        {
+            executeCommand(createDiagRevealerCommand(fifoPipeName));
+        } else
+        {
+            Timber.e("Device is not ready for diagnostic monitoring.");
+        }
     }
 
     /**
@@ -86,24 +92,17 @@ public class DiagRevealerRunnable implements Runnable
     {
         try
         {
-            process = Runtime.getRuntime().exec(command);
+            process = new ProcessBuilder(command)
+                       .redirectError(ProcessBuilder.Redirect.PIPE)
+                       .redirectOutput(ProcessBuilder.Redirect.PIPE)
+                       .start();
 
-            // FIXME This is all just temporary code. Need to do a better job of logging stdErr and stdOut
-            try (BufferedReader stdOut = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                 BufferedReader stdErr = new BufferedReader(new InputStreamReader(process.getErrorStream())))
-            {
-                String stdErrLine;
-                String stdOutLine = null;
-                while ((stdErrLine = stdErr.readLine()) != null || (stdOutLine = stdOut.readLine()) != null)
-                {
-                    if (stdErrLine != null) Timber.e("ERROR: %s", stdErrLine);
-                    if (stdOutLine != null) Timber.d("STDOUT: %s", stdOutLine);
-                }
-            }
+            String stdErrLine = new String(ByteStreams.toByteArray(process.getErrorStream()));
+            String stdOutLine = new String(ByteStreams.toByteArray(process.getInputStream()));
+            if (!stdErrLine.isEmpty()) Timber.e("ERROR: %s", stdErrLine);
+            if (!stdOutLine.isEmpty()) Timber.d("STDOUT: %s", stdOutLine);
 
-            process.waitFor(); // FIXME We need to handle restarting the diag revealer if something goes
-            // FIXME wrong and we also need to allow the process to be stopped if the QcdmService is destroyed.
-            // FIXME We also need to be able to log any stdout and errout
+            process.waitFor(); // FIXME We need to handle restarting the diag revealer if something goes wrong
 
             Timber.d("Done executing the diag revealer command and the process has returned with exit value %d", process.exitValue());
         } catch (InterruptedIOException e)

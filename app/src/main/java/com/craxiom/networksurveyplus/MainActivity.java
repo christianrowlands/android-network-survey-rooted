@@ -8,6 +8,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
@@ -24,11 +25,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
+import androidx.preference.PreferenceManager;
 
+import com.craxiom.networksurveyplus.ui.home.HomeViewModel;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.io.File;
@@ -54,6 +58,10 @@ public class MainActivity extends AppCompatActivity
 
     private MenuItem startStopPcapLoggingMenuItem;
 
+    private HomeViewModel homeViewModel;
+
+    private boolean turnOnLoggingOnNextServiceConnection = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -62,16 +70,23 @@ public class MainActivity extends AppCompatActivity
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES); // Force Dark Mode
         setContentView(R.layout.activity_main);
 
+        // Install the defaults specified in the XML preferences file, this is only done the first time the app is opened
+        PreferenceManager.setDefaultValues(this, R.xml.network_survey_settings, false);
+
+        final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        turnOnLoggingOnNextServiceConnection = preferences.getBoolean(Constants.PROPERTY_AUTO_START_PCAP_LOGGING, false);
+
         setupNavigation();
+
+        setupViewModels();
 
         qcdmServiceConnection = new QcdmServiceConnection();
 
         setupNotificationChannel();
 
-        // TODO only copy one of these
-        copyConfigFile(R.raw.diag);
-        copyConfigFile(R.raw.full_diag);
-        copyConfigFile(R.raw.rrc_diag);
+        //copyConfigFile(R.raw.diag);
+        //copyConfigFile(R.raw.full_diag);
+        //copyConfigFile(R.raw.rrc_diag);
         copyConfigFile(R.raw.rrc_filter_diag);
     }
 
@@ -91,8 +106,6 @@ public class MainActivity extends AppCompatActivity
         if (qcdmService != null)
         {
             final Context applicationContext = getApplicationContext();
-
-            // TODO qcdmService.onUiHidden();
 
             if (!qcdmService.isBeingUsed())
             {
@@ -200,7 +213,7 @@ public class MainActivity extends AppCompatActivity
         final LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (locationManager == null)
         {
-            Log.w(LOG_TAG, "Could not get the location manager.  Skipping checking the location provider");
+            Timber.w("Could not get the location manager.  Skipping checking the location provider");
             return;
         }
 
@@ -208,13 +221,13 @@ public class MainActivity extends AppCompatActivity
         if (locationProvider == null)
         {
             final String noGpsMessage = getString(R.string.no_gps_device);
-            Log.w(LOG_TAG, noGpsMessage);
+            Timber.w(noGpsMessage);
             Toast.makeText(getApplicationContext(), noGpsMessage, Toast.LENGTH_LONG).show();
         } else if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER))
         {
             // gps exists, but isn't on
             final String turnOnGpsMessage = getString(R.string.turn_on_gps);
-            Log.w(LOG_TAG, turnOnGpsMessage);
+            Timber.w(turnOnGpsMessage);
             Toast.makeText(getApplicationContext(), turnOnGpsMessage, Toast.LENGTH_LONG).show();
 
             promptEnableGps();
@@ -250,11 +263,21 @@ public class MainActivity extends AppCompatActivity
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.navigation_home, R.id.navigation_dashboard, R.id.navigation_notifications)
+                R.id.navigation_home, R.id.navigation_settings)
                 .build();
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
         NavigationUI.setupWithNavController(navView, navController);
+    }
+
+    /**
+     * Set up the view models needed for communicating between this activity, the service, and the
+     * fragments in the bottom navigation.
+     */
+    private void setupViewModels()
+    {
+        final ViewModelProvider viewModelProvider = new ViewModelProvider(this);
+        homeViewModel = viewModelProvider.get(HomeViewModel.class);
     }
 
     /**
@@ -407,44 +430,32 @@ public class MainActivity extends AppCompatActivity
             Timber.i("%s service connected", name);
             final QcdmService.QcdmServiceBinder binder = (QcdmService.QcdmServiceBinder) iBinder;
             qcdmService = binder.getService();
-            // TODO Update this
-            /*qcdmService.onUiVisible(NetworkSurveyActivity.this);
 
-            final boolean cellularLoggingEnabled = qcdmService.isCellularLoggingEnabled();
-            if (turnOnCellularLoggingOnNextServiceConnection && !cellularLoggingEnabled)
+            if (homeViewModel != null)
             {
-                toggleCellularLogging(true);
-            } else
-            {
-                updateCellularLoggingButton(cellularLoggingEnabled);
+                qcdmService.registerServiceStatusListener(homeViewModel);
             }
 
-            final boolean wifiLoggingEnabled = qcdmService.isWifiLoggingEnabled();
-            if (turnOnWifiLoggingOnNextServiceConnection && !wifiLoggingEnabled)
+            final boolean loggingEnabled = qcdmService.isPcapLoggingEnabled();
+            if (turnOnLoggingOnNextServiceConnection && !loggingEnabled)
             {
-                toggleWifiLogging(true);
+                togglePcapLogging(true);
             } else
             {
-                updateWifiLoggingButton(wifiLoggingEnabled);
+                updatePcapLoggingButton(loggingEnabled);
             }
 
-            final boolean gnssLoggingEnabled = qcdmService.isGnssLoggingEnabled();
-            if (turnOnGnssLoggingOnNextServiceConnection && !gnssLoggingEnabled)
-            {
-                toggleGnssLogging(true);
-            } else
-            {
-                updateGnssLoggingButton(gnssLoggingEnabled);
-            }
-
-            turnOnCellularLoggingOnNextServiceConnection = false;
-            turnOnWifiLoggingOnNextServiceConnection = false;
-            turnOnGnssLoggingOnNextServiceConnection = false;*/
+            turnOnLoggingOnNextServiceConnection = false;
         }
 
         @Override
         public void onServiceDisconnected(final ComponentName name)
         {
+            if (homeViewModel != null)
+            {
+                qcdmService.unregisterServiceStatusListener(homeViewModel);
+            }
+
             qcdmService = null;
             Timber.i("%s service disconnected", name);
         }

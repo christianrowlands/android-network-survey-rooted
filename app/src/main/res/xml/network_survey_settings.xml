@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        tools:context=".ui.settings.PreferencesFragment">
+
+    <SwitchPreferenceCompat
+            app:defaultValue="false"
+            app:icon="@drawable/ic_mobile_signal"
+            app:key="auto_start_logging"
+            app:summaryOff="@string/auto_start_logging_summary_off"
+            app:summaryOn="@string/auto_start_logging_summary_on"
+            app:title="@string/auto_start_logging_title" />
+
+    <DropDownPreference
+            app:defaultValue="5"
+            app:entries="@array/log_rollover_size_labels"
+            app:entryValues="@array/log_rollover_size_values"
+            app:icon="@drawable/ic_file_rollover"
+            app:key="log_rollover_size"
+            app:title="@string/log_rollover_size_title"
+            app:useSimpleSummaryProvider="true" />
+
+</PreferenceScreen>

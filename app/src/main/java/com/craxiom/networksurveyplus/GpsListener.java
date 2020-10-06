@@ -5,6 +5,9 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import timber.log.Timber;
 
 /**
@@ -20,6 +23,7 @@ public class GpsListener implements LocationListener
     private static final float MIN_DISTANCE_ACCURACY = 44f; // Probably need to make this configurable
 
     private Location latestLocation;
+    private final List<IServiceStatusListener> serviceMessageListeners = new ArrayList<>();
 
     @Override
     public void onLocationChanged(Location location)
@@ -37,6 +41,13 @@ public class GpsListener implements LocationListener
     public void onProviderEnabled(String provider)
     {
         Timber.i("Location Provider (%s) has been enabled", provider);
+
+        if (LocationManager.GPS_PROVIDER.equals(provider))
+        {
+            ServiceStatusMessage message = new ServiceStatusMessage(ServiceStatusMessage.SERVICE_GPS_LOCATION_PROVIDER_STATUS,
+                    ServiceStatusMessage.LocationProviderStatus.GPS_PROVIDER_ENABLED);
+            serviceMessageListeners.forEach(listener -> listener.onServiceStatusMessage(message));
+        }
     }
 
     @Override
@@ -44,7 +55,34 @@ public class GpsListener implements LocationListener
     {
         Timber.i("Location Provider (%s) has been disabled", provider);
 
-        if (LocationManager.GPS_PROVIDER.equals(provider)) latestLocation = null;
+        if (LocationManager.GPS_PROVIDER.equals(provider))
+        {
+            latestLocation = null;
+
+            ServiceStatusMessage message = new ServiceStatusMessage(ServiceStatusMessage.SERVICE_GPS_LOCATION_PROVIDER_STATUS,
+                    ServiceStatusMessage.LocationProviderStatus.GPS_PROVIDER_DISABLED);
+            serviceMessageListeners.forEach(listener -> listener.onServiceStatusMessage(message));
+        }
+    }
+
+    /**
+     * Adds a location update listener.
+     *
+     * @param listener The listener to add
+     */
+    public void registerLocationUpdatesListener(IServiceStatusListener listener)
+    {
+        serviceMessageListeners.add(listener);
+    }
+
+    /**
+     * Removes a location update listeners.
+     *
+     * @param listener The listener to remove
+     */
+    public void unregisterLocationUpdatesListener(IServiceStatusListener listener)
+    {
+        serviceMessageListeners.remove(listener);
     }
 
     public Location getLatestLocation()
@@ -59,14 +97,16 @@ public class GpsListener implements LocationListener
      */
     private void updateLocation(Location newLocation)
     {
-        if (newLocation != null// && LocationManager.GPS_PROVIDER.equals(newLocation.getProvider()) // TODO What if we remove the GPS provider check. As long as it is an accurate location that should work
-                && newLocation.getAccuracy() <= MIN_DISTANCE_ACCURACY)
+        if (newLocation != null && newLocation.getAccuracy() <= MIN_DISTANCE_ACCURACY)
         {
             latestLocation = newLocation;
         } else
         {
-            Timber.d("The accuracy of the last GPS location is less than the required minimum");
+            Timber.d("The accuracy of the last GPS location (%f) is less than the required minimum (%f)", newLocation.getAccuracy(), MIN_DISTANCE_ACCURACY);
             latestLocation = null;
         }
+
+        ServiceStatusMessage locationMessage = new ServiceStatusMessage(ServiceStatusMessage.SERVICE_LOCATION_MESSAGE, latestLocation);
+        serviceMessageListeners.forEach(listener -> listener.onServiceStatusMessage(locationMessage));
     }
 }
