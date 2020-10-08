@@ -2,9 +2,10 @@ package com.craxiom.networksurveyplus;
 
 import android.content.Context;
 
+import com.google.common.io.ByteStreams;
+
 import java.io.InterruptedIOException;
 
-import com.google.common.io.ByteStreams;
 import timber.log.Timber;
 
 /**
@@ -22,6 +23,7 @@ public class DiagRevealerRunnable implements Runnable
     private final Context context;
     private final String fifoPipeName;
 
+    private volatile boolean done = false;
     private Process process;
 
     /**
@@ -45,6 +47,8 @@ public class DiagRevealerRunnable implements Runnable
      */
     public void shutdown()
     {
+        done = true;
+
         if (process != null)
         {
             process.destroy();
@@ -93,24 +97,31 @@ public class DiagRevealerRunnable implements Runnable
         try
         {
             process = new ProcessBuilder(command)
-                       .redirectError(ProcessBuilder.Redirect.PIPE)
-                       .redirectOutput(ProcessBuilder.Redirect.PIPE)
-                       .start();
+                    .redirectError(ProcessBuilder.Redirect.PIPE)
+                    .redirectOutput(ProcessBuilder.Redirect.PIPE)
+                    .start();
 
             String stdErrLine = new String(ByteStreams.toByteArray(process.getErrorStream()));
             String stdOutLine = new String(ByteStreams.toByteArray(process.getInputStream()));
             if (!stdErrLine.isEmpty()) Timber.e("ERROR: %s", stdErrLine);
             if (!stdOutLine.isEmpty()) Timber.d("STDOUT: %s", stdOutLine);
 
-            process.waitFor(); // FIXME We need to handle restarting the diag revealer if something goes wrong
+            process.waitFor();
 
             Timber.d("Done executing the diag revealer command and the process has returned with exit value %d", process.exitValue());
+
+            if (process.exitValue() != 0 && !done)
+            {
+                Timber.i("Restarting Diag Revealer because the last exit value as non-zero");
+                startDiagRevealer();
+            }
         } catch (InterruptedIOException e)
         {
             Timber.i("The diag revealer process was interrupted");
         } catch (Exception e)
         {
-            Timber.e(e, "Something went wrong when executing the diag revealer command");
+            Timber.e(e, "Something went wrong when executing the diag revealer command, restarting Diag Revealer");
+            if (!done) startDiagRevealer();
         }
     }
 }
