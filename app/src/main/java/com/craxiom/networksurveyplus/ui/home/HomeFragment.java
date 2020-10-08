@@ -44,7 +44,7 @@ public class HomeFragment extends Fragment
         final HomeViewModel homeViewModel = new ViewModelProvider(requireActivity()).get(HomeViewModel.class);
         binding.setVm(homeViewModel);
 
-        initializeView();
+        initializeView(homeViewModel);
 
         final LifecycleOwner viewLifecycleOwner = getViewLifecycleOwner();
         homeViewModel.getLocation().observe(viewLifecycleOwner, this::updateLocationTextView);
@@ -69,9 +69,17 @@ public class HomeFragment extends Fragment
 
     /**
      * Updates the view to have some basic status information such as the current state of the location.
+     *
+     * @param homeViewModel The model that contains the data objects.
      */
-    private void initializeView()
+    private void initializeView(HomeViewModel homeViewModel)
     {
+        final Integer recordCount = homeViewModel.getRecordCount().getValue();
+        if (recordCount != null)
+        {
+            binding.tvRecordCount.setText(String.format(Locale.US, "%d", recordCount));
+        }
+
         final TextView tvLocation = binding.tvLocation;
 
         final String displayText;

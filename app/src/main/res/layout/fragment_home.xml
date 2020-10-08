@@ -73,7 +73,6 @@
                             android:id="@+id/tv_recordCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/record_count_placeholder"
                             android:textAppearance="@style/StatusText" />
 
                 </LinearLayout>
