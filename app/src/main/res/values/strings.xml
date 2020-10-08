@@ -31,7 +31,6 @@
     <string name="low_gps_confidence">Low GPS Confidence</string>
     <string name="location_placeholder">Location:</string>
     <string name="records_logged_placeholder">Records Logged:</string>
-    <string name="record_count_placeholder">0</string>
 
     <!-- User Preference Constants -->
     <string name="auto_start_logging_title">Auto start logging</string>
