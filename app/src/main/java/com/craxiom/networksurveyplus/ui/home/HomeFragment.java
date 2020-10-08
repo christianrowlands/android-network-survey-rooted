@@ -1,6 +1,8 @@
 package com.craxiom.networksurveyplus.ui.home;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
@@ -12,6 +14,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.ViewModelProvider;
@@ -44,7 +47,7 @@ public class HomeFragment extends Fragment
         final HomeViewModel homeViewModel = new ViewModelProvider(requireActivity()).get(HomeViewModel.class);
         binding.setVm(homeViewModel);
 
-        initializeView(homeViewModel);
+        initializeView();
 
         final LifecycleOwner viewLifecycleOwner = getViewLifecycleOwner();
         homeViewModel.getLocation().observe(viewLifecycleOwner, this::updateLocationTextView);
@@ -53,6 +56,17 @@ public class HomeFragment extends Fragment
         homeViewModel.getProviderStatus().observe(viewLifecycleOwner, this::updateLocationProviderStatus);
 
         return binding.getRoot();
+    }
+
+    @Override
+    public void onResume()
+    {
+        super.onResume();
+
+        // In the edge case event where the user has just granted the location permission but has not restarted the app,
+        // we need to update the UI to show the new location in this onResume method. There might be better approaches
+        // instead of recalling the initialize view method each time the fragment is resumed.
+        initializeView();
     }
 
     @Override
@@ -69,12 +83,10 @@ public class HomeFragment extends Fragment
 
     /**
      * Updates the view to have some basic status information such as the current state of the location.
-     *
-     * @param homeViewModel The model that contains the data objects.
      */
-    private void initializeView(HomeViewModel homeViewModel)
+    private void initializeView()
     {
-        final Integer recordCount = homeViewModel.getRecordCount().getValue();
+        final Integer recordCount = binding.getVm().getRecordCount().getValue();
         if (recordCount != null)
         {
             binding.tvRecordCount.setText(String.format(Locale.US, "%d", recordCount));
@@ -84,6 +96,22 @@ public class HomeFragment extends Fragment
 
         final String displayText;
         final int textColor;
+
+        if (!hasLocationPermission())
+        {
+            tvLocation.setText(getString(R.string.missing_location_permission));
+            tvLocation.setTextColor(getResources().getColor(R.color.connectionStatusDisconnected, null));
+            tvLocation.setScaleY(.7f);
+            tvLocation.setTextScaleX(.7f);
+            return;
+        }
+
+        final Location location = binding.getVm().getLocation().getValue();
+        if (location != null)
+        {
+            updateLocationTextView(location);
+            return;
+        }
 
         final LocationManager locationManager = (LocationManager) requireContext().getSystemService(Context.LOCATION_SERVICE);
         if (locationManager == null)
@@ -118,6 +146,20 @@ public class HomeFragment extends Fragment
 
         tvLocation.setText(displayText);
         tvLocation.setTextColor(getResources().getColor(textColor, null));
+    }
+
+    /**
+     * @return True if the {@link Manifest.permission#ACCESS_FINE_LOCATION} permission has been granted.  False otherwise.
+     */
+    private boolean hasLocationPermission()
+    {
+        if (ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+        {
+            Timber.w("The ACCESS_FINE_LOCATION permission has not been granted");
+            return false;
+        }
+
+        return true;
     }
 
     /**

@@ -108,13 +108,7 @@ public class DiagRevealerRunnable implements Runnable
 
             process.waitFor();
 
-            Timber.d("Done executing the diag revealer command and the process has returned with exit value %d", process.exitValue());
-
-            if (process.exitValue() != 0 && !done)
-            {
-                Timber.i("Restarting Diag Revealer because the last exit value as non-zero");
-                startDiagRevealer();
-            }
+            Timber.i("Done executing the diag revealer command and the process has returned with exit value %d", process.exitValue());
         } catch (InterruptedIOException e)
         {
             Timber.i("The diag revealer process was interrupted");

@@ -61,6 +61,7 @@ public class MainActivity extends AppCompatActivity
     private HomeViewModel homeViewModel;
 
     private boolean turnOnLoggingOnNextServiceConnection = false;
+    private boolean hasRequestedPermissions = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -95,7 +96,10 @@ public class MainActivity extends AppCompatActivity
     {
         super.onResume();
 
-        if (missingAnyPermissions()) showPermissionRationaleAndRequestPermissions();
+        if (missingAnyPermissions() && !hasRequestedPermissions)
+        {
+            showPermissionRationaleAndRequestPermissions();
+        }
 
         startAndBindToQcdmService();
     }
@@ -156,8 +160,7 @@ public class MainActivity extends AppCompatActivity
     private void showPermissionRationaleAndRequestPermissions()
     {
         if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_PHONE_STATE))
+                || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE))
         {
             Timber.d("Showing the permissions rationale dialog");
 
@@ -184,6 +187,7 @@ public class MainActivity extends AppCompatActivity
         if (missingAnyPermissions())
         {
             ActivityCompat.requestPermissions(this, PERMISSIONS, ACCESS_PERMISSION_REQUEST_ID);
+            hasRequestedPermissions = true;
         }
     }
 

@@ -25,6 +25,7 @@
     <string name="action_start_pcap_logging">Start Pcap Logging</string>
     <string name="action_stop_pcap_logging">Stop Pcap Logging</string>
 
+    <string name="missing_location_permission">Missing Location Permission</string>
     <string name="no_gps_device">No GPS detected in device</string>
     <string name="turn_on_gps">Turn on GPS</string>
     <string name="searching_for_location">Searching for GPS …</string>

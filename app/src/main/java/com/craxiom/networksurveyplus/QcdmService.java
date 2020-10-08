@@ -272,6 +272,12 @@ public class QcdmService extends Service implements SharedPreferences.OnSharedPr
      */
     private void removeLocationListener()
     {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+        {
+            Timber.w("ACCESS_FINE_LOCATION Permission not granted for the NS+ app, skipping removing the location listener.");
+            return;
+        }
+
         if (gpsListener != null)
         {
             final LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
