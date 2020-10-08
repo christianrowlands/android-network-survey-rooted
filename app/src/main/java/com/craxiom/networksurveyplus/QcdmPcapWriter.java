@@ -682,6 +682,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     private static byte[] getPpiFieldHeader(Location location)
     {
         if (location == null) return new byte[]{};
+
         byte[] geoTag = getGeoTag(location);
         byte[] fieldHeader = {
                 (byte) 0x32, (byte) 0x75,  // PPI field header type GPS (30002)
