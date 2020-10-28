@@ -107,6 +107,7 @@ enum remote_procs {
 #define DCI_LOG_MASKS_TYPE	0x00000100
 #define DCI_EVENT_MASKS_TYPE	0x00000200
 #define DCI_PKT_TYPE		0x00000400
+#define HDLC_SUPPORT_TYPE	0x00001000
 
 /* IOCTL commands for diagnostic port
  * Reference: https://android.googlesource.com/kernel/msm.git/+/android-6.0.0_r0.9/include/linux/diagchar.h
@@ -123,6 +124,11 @@ enum remote_procs {
 #define DIAG_IOCTL_GET_REAL_TIME	34
 #define DIAG_IOCTL_PERIPHERAL_BUF_CONFIG	35
 #define DIAG_IOCTL_PERIPHERAL_BUF_DRAIN		36
+#define DIAG_IOCTL_REGISTER_CALLBACK	37
+#define DIAG_IOCTL_HDLC_TOGGLE	38
+#define DIAG_IOCTL_QUERY_PD_LOGGING	39
+//#define DIAG_IOCTL_QUERY_CON_ALL	40
+#define DIAG_IOCTL_QUERY_MD_PID	41
 
 #define MEMORY_DEVICE_MODE		2
 #define CALLBACK_MODE			6
@@ -367,12 +373,16 @@ print_hex (const char *buf, int len)
 {
     int i = 0;
     for (i = 0; i < len; i++) {
-        printf("%02x ", buf[i]);
-        if (((i + 1) % 16) == 0)
-            printf("\n");
+        char *p = (char *) malloc(2);
+        sprintf(p, "%02x ", buf[i]);
+        LOGD("%s", p);
+        //printf("%02x ", buf[i]);
+        //if (((i + 1) % 16) == 0)
+        //    printf("\n");
     }
     if ((i % 16) != 0)
-        printf("\n");
+        LOGD("\n");
+        //printf("\n");
 }
 
 // Write commands to /dev/diag device.
@@ -396,7 +406,8 @@ write_commands (int fd, BinaryBuffer *pbuf_write)
     // Metadata for each mask command
     size_t offset = remote_dev ? 8 : 4; // offset of the metadata (4 bytes for MSM, 8 bytes for MDM)
     LOGD("write_commands: offset=%lu remote_dev=%u\n", offset, remote_dev);
-    *((int *)send_buf) = htole32(USER_SPACE_DATA_TYPE);
+    //*((int *)send_buf) = htole32(USER_SPACE_DATA_TYPE);
+    *((int *)send_buf) = htole32(MSG_MASKS_TYPE);
     if (remote_dev) {
         /*
          * MDM device: should let diag driver know it
@@ -415,33 +426,33 @@ write_commands (int fd, BinaryBuffer *pbuf_write)
         if (len >= 3) {
             // memcpy(send_buf + 4, p + i, len);
             memcpy(send_buf + offset, p + i, len);
-            // LOGD("Writing %d bytes of data\n", len + 4);
-            // print_hex(send_buf, len + 4);
+            LOGD("Writing %d bytes of data\n", len + 4);
+            print_hex(send_buf, len + 4);
             fflush(stdout);
             // int ret = write(fd, (const void *) send_buf, len + 4);
             int ret = write(fd, (const void *) send_buf, len + offset);
-            // LOGD("write_commands: ret=%d\n", ret);
+            LOGD("write_commands: ret=%d\n", ret);
             if (ret < 0) {
                 LOGE("write_commands error (len=%lu, offset=%lu): %s\n", len, offset, strerror(errno));
                 return -1;
             }
             /*
-             * Read responses after writting each command.
+             * Read responses after writing each command.
              * NOTE: This step MUST EXIST. Without it, some phones cannot collect logs for two reasons:
              *  (1) Ensure every config commands succeeds (otherwise read() will be blocked)
              *  (2) Clean up the buffer, thus avoiding pollution of later real cellular logs
              */
-            // LOGD("Before read\n");
+            LOGD("Before read\n");
             int read_len = read(fd, buf_read, sizeof(buf_read));
             if (read_len < 0) {
                 LOGE("write_commands read error: %s\n", strerror(errno));
                 return -1;
             } else {
-                // LOGD("Reading %d bytes of resp\n", read_len);
-                // LOGD("write_commands responses\n");
-                // print_hex(buf_read, read_len);
+                LOGD("Reading %d bytes of resp\n", read_len);
+                LOGD("write_commands responses\n");
+                print_hex(buf_read, read_len);
             }
-            // LOGD("After read\n");
+            LOGD("After read\n");
         }
         i += len;
     }
@@ -730,7 +741,9 @@ enable_logging (int fd, int mode)
      */
     ret = ioctl(fd, DIAG_IOCTL_REMOTE_DEV, &remote_dev);
     if (ret < 0) {
+        LOGD("ioctl DIAG_IOCTL_REMOTE_DEV fails, with ret val = %d\n", ret);
         printf("ioctl DIAG_IOCTL_REMOTE_DEV fails, with ret val = %d\n", ret);
+        LOGE("ioctl DIAG_IOCTL_REMOTE_DEV");
         perror("ioctl DIAG_IOCTL_REMOTE_DEV");
     } else {
         LOGD("DIAG_IOCTL_REMOTE_DEV remote_dev=%d\n", remote_dev);
@@ -745,7 +758,9 @@ enable_logging (int fd, int mode)
     dci_client.token = 0;
     ret = ioctl(fd, DIAG_IOCTL_DCI_REG, &dci_client);
     if (ret < 0) {
+        LOGD("ioctl DIAG_IOCTL_DCI_REG fails, with ret val = %d\n", ret);
         printf("ioctl DIAG_IOCTL_DCI_REG fails, with ret val = %d\n", ret);
+        LOGE("ioctl DIAG_IOCTL_DCI_REG");
         perror("ioctl DIAG_IOCTL_DCI_REG");
     } else {
         client_id = ret;
@@ -755,7 +770,7 @@ enable_logging (int fd, int mode)
     // Nexus-6-only logging optimizations
     // It will fail on other devices (errno=EFAULT), since DIAG_IOCTL_OPTIMIZED_LOGGING is equal to DIAG_IOCTL_PERIPHERAL_BUF_CONFIG.
     // Reference: https://github.com/MotorolaMobilityLLC/kernel-msm/blob/kitkat-4.4.4-release-victara/drivers/char/diag/diagchar_core.c#L1189
-    ret = ioctl(fd, DIAG_IOCTL_OPTIMIZED_LOGGING, (long) 1);
+    //ret = ioctl(fd, DIAG_IOCTL_OPTIMIZED_LOGGING, (long) 1);
     // if (ret >= 0) {
     // 	ret = ioctl(fd, DIAG_IOCTL_OPTIMIZED_LOGGING_FLUSH, NULL);
     // 	if (ret < 0) {
@@ -805,7 +820,9 @@ enable_logging (int fd, int mode)
 
     ret = ioctl(fd, DIAG_IOCTL_PERIPHERAL_BUF_CONFIG, &buffering_mode);
     if (ret < 0) {
+        LOGD("ioctl DIAG_IOCTL_PERIPHERAL_BUF_CONFIG fails, with ret val = %d\n", ret);
         printf("ioctl DIAG_IOCTL_PERIPHERAL_BUF_CONFIG fails, with ret val = %d\n", ret);
+        LOGE("ioctl DIAG_IOCTL_PERIPHERAL_BUF_CONFIG");
         perror("ioctl DIAG_IOCTL_PERIPHERAL_BUF_CONFIG");
     }
 
@@ -849,7 +866,7 @@ enable_logging (int fd, int mode)
      * And the version can be deduced from the length. It is not very precise, but it is enough at least
      * for now.
      */
-    ssize_t arglen = probe_ioctl_arglen(DIAG_IOCTL_SWITCH_LOGGING, sizeof(struct diag_logging_mode_param_t_q));
+    ssize_t arglen = 24;//probe_ioctl_arglen(DIAG_IOCTL_SWITCH_LOGGING, sizeof(struct diag_logging_mode_param_t_q));
     switch (arglen) {
         case sizeof(struct diag_logging_mode_param_t_q): {
             /* Android 10.0 mode
@@ -939,7 +956,7 @@ enable_logging (int fd, int mode)
             LOGI("Using libdiag.so to switch logging succeeded\n");
     }
     if (ret >= 0) {
-        // LOGD("Enable logging mode success.\n");
+        LOGD("Enable logging mode success.\n");
 
         // Register a DCI client
         struct diag_dci_reg_tbl_t dci_client;
@@ -950,11 +967,11 @@ enable_logging (int fd, int mode)
         dci_client.token = 0;
         ret = ioctl(fd, DIAG_IOCTL_DCI_REG, &dci_client);
         if (ret < 0) {
-            // LOGD("ioctl DIAG_IOCTL_DCI_REG fails, with ret val = %d\n", ret);
+            LOGE("ioctl DIAG_IOCTL_DCI_REG fails, with ret val = %d\n", ret);
             // perror("ioctl DIAG_IOCTL_DCI_REG");
         } else {
             client_id = ret;
-            // LOGD("DIAG_IOCTL_DCI_REG client_id=%d\n", client_id);
+            LOGD("DIAG_IOCTL_DCI_REG client_id=%d\n", client_id);
         }
 
         /*
@@ -969,12 +986,12 @@ enable_logging (int fd, int mode)
 
         ret = ioctl(fd, DIAG_IOCTL_PERIPHERAL_BUF_CONFIG, &buffering_mode);
         if (ret < 0) {
-            // LOGD("ioctl DIAG_IOCTL_PERIPHERAL_BUF_CONFIG fails, with ret val = %d\n", ret);
+            LOGE("ioctl DIAG_IOCTL_PERIPHERAL_BUF_CONFIG fails, with ret val = %d\n", ret);
             // perror("ioctl DIAG_IOCTL_PERIPHERAL_BUF_CONFIG");
         }
 
     } else {
-        // LOGD("Failed to enable logging mode: %s.\n", strerror(errno));
+        LOGE("Failed to enable logging mode: %s.\n", strerror(errno));
     }
 
     return ret;
@@ -1121,11 +1138,88 @@ main (int argc, char **argv)
     }
 
     while (1) {
-        // LOGI("Reading logs...\n");
+        LOGI("Reading logs...\n");
         int read_len = read(fd, buf_read, sizeof(buf_read));
-        // LOGI("Received logs. read_len=%d\n", read_len);
+        LOGI("Received logs. read_len=%d\n", read_len);
         if (read_len > 0) {
             if (*((int *)buf_read) == USER_SPACE_DATA_TYPE) {
+                int num_data = *((int *) (buf_read + 4));
+                // LOGI("num_data=%d\n", num_data);
+                int i = 0;
+                // long long offset = 8;
+                long long offset = remote_dev ? 12 : 8;
+                for (i = 0; i < num_data; i++) {
+                    int ret_err;
+                    short fifo_msg_type = FIFO_MSG_TYPE_LOG;
+                    short fifo_msg_len;
+                    double ts = get_posix_timestamp();
+
+                    // Copy msg_len
+                    int msg_len = 0;
+                    memcpy(&msg_len, buf_read + offset, sizeof(int));
+                    // memcpy(&msg_len, buf_read + offset + 4, sizeof(int));
+                    // LOGI("memcpy: msg_len=%d\n", msg_len);
+                    if (msg_len < 0)
+                        continue;
+                    print_hex(buf_read + offset + 4, msg_len);
+                    // Wirte msg type to pipe
+
+                    //LOGD("ret_err0");
+                    ret_err = write(fifo_fd, &fifo_msg_type, sizeof(short));
+
+                    // Write size of (payload + timestamp)
+                    fifo_msg_len = (short) msg_len + 8;
+                    ret_err = write(fifo_fd, &fifo_msg_len, sizeof(short));
+                    if (ret_err < 0) {
+                        // LOGI("Pipe closed, diag_revealer will exit");
+                        LOGI("Pipe error (msg_len): %s", strerror(errno));
+                        close(fd);
+                        return -1;
+                    }
+
+                    // Write timestamp of sending payload to pipe
+                    ret_err = write(fifo_fd, &ts, sizeof(double));
+                    if (ret_err < 0) {
+                        // LOGI("Pipe closed, diag_revealer will exit");
+                        LOGI("Pipe error (timestamp): %s", strerror(errno));
+                        close(fd);
+                        return -1;
+                    }
+
+                    // Write payload to pipe
+                    ret_err = write(fifo_fd, buf_read + offset + 4, msg_len);
+                    if (ret_err < 0) {
+                        LOGI("Pipe error (payload): %s", strerror(errno));
+                        LOGD("Debug: msg_len=%d buf_read+offset+4=%s\n", msg_len,
+                             buf_read + offset + 4);
+                        // LOGI("Pipe closed, diag_revealer will exit");
+                        close(fd);
+                        return -1;
+                    }
+
+                    // Write mi2log output if necessary
+                    if (state.log_fp != NULL) {
+                        int ret2 = manager_append_log(&state, fifo_fd, msg_len);
+                        if (ret2 == 0) {
+                            size_t log_res = fwrite(buf_read + offset + 4, sizeof(char), msg_len,
+                                                    state.log_fp);
+                            if (log_res != msg_len) {
+                                LOGI("Fail to save logs. diag_revealer will exit");
+                                close(fd);
+                                return -1;
+                            }
+                            fflush(state.log_fp);
+                        } else {
+                            // TODO: error handling
+                            LOGI("Fail to append logs. diag_revealer will exit");
+                            close(fd);
+                            return -1;
+                        }
+                    }
+                    offset += msg_len + 4;
+                }
+            } else if (*((int *)buf_read) == MSG_MASKS_TYPE) {
+                LOGI("MSG_MASKS_TYPE");
                 int num_data = *((int *)(buf_read + 4));
                 // LOGI("num_data=%d\n", num_data);
                 int i = 0;
@@ -1144,10 +1238,10 @@ main (int argc, char **argv)
                     // LOGI("memcpy: msg_len=%d\n", msg_len);
                     if (msg_len < 0)
                         continue;
-                    // print_hex(buf_read + offset + 4, msg_len);
+                    print_hex(buf_read + offset + 4, msg_len);
                     // Wirte msg type to pipe
 
-                    // LOGD("ret_err0");
+                    //LOGD("ret_err0");
                     ret_err = write(fifo_fd, &fifo_msg_type, sizeof(short));
 
                     // Write size of (payload + timestamp)
@@ -1201,7 +1295,7 @@ main (int argc, char **argv)
                 }
             } else {
                 // TODO: Check other raw binary types
-                // LOGI("Not USER_SPACE_DATA_TYPE: %d\n", *((int *)buf_read));
+                LOGI("Not USER_SPACE_DATA_TYPE: %d\n", *((int *)buf_read));
             }
         } else {
             continue;
