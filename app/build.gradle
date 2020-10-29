@@ -10,7 +10,7 @@ android {
         applicationId "com.craxiom.networksurveyplus"
         minSdkVersion 26
         targetSdkVersion 29
-        versionCode 1
+        versionCode 3
         versionName "0.2.0-SNAPSHOT"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -49,15 +49,6 @@ android {
         exclude 'log4j.properties'
     }
 
-    splits {
-        abi {
-            enable true
-            reset()
-            include 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
-            universalApk true
-        }
-    }
-
     testOptions {
         unitTests.returnDefaultValues = true
     }
@@ -70,9 +61,9 @@ dependencies {
     implementation 'com.google.android.material:material:1.2.1'
     implementation 'com.google.guava:guava:29.0-android'
     implementation 'androidx.preference:preference:1.1.1'
-    implementation 'androidx.constraintlayout:constraintlayout:2.0.2'
-    implementation 'androidx.navigation:navigation-fragment:2.3.0'
-    implementation 'androidx.navigation:navigation-ui:2.3.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.3'
+    implementation 'androidx.navigation:navigation-fragment:2.3.1'
+    implementation 'androidx.navigation:navigation-ui:2.3.1'
     implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
 
     testImplementation 'junit:junit:4.13'
