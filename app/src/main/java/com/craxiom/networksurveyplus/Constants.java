@@ -7,7 +7,7 @@ public class Constants
     }
 
     public static final String FIFO_PIPE = "diag_revealer_fifo";
-    public static final String DIAG_REVEALER_NAME = "diag_revealer";
+    public static final String DIAG_REVEALER_NAME = "libdiag_revealer";
     public static final String LIB_DIAG_REVEALER_NAME = DIAG_REVEALER_NAME + ".so";
 
     public static final String NOTIFICATION_CHANNEL_ID = "network_survey_plus_notification";
