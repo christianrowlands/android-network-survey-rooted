@@ -51,7 +51,7 @@ make changes to the Diag Revealer C application, you can do so and then compile 
 
  1) `cd app`
  1) `ndk-build`
- 1)  Add the `.so` extension to the output file (probably something like `libs/arm64-v8a/diag_revealer` to `libs/arm64-v8a/diag_revealer.so`)
+ 1)  Add the `.so` extension to the output file (probably something like `libs/arm64-v8a/diag_revealer` to `libs/arm64-v8a/libdiag_revealer.so`)
  
 The reason the file needs to have the `.so` extension is that Android only unpacks the native application if it is a 
 shared library instead of just a regular executable. At some point it would be nice to investigate if we can get around
@@ -75,8 +75,11 @@ are a list of other projects that might be of interest to you.
 
 ## Changelog
 
+##### [0.1.2](https://github.com/christianrowlands/android-network-survey-rooted/releases/tag/v0.1.2) - 2020-11-02
+ * Fixed a bug where the diag_revealer.so file was not being unpacked.
+
 ##### [0.1.0](https://github.com/christianrowlands/android-network-survey-rooted/releases/tag/v0.1.0) - 2020-10-28
- * Initial Release of Network Survey Plus
+ * Initial Release of Network Survey Plus.
 
 
 ## Contact
