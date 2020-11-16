@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="colorCardDark">#161212</color>
 
     <!-- Illini Theme -->
     <color name="illiniColorPrimary">@color/darkGunmetal</color>

@@ -15,4 +15,45 @@
             android:restrictionType="integer"
             android:title="@string/log_rollover_size_title" />
 
+    <restriction
+        android:defaultValue=""
+        android:description="@string/mqtt_connection_host_description"
+        android:key="mqtt_connection_host"
+        android:restrictionType="string"
+        android:title="@string/mqtt_connection_host_title" />
+
+    <restriction
+        android:defaultValue="8883"
+        android:description="@string/mqtt_connection_port_description"
+        android:key="mqtt_connection_port"
+        android:restrictionType="integer"
+        android:title="@string/mqtt_connection_port_title" />
+
+    <restriction
+        android:defaultValue="true"
+        android:description="@string/mqtt_tls_enabled_description"
+        android:key="mqtt_tls_enabled"
+        android:restrictionType="bool"
+        android:title="@string/mqtt_tls_enabled_title" />
+
+    <restriction
+        android:defaultValue=""
+        android:description="@string/mqtt_client_id_description"
+        android:key="mqtt_client_id"
+        android:restrictionType="string"
+        android:title="@string/mqtt_client_id_title" />
+
+    <restriction
+        android:defaultValue=""
+        android:description="@string/mqtt_username_description"
+        android:key="mqtt_username"
+        android:restrictionType="string"
+        android:title="@string/mqtt_username_title" />
+
+    <restriction
+        android:defaultValue=""
+        android:description="@string/mqtt_password_description"
+        android:key="mqtt_password"
+        android:restrictionType="string"
+        android:title="@string/mqtt_password_title" />
 </restrictions>

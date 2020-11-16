@@ -5,5 +5,11 @@
 
     <dimen name="fragment_padding_top">4dp</dimen>
 
+    <dimen name="x_small_margin">4dp</dimen>
     <dimen name="small_margin">8dp</dimen>
+    <dimen name="medium_margin">16dp</dimen>
+    <dimen name="large_margin">24dp</dimen>
+    <dimen name="bottom_nav_margin">55dp</dimen>
+
+    <dimen name="medium_text_size">18sp</dimen>
 </resources>
