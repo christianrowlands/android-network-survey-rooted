@@ -1,11 +1,11 @@
-package com.craxiom.networksurveyplus.mqtt;
+package com.craxiom.mqttlibrary.connection;
 
 import java.util.Objects;
 
 /**
  * Holds all the information for an MQTT Broker connection.
  *
- * @since 0.2.0
+ * @since 0.1.0
  */
 public class MqttBrokerConnectionInfo
 {
@@ -62,7 +62,7 @@ public class MqttBrokerConnectionInfo
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        com.craxiom.networksurveyplus.mqtt.MqttBrokerConnectionInfo that = (com.craxiom.networksurveyplus.mqtt.MqttBrokerConnectionInfo) o;
+        MqttBrokerConnectionInfo that = (MqttBrokerConnectionInfo) o;
 
         if (!Objects.equals(mqttServerUri, that.mqttServerUri)) return false;
         if (!Objects.equals(mqttClientId, that.mqttClientId)) return false;
@@ -98,7 +98,7 @@ public class MqttBrokerConnectionInfo
 
     /**
      * Given the host, port, and TLS setting, create and return the MQTT broker URI that can be used by the
-     * {@link MqttConnection} client.
+     * {@link QcdmMqttConnection} client.
      *
      * @param mqttBrokerHost The IP or hostname (hostname preferred) of the MQTT broker.
      * @param portNumber     The port number of the MQTT broker (typically 8883 for TLS, and 1883 for plaintext).

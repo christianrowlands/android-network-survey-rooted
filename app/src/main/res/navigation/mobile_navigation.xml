@@ -19,7 +19,7 @@
 
     <fragment
         android:id="@+id/navigation_mqtt"
-        android:name="com.craxiom.networksurveyplus.ui.mqtt.MqttConnectionFragment"
+        android:name="com.craxiom.networksurveyplus.ui.mqtt.QcdmMqttFragment"
         android:label="@string/title_mqtt"
         tools:layout="@layout/fragment_mqtt_connection" />
 </navigation>

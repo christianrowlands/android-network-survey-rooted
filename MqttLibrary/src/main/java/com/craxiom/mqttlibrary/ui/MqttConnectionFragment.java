@@ -1,18 +1,15 @@
-package com.craxiom.networksurveyplus.ui.mqtt;
+package com.craxiom.mqttlibrary.ui;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
 import android.content.RestrictionsManager;
-import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.IBinder;
 import android.os.Looper;
+import android.preference.PreferenceManager;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -29,30 +26,30 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
-import androidx.preference.PreferenceManager;
 
-import com.craxiom.networksurveyplus.Constants;
-import com.craxiom.networksurveyplus.IConnectionStateListener;
-import com.craxiom.networksurveyplus.QcdmService;
-import com.craxiom.networksurveyplus.R;
-import com.craxiom.networksurveyplus.mqtt.ConnectionState;
-import com.craxiom.networksurveyplus.mqtt.MqttBrokerConnectionInfo;
+import com.craxiom.mqttlibrary.IConnectionStateListener;
+import com.craxiom.mqttlibrary.IMqttService;
+import com.craxiom.mqttlibrary.MqttConstants;
+import com.craxiom.mqttlibrary.R;
+import com.craxiom.mqttlibrary.connection.ConnectionState;
+import com.craxiom.mqttlibrary.connection.MqttBrokerConnectionInfo;
 
 import timber.log.Timber;
 
 /**
  * A fragment for allowing the user to connect to an MQTT broker.  This fragment handles
- * the UI portion of the connection and delegates the actual connection logic to {@link com.craxiom.networksurveyplus.QcdmService}.
+ * the UI portion of the connection and delegates the actual connection logic to {@link IMqttService}.
  *
- * @since 0.2.0
+ * @since 0.1.0
  */
-public class MqttConnectionFragment extends Fragment implements IConnectionStateListener
+public abstract class MqttConnectionFragment extends Fragment implements IConnectionStateListener
 {
     private static final int ACCESS_PERMISSION_REQUEST_ID = 10;
 
     private final Handler uiThreadHandler;
 
-    private Context applicationContext;
+    protected IMqttService service;
+    protected Context applicationContext;
 
     private SwitchCompat mdmOverrideToggleSwitch;
     private CardView connectionStatusCardView;
@@ -65,12 +62,10 @@ public class MqttConnectionFragment extends Fragment implements IConnectionState
     private EditText usernameEdit;
     private EditText passwordEdit;
 
-    private QcdmService qcdmService;
-
     private boolean mdmConfigPresent;
     private boolean mdmOverride = false;
     private String host = "";
-    private Integer portNumber = Constants.DEFAULT_MQTT_PORT;
+    private Integer portNumber = MqttConstants.DEFAULT_MQTT_PORT;
     private boolean tlsEnabled = true;
     private String deviceName = "";
     private String mqttUsername = "";
@@ -88,11 +83,13 @@ public class MqttConnectionFragment extends Fragment implements IConnectionState
         super.onCreate(savedInstanceState);
     }
 
+    public abstract View inflateView();
+
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
     {
-        final View view = inflater.inflate(R.layout.fragment_mqtt_connection, container, false);
+        final View view = inflateView();
 
         final CardView mdmOverrideCard = view.findViewById(R.id.mdm_override_card_view);
         mdmOverrideToggleSwitch = view.findViewById(R.id.mdm_override_toggle_switch);
@@ -164,13 +161,15 @@ public class MqttConnectionFragment extends Fragment implements IConnectionState
     {
         super.onResume();
 
-        startAndBindToQcdmService();
+        startAndBindToService();
     }
+
+    protected abstract void startAndBindToService();
 
     @Override
     public void onPause()
     {
-        if (qcdmService != null) qcdmService.unregisterMqttConnectionStateListener(this);
+        if (service != null) service.unregisterMqttConnectionStateListener(this);
 
         super.onPause();
     }
@@ -195,10 +194,10 @@ public class MqttConnectionFragment extends Fragment implements IConnectionState
     {
         if (tlsToggleSwitch.isChecked())
         {
-            mqttPortNumberEdit.setText(String.valueOf(Constants.MQTT_SSL_PORT));
+            mqttPortNumberEdit.setText(String.valueOf(MqttConstants.MQTT_SSL_PORT));
         } else
         {
-            mqttPortNumberEdit.setText(String.valueOf(Constants.MQTT_PLAIN_TEXT_PORT));
+            mqttPortNumberEdit.setText(String.valueOf(MqttConstants.MQTT_PLAIN_TEXT_PORT));
         }
     }
 
@@ -248,11 +247,11 @@ public class MqttConnectionFragment extends Fragment implements IConnectionState
         {
             final Bundle mdmProperties = restrictionsManager.getApplicationRestrictions();
 
-            final boolean hasBrokerHost = mdmProperties.containsKey(Constants.PROPERTY_MQTT_CONNECTION_HOST);
+            final boolean hasBrokerHost = mdmProperties.containsKey(MqttConstants.PROPERTY_MQTT_CONNECTION_HOST);
             if (!hasBrokerHost) return false;
 
-            final String mqttBrokerHost = mdmProperties.getString(Constants.PROPERTY_MQTT_CONNECTION_HOST);
-            final String clientId = mdmProperties.getString(Constants.PROPERTY_MQTT_CLIENT_ID);
+            final String mqttBrokerHost = mdmProperties.getString(MqttConstants.PROPERTY_MQTT_CONNECTION_HOST);
+            final String clientId = mdmProperties.getString(MqttConstants.PROPERTY_MQTT_CLIENT_ID);
 
             return mqttBrokerHost != null && clientId != null;
         }
@@ -264,7 +263,7 @@ public class MqttConnectionFragment extends Fragment implements IConnectionState
      * Reads the MDM configuration from the restrictions manager. This method assumes that {@link #isMdmConfigPresent()}
      * has already been called to validate if the MDM config should be restored. Calling this method overrides the user
      * entered values, so it should only be called if an actual valid MDM config is present, and if the user has not
-     * overridden the MDM config {@link Constants#PROPERTY_MQTT_MDM_OVERRIDE}.
+     * overridden the MDM config {@link MqttConstants#PROPERTY_MQTT_MDM_OVERRIDE}.
      */
     private void readMdmConfig()
     {
@@ -279,12 +278,12 @@ public class MqttConnectionFragment extends Fragment implements IConnectionState
 
         final Bundle mdmProperties = restrictionsManager.getApplicationRestrictions();
 
-        host = mdmProperties.getString(Constants.PROPERTY_MQTT_CONNECTION_HOST);
-        portNumber = mdmProperties.getInt(Constants.PROPERTY_MQTT_CONNECTION_PORT, Constants.DEFAULT_MQTT_PORT);
-        deviceName = mdmProperties.getString(Constants.PROPERTY_MQTT_CLIENT_ID, "");
-        tlsEnabled = mdmProperties.getBoolean(Constants.PROPERTY_MQTT_CONNECTION_TLS_ENABLED, Constants.DEFAULT_MQTT_TLS_SETTING);
-        mqttUsername = mdmProperties.getString(Constants.PROPERTY_MQTT_USERNAME);
-        mqttPassword = mdmProperties.getString(Constants.PROPERTY_MQTT_PASSWORD);
+        host = mdmProperties.getString(MqttConstants.PROPERTY_MQTT_CONNECTION_HOST);
+        portNumber = mdmProperties.getInt(MqttConstants.PROPERTY_MQTT_CONNECTION_PORT, MqttConstants.DEFAULT_MQTT_PORT);
+        deviceName = mdmProperties.getString(MqttConstants.PROPERTY_MQTT_CLIENT_ID, "");
+        tlsEnabled = mdmProperties.getBoolean(MqttConstants.PROPERTY_MQTT_CONNECTION_TLS_ENABLED, MqttConstants.DEFAULT_MQTT_TLS_SETTING);
+        mqttUsername = mdmProperties.getString(MqttConstants.PROPERTY_MQTT_USERNAME);
+        mqttPassword = mdmProperties.getString(MqttConstants.PROPERTY_MQTT_PASSWORD);
     }
 
     /**
@@ -305,7 +304,7 @@ public class MqttConnectionFragment extends Fragment implements IConnectionState
         {
             readMdmConfig(); // Read the MDM config back into the UI since the user has returned control back to the MDM server
             updateUiFieldsFromStoredValues();
-            qcdmService.attemptMqttConnectWithMdmConfig(true);
+            service.attemptMqttConnectWithMdmConfig(true);
         }
     }
 
@@ -314,7 +313,7 @@ public class MqttConnectionFragment extends Fragment implements IConnectionState
      *
      * @param connectionState The new state of the server connection to update the UI for.
      */
-    private void updateUiState(ConnectionState connectionState)
+    protected void updateUiState(ConnectionState connectionState)
     {
         Timber.d("Updating the UI state for: %s", connectionState);
 
@@ -355,7 +354,7 @@ public class MqttConnectionFragment extends Fragment implements IConnectionState
     }
 
     /**
-     * Read the connection values from the UI, and then pass the values to the {@link QcdmService} so the
+     * Read the connection values from the UI, and then pass the values to the {@link IMqttService} so the
      * connection can be established.
      * <p>
      * If the connection values from the UI are invalid, then the connection is not started and a Toast is displayed to
@@ -386,7 +385,7 @@ public class MqttConnectionFragment extends Fragment implements IConnectionState
 
             hideSoftInputFromWindow();
 
-            qcdmService.connectToMqttBroker(getMqttBrokerConnectionInfo());
+            service.connectToMqttBroker(getMqttBrokerConnectionInfo());
         } catch (Exception e)
         {
             Timber.e(e, "An exception occurred when trying to connect to the MQTT broker");
@@ -447,7 +446,7 @@ public class MqttConnectionFragment extends Fragment implements IConnectionState
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(applicationContext);
         final SharedPreferences.Editor edit = preferences.edit();
 
-        edit.putBoolean(Constants.PROPERTY_MQTT_MDM_OVERRIDE, mdmOverride);
+        edit.putBoolean(MqttConstants.PROPERTY_MQTT_MDM_OVERRIDE, mdmOverride);
 
         edit.apply();
     }
@@ -460,24 +459,24 @@ public class MqttConnectionFragment extends Fragment implements IConnectionState
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(applicationContext);
         final SharedPreferences.Editor edit = preferences.edit();
 
-        edit.putBoolean(Constants.PROPERTY_MQTT_MDM_OVERRIDE, mdmOverride);
+        edit.putBoolean(MqttConstants.PROPERTY_MQTT_MDM_OVERRIDE, mdmOverride);
         if (host != null)
         {
-            edit.putString(Constants.PROPERTY_MQTT_CONNECTION_HOST, host);
+            edit.putString(MqttConstants.PROPERTY_MQTT_CONNECTION_HOST, host);
         }
-        edit.putInt(Constants.PROPERTY_MQTT_CONNECTION_PORT, portNumber);
-        edit.putBoolean(Constants.PROPERTY_MQTT_CONNECTION_TLS_ENABLED, tlsEnabled);
+        edit.putInt(MqttConstants.PROPERTY_MQTT_CONNECTION_PORT, portNumber);
+        edit.putBoolean(MqttConstants.PROPERTY_MQTT_CONNECTION_TLS_ENABLED, tlsEnabled);
         if (deviceName != null)
         {
-            edit.putString(Constants.PROPERTY_MQTT_CLIENT_ID, deviceName);
+            edit.putString(MqttConstants.PROPERTY_MQTT_CLIENT_ID, deviceName);
         }
         if (mqttUsername != null)
         {
-            edit.putString(Constants.PROPERTY_MQTT_USERNAME, mqttUsername);
+            edit.putString(MqttConstants.PROPERTY_MQTT_USERNAME, mqttUsername);
         }
         if (mqttPassword != null)
         {
-            edit.putString(Constants.PROPERTY_MQTT_PASSWORD, mqttPassword);
+            edit.putString(MqttConstants.PROPERTY_MQTT_PASSWORD, mqttPassword);
         }
 
         edit.apply();
@@ -490,23 +489,23 @@ public class MqttConnectionFragment extends Fragment implements IConnectionState
     {
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(applicationContext);
 
-        mdmOverride = preferences.getBoolean(Constants.PROPERTY_MQTT_MDM_OVERRIDE, false);
+        mdmOverride = preferences.getBoolean(MqttConstants.PROPERTY_MQTT_MDM_OVERRIDE, false);
 
-        final String restoredHost = preferences.getString(Constants.PROPERTY_MQTT_CONNECTION_HOST, "");
+        final String restoredHost = preferences.getString(MqttConstants.PROPERTY_MQTT_CONNECTION_HOST, "");
         if (!restoredHost.isEmpty()) host = restoredHost;
 
-        final int restoredPortNumber = preferences.getInt(Constants.PROPERTY_MQTT_CONNECTION_PORT, Constants.DEFAULT_MQTT_PORT);
+        final int restoredPortNumber = preferences.getInt(MqttConstants.PROPERTY_MQTT_CONNECTION_PORT, MqttConstants.DEFAULT_MQTT_PORT);
         if (restoredPortNumber != -1) portNumber = restoredPortNumber;
 
-        tlsEnabled = preferences.getBoolean(Constants.PROPERTY_MQTT_CONNECTION_TLS_ENABLED, Constants.DEFAULT_MQTT_TLS_SETTING);
+        tlsEnabled = preferences.getBoolean(MqttConstants.PROPERTY_MQTT_CONNECTION_TLS_ENABLED, MqttConstants.DEFAULT_MQTT_TLS_SETTING);
 
-        final String restoredDeviceName = preferences.getString(Constants.PROPERTY_MQTT_CLIENT_ID, "");
+        final String restoredDeviceName = preferences.getString(MqttConstants.PROPERTY_MQTT_CLIENT_ID, "");
         if (!restoredDeviceName.isEmpty()) deviceName = restoredDeviceName;
 
-        final String restoredUsername = preferences.getString(Constants.PROPERTY_MQTT_USERNAME, "");
+        final String restoredUsername = preferences.getString(MqttConstants.PROPERTY_MQTT_USERNAME, "");
         if (!restoredUsername.isEmpty()) mqttUsername = restoredUsername;
 
-        final String restoredPassword = preferences.getString(Constants.PROPERTY_MQTT_PASSWORD, "");
+        final String restoredPassword = preferences.getString(MqttConstants.PROPERTY_MQTT_PASSWORD, "");
         if (!restoredPassword.isEmpty()) mqttPassword = restoredPassword;
     }
 
@@ -528,7 +527,7 @@ public class MqttConnectionFragment extends Fragment implements IConnectionState
      */
     private void disconnectFromMqttBroker()
     {
-        if (qcdmService != null) qcdmService.disconnectFromMqttBroker();
+        if (service != null) service.disconnectFromMqttBroker();
     }
 
     /**
@@ -570,48 +569,6 @@ public class MqttConnectionFragment extends Fragment implements IConnectionState
             {
                 inputMethodManager.hideSoftInputFromWindow(mqttHostAddressEdit.getWindowToken(), 0);
             }
-        }
-    }
-
-    /**
-     * Start the QCDM Service (it won't start if it is already started), and then bind to the service.
-     * <p>
-     * Starting the service will cause the cellular records to be pulled from the Android system, and then once the
-     * MQTT connection is made those cellular records will be sent over the connection to the MQTT Broker.
-     */
-    private void startAndBindToQcdmService()
-    {
-        // Start the service
-        Timber.i("Binding to the QCDM Service");
-        final Intent serviceIntent = new Intent(applicationContext, QcdmService.class);
-        applicationContext.startService(serviceIntent);
-
-        // Bind to the service
-        ServiceConnection qcdmServiceConnection = new QcdmServiceConnection();
-        final boolean bound = applicationContext.bindService(serviceIntent, qcdmServiceConnection, Context.BIND_ABOVE_CLIENT);
-        Timber.i("QcdmService bound in the MqttConnectionFragment: %s", bound);
-    }
-
-    /**
-     * A {@link ServiceConnection} implementation for binding to the {@link QcdmService}.
-     */
-    private class QcdmServiceConnection implements ServiceConnection
-    {
-        @Override
-        public void onServiceConnected(final ComponentName name, final IBinder binder)
-        {
-            Timber.i("%s service connected", name);
-            qcdmService = ((QcdmService.QcdmServiceBinder) binder).getService();
-            qcdmService.registerMqttConnectionStateListener(MqttConnectionFragment.this);
-
-            updateUiState(qcdmService.getMqttConnectionState());
-        }
-
-        @Override
-        public void onServiceDisconnected(final ComponentName name)
-        {
-            Timber.i("%s service disconnected", name);
-            qcdmService = null;
         }
     }
 }

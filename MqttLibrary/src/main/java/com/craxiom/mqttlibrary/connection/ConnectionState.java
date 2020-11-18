@@ -1,4 +1,4 @@
-package com.craxiom.networksurveyplus.mqtt;
+package com.craxiom.mqttlibrary.connection;
 
 /**
  * Represents the various states of the MQTT Broker Connection.

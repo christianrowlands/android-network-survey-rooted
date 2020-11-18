@@ -1,10 +1,8 @@
-package com.craxiom.networksurveyplus.mqtt;
+package com.craxiom.mqttlibrary.connection;
 
 import android.content.Context;
 
-import com.craxiom.networksurveyplus.IConnectionStateListener;
-import com.craxiom.networksurveyplus.IQcdmMessageListener;
-import com.craxiom.networksurveyplus.messages.QcdmMessage;
+import com.craxiom.mqttlibrary.IConnectionStateListener;
 import com.google.protobuf.MessageOrBuilder;
 import com.google.protobuf.util.JsonFormat;
 
@@ -22,83 +20,26 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import timber.log.Timber;
 
 /**
- * Class for creating a connection to an MQTT server.
- *
- * @since 0.2.0
+ * Abstract class for creating a connection to an MQTT server.
  */
-public class MqttConnection implements IQcdmMessageListener
+public abstract class MqttConnection
 {
-    private static final String MQTT_LTE_RRC_OTA_MESSAGE_TOPIC = "lte_rrc_ota_message";
-
     /**
      * The amount of time to wait for a proper disconnection to occur before we force kill it.
      */
     private static final long DISCONNECT_TIMEOUT = 250L;
 
+    private final JsonFormat.Printer jsonFormatter;
     private final List<IConnectionStateListener> mqttConnectionListeners = new CopyOnWriteArrayList<>();
 
-    private MqttAndroidClient mqttAndroidClient;
     private volatile ConnectionState connectionState = ConnectionState.DISCONNECTED;
-    private final JsonFormat.Printer jsonFormatter;
-    private String mqttClientId;
+    private MqttAndroidClient mqttAndroidClient;
 
-    public MqttConnection()
+    protected String mqttClientId;
+
+    protected MqttConnection()
     {
         jsonFormatter = JsonFormat.printer().preservingProtoFieldNames().omittingInsignificantWhitespace();
-    }
-
-    @Override
-    public void onQcdmMessage(QcdmMessage qcdmMessage)
-    {
-        // Set the device name to the user entered value in the MQTT connection UI (or the value provided via MDM)
-        if (mqttClientId != null)
-        {
-            // TODO build real LTE_RCC_OTA message
-        }
-
-        // TODO publish message
-        publishMessage(null, null);
-    }
-
-//    @Override
-//    public void onGsmSurveyRecord(GsmRecord gsmRecord)
-//    {
-//
-//        if (mqttClientId != null)
-//        {
-//            final GsmRecord.Builder recordBuilder = gsmRecord.toBuilder();
-//            gsmRecord = recordBuilder.setData(recordBuilder.getDataBuilder().setDeviceName(mqttClientId)).build();
-//        }
-//
-//        publishMessage(MQTT_GSM_MESSAGE_TOPIC, gsmRecord);
-//    }
-
-    /**
-     * @return The current {@link ConnectionState} of the connection to the MQTT Broker.
-     */
-    public ConnectionState getConnectionState()
-    {
-        return connectionState;
-    }
-
-    /**
-     * Adds an {@link IConnectionStateListener} so that it will be notified of all future MQTT connection state changes.
-     *
-     * @param connectionStateListener The listener to add.
-     */
-    public void registerMqttConnectionStateListener(IConnectionStateListener connectionStateListener)
-    {
-        mqttConnectionListeners.add(connectionStateListener);
-    }
-
-    /**
-     * Removes an {@link IConnectionStateListener} so that it will no longer be notified of MQTT connection state changes.
-     *
-     * @param connectionStateListener The listener to remove.
-     */
-    public void unregisterMqttConnectionStateListener(IConnectionStateListener connectionStateListener)
-    {
-        mqttConnectionListeners.remove(connectionStateListener);
     }
 
     /**
@@ -155,6 +96,55 @@ public class MqttConnection implements IQcdmMessageListener
     }
 
     /**
+     * @return The current {@link ConnectionState} of the connection to the MQTT Broker.
+     */
+    public ConnectionState getConnectionState()
+    {
+        return connectionState;
+    }
+
+    /**
+     * Send the provided Protobuf message to the MQTT Broker.
+     * <p>
+     * The Protobuf message is formatted as JSON and then published to the specified topic.
+     *
+     * @param mqttMessageTopic The MQTT Topic to publish the message to.
+     * @param message          The Protobuf message to format as JSON and send to the MQTT Broker.
+     */
+    protected synchronized void publishMessage(String mqttMessageTopic, MessageOrBuilder message)
+    {
+        try
+        {
+            final String messageJson = jsonFormatter.print(message);
+
+            mqttAndroidClient.publish(mqttMessageTopic, new MqttMessage(messageJson.getBytes()));
+        } catch (Exception e)
+        {
+            Timber.e(e, "Caught an exception when trying to send an MQTT message");
+        }
+    }
+
+    /**
+     * Adds an {@link IConnectionStateListener} so that it will be notified of all future MQTT connection state changes.
+     *
+     * @param connectionStateListener The listener to add.
+     */
+    public void registerMqttConnectionStateListener(IConnectionStateListener connectionStateListener)
+    {
+        mqttConnectionListeners.add(connectionStateListener);
+    }
+
+    /**
+     * Removes an {@link IConnectionStateListener} so that it will no longer be notified of MQTT connection state changes.
+     *
+     * @param connectionStateListener The listener to remove.
+     */
+    public void unregisterMqttConnectionStateListener(IConnectionStateListener connectionStateListener)
+    {
+        mqttConnectionListeners.remove(connectionStateListener);
+    }
+
+    /**
      * Notify all the registered listeners of the new connection state.
      *
      * @param newConnectionState The new MQTT connection state.
@@ -174,28 +164,6 @@ public class MqttConnection implements IQcdmMessageListener
             {
                 Timber.e(e, "Unable to notify a MQTT Connection State Listener because of an exception");
             }
-        }
-    }
-
-    /**
-     * Send the provided Protobuf message to the MQTT Broker.
-     * <p>
-     * The Protobuf message is formatted as JSON and then published to the specified topic.
-     *
-     * @param mqttMessageTopic The MQTT Topic to publish the message to.
-     * @param message          The Protobuf message to format as JSON and send to the MQTT Broker.
-     */
-    private synchronized void publishMessage(String mqttMessageTopic, MessageOrBuilder message)
-    {
-        try
-        {
-            Timber.i("Publishing; everything is wired correctly!");
-//            final String messageJson = jsonFormatter.print(message);
-//
-//            mqttAndroidClient.publish(mqttMessageTopic, new MqttMessage(messageJson.getBytes()));
-        } catch (Exception e)
-        {
-            Timber.e(e, "Caught an exception when trying to send an MQTT message");
         }
     }
 

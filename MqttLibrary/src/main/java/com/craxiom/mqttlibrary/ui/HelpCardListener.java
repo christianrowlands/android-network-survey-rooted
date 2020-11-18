@@ -1,10 +1,10 @@
-package com.craxiom.networksurveyplus.ui.mqtt;
+package com.craxiom.mqttlibrary.ui;
 
 import android.view.View;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import com.craxiom.networksurveyplus.R;
+import com.craxiom.mqttlibrary.R;
 
 /**
  * An {@link View.OnClickListener} for the {@link R.layout#expandable_help_card} that handles expanding
