@@ -560,6 +560,8 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
         Timber.i("Disconnecting from the MQTT Broker");
 
         qcdmMessageProcessor.unregisterQcdmMessageListener(qcdmMqttConnection);
+
+        qcdmMqttConnection.disconnect();
     }
 
     /**

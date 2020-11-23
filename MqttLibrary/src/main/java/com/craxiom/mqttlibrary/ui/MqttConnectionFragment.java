@@ -47,9 +47,9 @@ public abstract class MqttConnectionFragment extends Fragment implements IConnec
     private static final int ACCESS_PERMISSION_REQUEST_ID = 10;
 
     private final Handler uiThreadHandler;
+    protected Context applicationContext;
 
     protected IMqttService service;
-    protected Context applicationContext;
 
     private SwitchCompat mdmOverrideToggleSwitch;
     private CardView connectionStatusCardView;
@@ -79,17 +79,18 @@ public abstract class MqttConnectionFragment extends Fragment implements IConnec
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState)
     {
-        applicationContext = requireActivity().getApplicationContext();
         super.onCreate(savedInstanceState);
     }
 
-    public abstract View inflateView();
+    public abstract void initializeContext();
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
     {
-        final View view = inflateView();
+        initializeContext();
+
+        final View view = inflater.inflate(R.layout.fragment_mqtt_connection, null);
 
         final CardView mdmOverrideCard = view.findViewById(R.id.mdm_override_card_view);
         mdmOverrideToggleSwitch = view.findViewById(R.id.mdm_override_toggle_switch);

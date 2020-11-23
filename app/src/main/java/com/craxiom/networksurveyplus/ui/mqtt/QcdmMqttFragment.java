@@ -5,8 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
-import android.view.LayoutInflater;
-import android.view.View;
 
 import com.craxiom.mqttlibrary.ui.MqttConnectionFragment;
 import com.craxiom.networksurveyplus.QcdmService;
@@ -22,9 +20,9 @@ import timber.log.Timber;
 public class QcdmMqttFragment extends MqttConnectionFragment
 {
     @Override
-    public View inflateView()
+    public void initializeContext()
     {
-        return LayoutInflater.from(getActivity().getApplicationContext()).inflate(com.craxiom.mqttlibrary.R.layout.fragment_mqtt_connection, null);
+        applicationContext = requireActivity().getApplicationContext();
     }
 
     @Override
