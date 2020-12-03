@@ -1,6 +1,6 @@
 package com.craxiom.networksurveyplus.mqtt;
 
-import com.craxiom.mqttlibrary.connection.MqttConnection;
+import com.craxiom.mqttlibrary.connection.AMqttConnection;
 import com.craxiom.networksurveyplus.IQcdmMessageListener;
 import com.craxiom.networksurveyplus.messages.QcdmMessage;
 
@@ -9,7 +9,7 @@ import com.craxiom.networksurveyplus.messages.QcdmMessage;
  *
  * @since 0.2.0
  */
-public class QcdmMqttConnection extends MqttConnection implements IQcdmMessageListener
+public class QcdmMqttConnection extends AMqttConnection implements IQcdmMessageListener
 {
     private static final String MQTT_LTE_RRC_OTA_MESSAGE_TOPIC = "lte_rrc_ota_message";
 

@@ -23,8 +23,8 @@ import androidx.preference.PreferenceManager;
 
 import com.craxiom.mqttlibrary.IConnectionStateListener;
 import com.craxiom.mqttlibrary.IMqttService;
+import com.craxiom.mqttlibrary.connection.BrokerConnectionInfo;
 import com.craxiom.mqttlibrary.connection.ConnectionState;
-import com.craxiom.mqttlibrary.connection.MqttBrokerConnectionInfo;
 import com.craxiom.mqttlibrary.ui.AConnectionFragment;
 import com.craxiom.networksurveyplus.mqtt.QcdmMqttConnection;
 import com.google.common.io.ByteStreams;
@@ -543,7 +543,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
      * @since 0.2.0
      */
     @Override
-    public void connectToMqttBroker(MqttBrokerConnectionInfo connectionInfo)
+    public void connectToMqttBroker(BrokerConnectionInfo connectionInfo)
     {
         qcdmMqttConnection.connect(getApplicationContext(), connectionInfo);
 
@@ -578,7 +578,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
             return;
         }
 
-        final MqttBrokerConnectionInfo connectionInfo = getMdmMqttBrokerConnectionInfo();
+        final BrokerConnectionInfo connectionInfo = getMdmBrokerConnectionInfo();
 
         if (connectionInfo != null)
         {
@@ -616,7 +616,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
      * the user has overrode the MDM config.
      * @since 0.2.0
      */
-    private MqttBrokerConnectionInfo getMdmMqttBrokerConnectionInfo()
+    private BrokerConnectionInfo getMdmBrokerConnectionInfo()
     {
         final RestrictionsManager restrictionsManager = (RestrictionsManager) getSystemService(Context.RESTRICTIONS_SERVICE);
         if (restrictionsManager != null)
@@ -638,7 +638,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
                 return null;
             }
 
-            return new MqttBrokerConnectionInfo(mqttBrokerHost, portNumber, tlsEnabled, clientId, username, password);
+            return new BrokerConnectionInfo(mqttBrokerHost, portNumber, tlsEnabled, clientId, username, password);
         }
 
         return null;
