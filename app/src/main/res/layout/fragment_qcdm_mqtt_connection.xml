@@ -4,7 +4,6 @@
     android:id="@+id/mqtt_fragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginBottom="@dimen/bottom_nav_margin"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
     tools:context=".ui.mqtt.QcdmMqttFragment">
 

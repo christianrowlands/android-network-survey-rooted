@@ -12,7 +12,6 @@ import android.content.RestrictionsManager;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
-import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -26,6 +25,7 @@ import com.craxiom.mqttlibrary.IConnectionStateListener;
 import com.craxiom.mqttlibrary.IMqttService;
 import com.craxiom.mqttlibrary.connection.ConnectionState;
 import com.craxiom.mqttlibrary.connection.MqttBrokerConnectionInfo;
+import com.craxiom.mqttlibrary.ui.AConnectionFragment;
 import com.craxiom.networksurveyplus.mqtt.QcdmMqttConnection;
 import com.google.common.io.ByteStreams;
 
@@ -658,7 +658,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
      * Class used for the client Binder.  Because we know this service always runs in the same
      * process as its clients, we don't need to deal with IPC.
      */
-    public class QcdmServiceBinder extends Binder
+    public class QcdmServiceBinder extends AConnectionFragment.ServiceBinder
     {
         public QcdmService getService()
         {
