@@ -406,8 +406,7 @@ write_commands (int fd, BinaryBuffer *pbuf_write)
     // Metadata for each mask command
     size_t offset = remote_dev ? 8 : 4; // offset of the metadata (4 bytes for MSM, 8 bytes for MDM)
     LOGD("write_commands: offset=%lu remote_dev=%u\n", offset, remote_dev);
-    //*((int *)send_buf) = htole32(USER_SPACE_DATA_TYPE);
-    *((int *)send_buf) = htole32(MSG_MASKS_TYPE);
+    *((int *)send_buf) = htole32(USER_SPACE_DATA_TYPE);
     if (remote_dev) {
         /*
          * MDM device: should let diag driver know it
@@ -426,7 +425,7 @@ write_commands (int fd, BinaryBuffer *pbuf_write)
         if (len >= 3) {
             // memcpy(send_buf + 4, p + i, len);
             memcpy(send_buf + offset, p + i, len);
-            LOGD("Writing %d bytes of data\n", len + 4);
+            LOGD("Writing %lu bytes of data\n", len + 4);
             print_hex(send_buf, len + 4);
             fflush(stdout);
             // int ret = write(fd, (const void *) send_buf, len + 4);
