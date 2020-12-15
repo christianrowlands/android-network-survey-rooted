@@ -1,6 +1,7 @@
 package com.craxiom.networksurveyplus;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -17,6 +18,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
+import android.provider.Settings;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
@@ -54,6 +56,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     private Handler diagHandler;
     private Handler fifoReadHandler;
 
+    private String deviceId;
     private GpsListener gpsListener;
     private BroadcastReceiver managedConfigurationListener;
     private FifoReadRunnable fifoReadRunnable;
@@ -84,6 +87,8 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
         fifoReadHandlerThread = new HandlerThread("FifoRead");
         fifoReadHandlerThread.start();
         fifoReadHandler = new Handler(fifoReadHandlerThread.getLooper());
+
+        deviceId = createDeviceId();
 
         PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).registerOnSharedPreferenceChangeListener(this);
 
@@ -162,7 +167,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
      */
     public void initializeMqttConnection()
     {
-        mqttConnection = new MqttConnection();
+        mqttConnection = new MqttConnection(deviceId, gpsListener);
         mqttConnection.registerMqttConnectionStateListener(this);
     }
 
@@ -659,5 +664,14 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
         {
             return QcdmService.this;
         }
+    }
+
+    /**
+     * @return The Android ID associated with this device and app.
+     */
+    @SuppressLint("HardwareIds")
+    private String createDeviceId()
+    {
+        return Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
     }
 }

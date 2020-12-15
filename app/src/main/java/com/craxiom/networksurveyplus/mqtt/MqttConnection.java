@@ -2,9 +2,14 @@ package com.craxiom.networksurveyplus.mqtt;
 
 import android.content.Context;
 
+import com.craxiom.messaging.LteRrc;
+import com.craxiom.messaging.LteRrcData;
+import com.craxiom.networksurveyplus.GpsListener;
 import com.craxiom.networksurveyplus.IConnectionStateListener;
 import com.craxiom.networksurveyplus.IQcdmMessageListener;
+import com.craxiom.networksurveyplus.messages.DiagCommand;
 import com.craxiom.networksurveyplus.messages.QcdmMessage;
+import com.craxiom.networksurveyplus.messages.QcdmMessageUtils;
 import com.google.protobuf.MessageOrBuilder;
 import com.google.protobuf.util.JsonFormat;
 
@@ -21,6 +26,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import timber.log.Timber;
 
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_RRC_OTA_MSG_LOG_C;
+
 /**
  * Class for creating a connection to an MQTT server.
  *
@@ -35,6 +42,8 @@ public class MqttConnection implements IQcdmMessageListener
      */
     private static final long DISCONNECT_TIMEOUT = 250L;
 
+    private final String deviceId;
+    private final GpsListener gpsListener;
     private final List<IConnectionStateListener> mqttConnectionListeners = new CopyOnWriteArrayList<>();
 
     private MqttAndroidClient mqttAndroidClient;
@@ -42,36 +51,46 @@ public class MqttConnection implements IQcdmMessageListener
     private final JsonFormat.Printer jsonFormatter;
     private String mqttClientId;
 
-    public MqttConnection()
+    public MqttConnection(String deviceId, GpsListener gpsListener)
     {
+        this.deviceId = deviceId;
+        this.gpsListener = gpsListener;
         jsonFormatter = JsonFormat.printer().preservingProtoFieldNames().omittingInsignificantWhitespace();
     }
 
     @Override
     public void onQcdmMessage(QcdmMessage qcdmMessage)
     {
+        if (qcdmMessage.getOpCode() == DiagCommand.DIAG_LOG_F)
+        {
+            switch (qcdmMessage.getLogType())
+            {
+                case LOG_LTE_RRC_OTA_MSG_LOG_C:
+                    convertAndPublishLteRrcOtaMessage(qcdmMessage);
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Converts a QCDM message into an LteRrc message and publishes it to the MQTT server.
+     *
+     * @param qcdmMessage The received QCDM message
+     */
+    private void convertAndPublishLteRrcOtaMessage(QcdmMessage qcdmMessage)
+    {
+        final LteRrc lteRrc = QcdmMessageUtils.convertLteRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId);
+        final LteRrcData.Builder lteRrcDataBuilder = lteRrc.getData().toBuilder();
+        lteRrcDataBuilder.setDeviceSerialNumber(deviceId);
+
         // Set the device name to the user entered value in the MQTT connection UI (or the value provided via MDM)
         if (mqttClientId != null)
         {
-            // TODO build real LTE_RCC_OTA message
+            lteRrcDataBuilder.setDeviceName(mqttClientId);
         }
 
-        // TODO publish message
-        publishMessage(null, null);
+        publishMessage(MQTT_LTE_RRC_OTA_MESSAGE_TOPIC, lteRrc);
     }
-
-//    @Override
-//    public void onGsmSurveyRecord(GsmRecord gsmRecord)
-//    {
-//
-//        if (mqttClientId != null)
-//        {
-//            final GsmRecord.Builder recordBuilder = gsmRecord.toBuilder();
-//            gsmRecord = recordBuilder.setData(recordBuilder.getDataBuilder().setDeviceName(mqttClientId)).build();
-//        }
-//
-//        publishMessage(MQTT_GSM_MESSAGE_TOPIC, gsmRecord);
-//    }
 
     /**
      * @return The current {@link ConnectionState} of the connection to the MQTT Broker.
