@@ -313,7 +313,8 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     }
 
     /**
-     * Register a listener so that if the Managed Config changes we will be notified of the new config.
+     * Register a listener so that if the Managed Config changes we will be notified of the new config
+     * and can restart the MQTT broker connection with the new parameters.
      */
     private void registerManagedConfigurationListener()
     {
@@ -324,6 +325,8 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
             @Override
             public void onReceive(Context context, Intent intent)
             {
+                attemptMqttConnectWithMdmConfig(true);
+
                 if (qcdmPcapWriter != null) qcdmPcapWriter.onMdmPreferenceChanged(context);
             }
         };
