@@ -68,8 +68,6 @@ public class MainActivity extends AppCompatActivity
     {
         super.onCreate(savedInstanceState);
 
-        getApplicationContext().setTheme(R.style.Theme_Illini); // TODO pls christian fix
-
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES); // Force Dark Mode
         setContentView(R.layout.activity_main);
 

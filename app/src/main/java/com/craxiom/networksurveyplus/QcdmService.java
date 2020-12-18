@@ -23,6 +23,7 @@ import androidx.preference.PreferenceManager;
 
 import com.craxiom.mqttlibrary.IConnectionStateListener;
 import com.craxiom.mqttlibrary.IMqttService;
+import com.craxiom.mqttlibrary.MqttConstants;
 import com.craxiom.mqttlibrary.connection.BrokerConnectionInfo;
 import com.craxiom.mqttlibrary.connection.ConnectionState;
 import com.craxiom.mqttlibrary.ui.AConnectionFragment;
@@ -321,6 +322,8 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
             @Override
             public void onReceive(Context context, Intent intent)
             {
+                attemptMqttConnectWithMdmConfig(true);
+
                 if (qcdmPcapWriter != null) qcdmPcapWriter.onMdmPreferenceChanged(context);
             }
         };
@@ -604,7 +607,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     private boolean isMqttMdmOverrideEnabled()
     {
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        return preferences.getBoolean(Constants.PROPERTY_MQTT_MDM_OVERRIDE, false);
+        return preferences.getBoolean(MqttConstants.PROPERTY_MQTT_MDM_OVERRIDE, false);
     }
 
     /**
@@ -623,15 +626,15 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
         {
             final Bundle mdmProperties = restrictionsManager.getApplicationRestrictions();
 
-            final boolean hasBrokerHost = mdmProperties.containsKey(Constants.PROPERTY_MQTT_CONNECTION_HOST);
+            final boolean hasBrokerHost = mdmProperties.containsKey(MqttConstants.PROPERTY_MQTT_CONNECTION_HOST);
             if (!hasBrokerHost) return null;
 
-            final String mqttBrokerHost = mdmProperties.getString(Constants.PROPERTY_MQTT_CONNECTION_HOST);
-            final int portNumber = mdmProperties.getInt(Constants.PROPERTY_MQTT_CONNECTION_PORT, Constants.DEFAULT_MQTT_PORT);
-            final boolean tlsEnabled = mdmProperties.getBoolean(Constants.PROPERTY_MQTT_CONNECTION_TLS_ENABLED, Constants.DEFAULT_MQTT_TLS_SETTING);
-            final String clientId = mdmProperties.getString(Constants.PROPERTY_MQTT_CLIENT_ID);
-            final String username = mdmProperties.getString(Constants.PROPERTY_MQTT_USERNAME);
-            final String password = mdmProperties.getString(Constants.PROPERTY_MQTT_PASSWORD);
+            final String mqttBrokerHost = mdmProperties.getString(MqttConstants.PROPERTY_MQTT_CONNECTION_HOST);
+            final int portNumber = mdmProperties.getInt(MqttConstants.PROPERTY_MQTT_CONNECTION_PORT, MqttConstants.DEFAULT_MQTT_PORT);
+            final boolean tlsEnabled = mdmProperties.getBoolean(MqttConstants.PROPERTY_MQTT_CONNECTION_TLS_ENABLED, MqttConstants.DEFAULT_MQTT_TLS_SETTING);
+            final String clientId = mdmProperties.getString(MqttConstants.PROPERTY_MQTT_CLIENT_ID);
+            final String username = mdmProperties.getString(MqttConstants.PROPERTY_MQTT_USERNAME);
+            final String password = mdmProperties.getString(MqttConstants.PROPERTY_MQTT_PASSWORD);
 
             if (mqttBrokerHost == null || clientId == null)
             {
