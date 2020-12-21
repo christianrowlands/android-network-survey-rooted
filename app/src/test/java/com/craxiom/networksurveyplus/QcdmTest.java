@@ -2,22 +2,44 @@ package com.craxiom.networksurveyplus;
 
 import android.location.Location;
 
+import com.craxiom.messaging.LteRrcChannelType;
 import com.craxiom.networksurveyplus.messages.DiagRevealerMessage;
 import com.craxiom.networksurveyplus.messages.GsmtapConstants;
 import com.craxiom.networksurveyplus.messages.LteRrcSubtypes;
 import com.craxiom.networksurveyplus.messages.ParserUtils;
 import com.craxiom.networksurveyplus.messages.QcdmMessage;
+import com.craxiom.networksurveyplus.messages.QcdmMessageUtils;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.craxiom.networksurveyplus.messages.QcdmConstants.*;
-import static org.junit.Assert.*;
+import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message_NB;
+import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message;
+import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message_NB;
+import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_CCCH_Message;
+import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_CCCH_Message_NB;
+import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_DCCH_Message;
+import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_DL_DCCH_Message_NB;
+import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_MCCH_Message;
+import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_PCCH_Message;
+import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_PCCH_Message_NB;
+import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_CCCH_Message;
+import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_CCCH_Message_NB;
+import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_DCCH_Message;
+import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_DCCH_Message_NB;
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_RRC_OTA_MSG_LOG_C;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 /**
  * Unit tests for parsing QCDM messages and creating the various pcap headers.
@@ -37,7 +59,7 @@ public class QcdmTest
 
         final int sfnAndPci = 0x01ed0016;
 
-        final byte[] gsmtapHeader = QcdmPcapWriter.getGsmtapHeader(GsmtapConstants.GSMTAP_TYPE_LTE_RRC, 0, 875, false, sfnAndPci, 9);
+        final byte[] gsmtapHeader = QcdmMessageUtils.getGsmtapHeader(GsmtapConstants.GSMTAP_TYPE_LTE_RRC, 0, 875, false, sfnAndPci, 9);
 
         assertArrayEquals(expectedBytes, gsmtapHeader);
     }
@@ -49,7 +71,7 @@ public class QcdmTest
                 (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0xed, (byte) 0x00, (byte) 0x95,
                 (byte) 0x06, (byte) 0x00, (byte) 0x09, (byte) 0x00};
 
-        final byte[] gsmtapHeader = QcdmPcapWriter.getGsmtapHeader(GsmtapConstants.GSMTAP_TYPE_LTE_RRC, LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_PCCH_Message.ordinal(), 875, false, 32309397, 9);
+        final byte[] gsmtapHeader = QcdmMessageUtils.getGsmtapHeader(GsmtapConstants.GSMTAP_TYPE_LTE_RRC, GSMTAP_LTE_RRC_SUB_PCCH_Message.ordinal(), 875, false, 32309397, 9);
 
         assertArrayEquals(expectedBytes, gsmtapHeader);
     }
@@ -60,7 +82,7 @@ public class QcdmTest
         final byte[] expectedBytes = {(byte) 0x12, (byte) 0x79, (byte) 0x12, (byte) 0x79, (byte) 0x00, (byte) 0x2d,
                 (byte) 0x00, (byte) 0x00};
 
-        final byte[] header = QcdmPcapWriter.getLayer4Header(37);
+        final byte[] header = QcdmMessageUtils.getLayer4Header(37);
 
         assertArrayEquals(expectedBytes, header);
     }
@@ -73,7 +95,7 @@ public class QcdmTest
                 (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
                 (byte) 0x00, (byte) 0x00};
 
-        final byte[] header = QcdmPcapWriter.getLayer3Header(45);
+        final byte[] header = QcdmMessageUtils.getLayer3Header(45);
 
         assertArrayEquals(expectedBytes, header);
     }
@@ -86,7 +108,7 @@ public class QcdmTest
                 (byte) 0x00, (byte) 0x00, (byte) 0x00
         };
 
-        final byte[] header = QcdmPcapWriter.getPpiPacketHeader(null);
+        final byte[] header = QcdmMessageUtils.getPpiPacketHeader(null);
 
         assertArrayEquals(expectedBytes, header);
     }
@@ -126,7 +148,7 @@ public class QcdmTest
                 (byte) 0x06, (byte) 0x00, (byte) 0x4f, (byte) 0x00, (byte) 0x00, (byte) 0x00,
                 (byte) 0x4f, (byte) 0x00, (byte) 0x00, (byte) 0x00};
 
-        final byte[] header = QcdmPcapWriter.getPcapRecordHeader(1597423852, 452689, 79);
+        final byte[] header = QcdmMessageUtils.getPcapRecordHeader(1597423852, 452689, 79);
 
         assertArrayEquals(expectedBytes, header);
     }
@@ -206,7 +228,7 @@ public class QcdmTest
             assertEquals(LOG_LTE_RRC_OTA_MSG_LOG_C, m.getLogType());
             assertArrayEquals("The qcdm message bytes did not match what was expected", expectedQcdmMessagePayloadBytes, m.getLogPayload());
 
-            final byte[] pcapRecordBytes = QcdmPcapWriter.convertLteRrcOtaMessage(m, null);
+            final byte[] pcapRecordBytes = QcdmMessageUtils.convertLteRrcOtaMessage(m, null);
 
             assertNotNull(pcapRecordBytes);
 
@@ -234,11 +256,192 @@ public class QcdmTest
         location.setLongitude(-90.1333759);
         location.setAltitude(152.6591);
 
-        final byte[] pcapRecordBytes = QcdmPcapWriter.convertLteRrcOtaMessage(qcdmMessage, location);
+        final byte[] pcapRecordBytes = QcdmMessageUtils.convertLteRrcOtaMessage(qcdmMessage, location);
 
         assertNotNull(pcapRecordBytes);
 
         // Ignore the first 8 bytes since it contains the record timestamp.
         assertArrayEquals(expectedPcapRecordBytes, Arrays.copyOfRange(pcapRecordBytes, 8, pcapRecordBytes.length));
+    }
+
+    /**
+     * Tests the Gsmtap Type conversion and checks the result against the {@link LteRrcChannelType} values.
+     * This particular test verifies for versions 2, 3, 4, 5, 7, 8, 13, and 22.
+     *
+     * @since 0.2.0
+     */
+    @Test
+    public void testQcdmMessage_lteRrc_setChannelType_v22()
+    {
+        final int[] versions = {2, 3, 4, 6, 7, 8, 13, 22};
+        final Map<Integer, LteRrcSubtypes> channelTypeToGsmtapType = new LinkedHashMap<>();
+        channelTypeToGsmtapType.put(1, LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message);
+        channelTypeToGsmtapType.put(2, GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message);
+        channelTypeToGsmtapType.put(3, GSMTAP_LTE_RRC_SUB_MCCH_Message);
+        channelTypeToGsmtapType.put(4, GSMTAP_LTE_RRC_SUB_PCCH_Message);
+        channelTypeToGsmtapType.put(5, GSMTAP_LTE_RRC_SUB_DL_CCCH_Message);
+        channelTypeToGsmtapType.put(6, GSMTAP_LTE_RRC_SUB_DL_DCCH_Message);
+        channelTypeToGsmtapType.put(7, GSMTAP_LTE_RRC_SUB_UL_CCCH_Message);
+        channelTypeToGsmtapType.put(8, GSMTAP_LTE_RRC_SUB_UL_DCCH_Message);
+
+        for (int version : versions)
+        {
+            checkAgainstLteRrcChannelTypes(channelTypeToGsmtapType, version);
+        }
+    }
+
+    /**
+     * Tests the Gsmtap Type conversion and checks the result against the {@link LteRrcChannelType} values.
+     * This particular test verifies for versions 9 and 12.
+     *
+     * @since 0.2.0
+     */
+    @Test
+    public void testQcdmMessage_lteRrc_setChannelType_v12()
+    {
+        final int[] versions = {9, 12};
+        final Map<Integer, LteRrcSubtypes> channelTypeToGsmtapType = new LinkedHashMap<>();
+        channelTypeToGsmtapType.put(8, LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message);
+        channelTypeToGsmtapType.put(9, GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message);
+        channelTypeToGsmtapType.put(10, GSMTAP_LTE_RRC_SUB_MCCH_Message);
+        channelTypeToGsmtapType.put(11, GSMTAP_LTE_RRC_SUB_PCCH_Message);
+        channelTypeToGsmtapType.put(12, GSMTAP_LTE_RRC_SUB_DL_CCCH_Message);
+        channelTypeToGsmtapType.put(13, GSMTAP_LTE_RRC_SUB_DL_DCCH_Message);
+        channelTypeToGsmtapType.put(14, GSMTAP_LTE_RRC_SUB_UL_CCCH_Message);
+        channelTypeToGsmtapType.put(15, GSMTAP_LTE_RRC_SUB_UL_DCCH_Message);
+
+        for (int version : versions)
+        {
+            checkAgainstLteRrcChannelTypes(channelTypeToGsmtapType, version);
+        }
+    }
+
+    /**
+     * Tests the Gsmtap Type conversion and checks the result against the {@link LteRrcChannelType} values.
+     * This particular test verifies for versions 14, 15, and 16.
+     *
+     * @since 0.2.0
+     */
+    @Test
+    public void testQcdmMessage_lteRrc_setChannelType_v16()
+    {
+        final int[] versions = {14, 15, 16};
+        final Map<Integer, LteRrcSubtypes> channelTypeToGsmtapType = new LinkedHashMap<>();
+        channelTypeToGsmtapType.put(1, LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message);
+        channelTypeToGsmtapType.put(2, GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message);
+        channelTypeToGsmtapType.put(4, GSMTAP_LTE_RRC_SUB_MCCH_Message);
+        channelTypeToGsmtapType.put(5, GSMTAP_LTE_RRC_SUB_PCCH_Message);
+        channelTypeToGsmtapType.put(6, GSMTAP_LTE_RRC_SUB_DL_CCCH_Message);
+        channelTypeToGsmtapType.put(7, GSMTAP_LTE_RRC_SUB_DL_DCCH_Message);
+        channelTypeToGsmtapType.put(8, GSMTAP_LTE_RRC_SUB_UL_CCCH_Message);
+        channelTypeToGsmtapType.put(9, GSMTAP_LTE_RRC_SUB_UL_DCCH_Message);
+
+        for (int version : versions)
+        {
+            checkAgainstLteRrcChannelTypes(channelTypeToGsmtapType, version);
+        }
+    }
+
+    /**
+     * Tests the Gsmtap Type conversion and checks the result against the {@link LteRrcChannelType} values.
+     * This particular test verifies for versions 19 and 26.
+     *
+     * @since 0.2.0
+     */
+    @Test
+    public void testQcdmMessage_lteRrc_setChannelType_v26()
+    {
+        final int[] versions = {19, 26};
+        final Map<Integer, LteRrcSubtypes> channelTypeToGsmtapType = new LinkedHashMap<>();
+        channelTypeToGsmtapType.put(1, LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message);
+        channelTypeToGsmtapType.put(3, GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message);
+        channelTypeToGsmtapType.put(6, GSMTAP_LTE_RRC_SUB_MCCH_Message);
+        channelTypeToGsmtapType.put(7, GSMTAP_LTE_RRC_SUB_PCCH_Message);
+        channelTypeToGsmtapType.put(8, GSMTAP_LTE_RRC_SUB_DL_CCCH_Message);
+        channelTypeToGsmtapType.put(9, GSMTAP_LTE_RRC_SUB_DL_DCCH_Message);
+        channelTypeToGsmtapType.put(10, GSMTAP_LTE_RRC_SUB_UL_CCCH_Message);
+        channelTypeToGsmtapType.put(11, GSMTAP_LTE_RRC_SUB_UL_DCCH_Message);
+        channelTypeToGsmtapType.put(45, GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message_NB);
+        channelTypeToGsmtapType.put(46, GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message_NB);
+        channelTypeToGsmtapType.put(47, GSMTAP_LTE_RRC_SUB_PCCH_Message_NB);
+        channelTypeToGsmtapType.put(48, GSMTAP_LTE_RRC_SUB_DL_CCCH_Message_NB);
+        channelTypeToGsmtapType.put(49, GSMTAP_LTE_RRC_SUB_DL_DCCH_Message_NB);
+        channelTypeToGsmtapType.put(50, GSMTAP_LTE_RRC_SUB_UL_CCCH_Message_NB);
+        channelTypeToGsmtapType.put(52, GSMTAP_LTE_RRC_SUB_UL_DCCH_Message_NB);
+
+        for (int version : versions)
+        {
+            checkAgainstLteRrcChannelTypes(channelTypeToGsmtapType, version);
+        }
+    }
+
+    /**
+     * Tests the Gsmtap Type conversion and checks the result against the {@link LteRrcChannelType} values.
+     * This particular test verifies for version 20.
+     *
+     * @since 0.2.0
+     */
+    @Test
+    public void testQcdmMessage_lteRrc_setChannelType_v20()
+    {
+        final int version = 20;
+        final Map<Integer, LteRrcSubtypes> channelTypeToGsmtapType = new LinkedHashMap<>();
+        channelTypeToGsmtapType.put(1, LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message);
+        channelTypeToGsmtapType.put(2, GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message);
+        channelTypeToGsmtapType.put(4, GSMTAP_LTE_RRC_SUB_MCCH_Message);
+        channelTypeToGsmtapType.put(5, GSMTAP_LTE_RRC_SUB_PCCH_Message);
+        channelTypeToGsmtapType.put(6, GSMTAP_LTE_RRC_SUB_DL_CCCH_Message);
+        channelTypeToGsmtapType.put(7, GSMTAP_LTE_RRC_SUB_DL_DCCH_Message);
+        channelTypeToGsmtapType.put(8, GSMTAP_LTE_RRC_SUB_UL_CCCH_Message);
+        channelTypeToGsmtapType.put(9, GSMTAP_LTE_RRC_SUB_UL_DCCH_Message);
+        channelTypeToGsmtapType.put(54, GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message_NB);
+        channelTypeToGsmtapType.put(55, GSMTAP_LTE_RRC_SUB_BCCH_DL_SCH_Message_NB);
+        channelTypeToGsmtapType.put(56, GSMTAP_LTE_RRC_SUB_PCCH_Message_NB);
+        channelTypeToGsmtapType.put(57, GSMTAP_LTE_RRC_SUB_DL_CCCH_Message_NB);
+        channelTypeToGsmtapType.put(58, GSMTAP_LTE_RRC_SUB_DL_DCCH_Message_NB);
+        channelTypeToGsmtapType.put(59, GSMTAP_LTE_RRC_SUB_UL_CCCH_Message_NB);
+        channelTypeToGsmtapType.put(61, GSMTAP_LTE_RRC_SUB_UL_DCCH_Message_NB);
+
+        checkAgainstLteRrcChannelTypes(channelTypeToGsmtapType, version);
+    }
+
+    /**
+     * Takes a map of raw channel types and checks against the {@link LteRrcChannelType} values
+     * after a simple conversion - adding 1 to the Gsmtap channel type.
+     *
+     * @param channelTypeToGsmtapType The map of raw channel type to its Gsmtap type.
+     * @param version                 The version of the QCDM message.
+     * @since 0.2.0
+     */
+    private void checkAgainstLteRrcChannelTypes(Map<Integer, LteRrcSubtypes> channelTypeToGsmtapType, int version)
+    {
+        final LteRrcChannelType[] lteRrcChannelTypes = {LteRrcChannelType.BCCH_BCH,
+                LteRrcChannelType.BCCH_DL_SCH,
+                LteRrcChannelType.MCCH,
+                LteRrcChannelType.PCCH,
+                LteRrcChannelType.DL_CCCH,
+                LteRrcChannelType.DL_DCCH,
+                LteRrcChannelType.UL_CCCH,
+                LteRrcChannelType.UL_DCCH,
+                LteRrcChannelType.BCCH_BCH_NB,
+                LteRrcChannelType.BCCH_DL_SCH_NB,
+                LteRrcChannelType.PCCH_NB,
+                LteRrcChannelType.DL_CCCH_NB,
+                LteRrcChannelType.DL_DCCH_NB,
+                LteRrcChannelType.UL_CCCH_NB,
+                LteRrcChannelType.UL_DCCH_NB
+        };
+
+        int lteRrcIndex = 0;
+        for (Map.Entry<Integer, LteRrcSubtypes> entry : channelTypeToGsmtapType.entrySet())
+        {
+            final int gsmtapChannelType = QcdmMessageUtils.getGsmtapChannelType(version, entry.getKey());
+            Assert.assertEquals("The converted Gsmtap Channel Type does not match expected LteRrcSubtype", entry.getValue().ordinal(), gsmtapChannelType);
+
+            final int lteRrcChannelType = gsmtapChannelType + 1;
+            Assert.assertEquals("Found no match in LteRrcChannelTypes for given channel type: " + lteRrcChannelType, lteRrcChannelTypes[lteRrcIndex].getNumber(), lteRrcChannelType);
+
+            lteRrcIndex++;
+        }
     }
 }

@@ -37,6 +37,7 @@ public class QcdmMessageUtils
     private static final short PPI_GPS_FLAG_LON = 4;
     private static final short PPI_GPS_FLAG_ALT = 8;
     private static final String MISSION_ID_PREFIX = "NS "; // todo do we want a different prefix for NS+
+    private static final String LTE_RRC_MESSAGE_TYPE = "LteRrc";
 
     public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneId.systemDefault());
 
@@ -57,9 +58,10 @@ public class QcdmMessageUtils
         final LteRrcData.Builder lteRrcDataBuilder = LteRrcData.newBuilder();
 
         lteRrcBuilder.setVersion(BuildConfig.VERSION_NAME);
-        lteRrcBuilder.setMessageType("LTE_RRC_OTA_MESSAGE"); // todo make a constant for this
+        lteRrcBuilder.setMessageType(LTE_RRC_MESSAGE_TYPE);
 
-        lteRrcDataBuilder.setDeviceSerialNumber(getMissionId(deviceId));
+        lteRrcDataBuilder.setDeviceSerialNumber(deviceId);
+        lteRrcDataBuilder.setMissionId(getMissionId(deviceId));
         lteRrcDataBuilder.setDeviceTime(getRfc3339String(ZonedDateTime.now()));
         lteRrcDataBuilder.setAltitude((float) location.getAltitude());
         lteRrcDataBuilder.setLatitude(location.getLatitude());
@@ -80,8 +82,9 @@ public class QcdmMessageUtils
         // 2 bytes for length
         final int frequencyLength = extHeaderVersion < 8 ? 2 : 4;
         int channelType = logPayload[6 + frequencyLength + 2];
+        int gsmtapChannelType = getGsmtapChannelType(extHeaderVersion, channelType);
 
-        lteRrcDataBuilder.setChannelTypeValue(channelType); // todo is this channel type derived from the LteRrcChannelType proto file?
+        lteRrcDataBuilder.setChannelTypeValue(gsmtapChannelType + 1); // Here we offset by 1 to match with the LteRrcChannelType values
 
         lteRrcBuilder.setData(lteRrcDataBuilder.build());
 
@@ -109,7 +112,7 @@ public class QcdmMessageUtils
     }
 
     /**
-     * Given an {@link QcdmMessage} that contains an LTE RRC OTA message, convert it to a pcap record byte array that
+     * Given a {@link QcdmMessage} that contains an LTE RRC OTA message, convert it to a pcap record byte array that
      * can be consumed by tools like Wireshark.
      *
      * @param qcdmMessage The QCDM message to convert into a pcap record.
@@ -204,7 +207,7 @@ public class QcdmMessageUtils
      * frame contains.
      */
     @SuppressWarnings("SwitchStatementWithoutDefaultBranch")
-    private static int getGsmtapChannelType(int versionNumber, int channelType)
+    public static int getGsmtapChannelType(int versionNumber, int channelType)
     {
         switch (versionNumber)
         {
