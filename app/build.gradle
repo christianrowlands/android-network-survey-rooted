@@ -68,7 +68,7 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
     implementation "com.google.protobuf:protobuf-java-util:3.11.4"
 
-    implementation "com.craxiom:network-survey-messaging:0.3.0-SNAPSHOT"
+    implementation "com.craxiom:network-survey-messaging:0.3.0"
 
     implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'
     implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
