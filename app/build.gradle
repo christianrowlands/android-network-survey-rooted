@@ -68,7 +68,7 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
     implementation "com.google.protobuf:protobuf-java-util:3.11.4"
 
-    implementation 'com.craxiom:mqtt-library:0.1.0-SNAPSHOT'
+    implementation 'com.craxiom:mqtt-library:0.1.0'
 
     testImplementation 'junit:junit:4.13'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
