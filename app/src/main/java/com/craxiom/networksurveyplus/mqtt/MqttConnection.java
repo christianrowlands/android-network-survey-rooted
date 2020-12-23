@@ -35,7 +35,7 @@ import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_RRC_O
  */
 public class MqttConnection implements IQcdmMessageListener
 {
-    private static final String MQTT_LTE_RRC_OTA_MESSAGE_TOPIC = "lte_rrc_ota_message";
+    private static final String MQTT_LTE_RRC_OTA_MESSAGE_TOPIC = "lte_ota_message";
 
     /**
      * The amount of time to wait for a proper disconnection to occur before we force kill it.
@@ -209,9 +209,9 @@ public class MqttConnection implements IQcdmMessageListener
         try
         {
             Timber.i("Publishing; everything is wired correctly!");
-//            final String messageJson = jsonFormatter.print(message);
-//
-//            mqttAndroidClient.publish(mqttMessageTopic, new MqttMessage(messageJson.getBytes()));
+            final String messageJson = jsonFormatter.print(message);
+
+            mqttAndroidClient.publish(mqttMessageTopic, new MqttMessage(messageJson.getBytes()));
         } catch (Exception e)
         {
             Timber.e(e, "Caught an exception when trying to send an MQTT message");
