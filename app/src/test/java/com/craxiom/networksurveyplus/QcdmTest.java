@@ -266,7 +266,7 @@ public class QcdmTest
 
     /**
      * Tests the Gsmtap Type conversion and checks the result against the {@link LteRrcChannelType} values.
-     * This particular test verifies for versions 2, 3, 4, 5, 7, 8, 13, and 22.
+     * This particular test verifies for versions 2, 3, 4, 6, 7, 8, 13, and 22.
      *
      * @since 0.2.0
      */
