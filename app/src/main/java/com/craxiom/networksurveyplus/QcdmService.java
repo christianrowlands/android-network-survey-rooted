@@ -13,7 +13,6 @@ import android.content.RestrictionsManager;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
-import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -24,9 +23,13 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.preference.PreferenceManager;
 
-import com.craxiom.networksurveyplus.mqtt.ConnectionState;
-import com.craxiom.networksurveyplus.mqtt.MqttBrokerConnectionInfo;
-import com.craxiom.networksurveyplus.mqtt.MqttConnection;
+import com.craxiom.mqttlibrary.IConnectionStateListener;
+import com.craxiom.mqttlibrary.IMqttService;
+import com.craxiom.mqttlibrary.MqttConstants;
+import com.craxiom.mqttlibrary.connection.BrokerConnectionInfo;
+import com.craxiom.mqttlibrary.connection.ConnectionState;
+import com.craxiom.mqttlibrary.ui.AConnectionFragment;
+import com.craxiom.networksurveyplus.mqtt.QcdmMqttConnection;
 import com.google.common.io.ByteStreams;
 
 import java.nio.file.Files;
@@ -43,7 +46,7 @@ import timber.log.Timber;
  *
  * @since 0.1.0
  */
-public class QcdmService extends Service implements IConnectionStateListener, SharedPreferences.OnSharedPreferenceChangeListener
+public class QcdmService extends Service implements IConnectionStateListener, SharedPreferences.OnSharedPreferenceChangeListener, IMqttService
 {
     public static final int LOCATION_REFRESH_RATE = 4_000;
 
@@ -65,7 +68,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     private final QcdmMessageProcessor qcdmMessageProcessor;
     private QcdmPcapWriter qcdmPcapWriter;
 
-    private MqttConnection mqttConnection;
+    private QcdmMqttConnection qcdmMqttConnection;
 
     public QcdmService()
     {
@@ -158,7 +161,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     }
 
     /**
-     * Creates the {@link MqttConnection} instance.
+     * Creates the {@link QcdmMqttConnection} instance.
      * <p>
      * If connection information is specified for an MQTT Broker via the MDM Managed Configuration, then kick off an
      * MQTT connection.
@@ -167,8 +170,8 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
      */
     public void initializeMqttConnection()
     {
-        mqttConnection = new MqttConnection(deviceId, gpsListener);
-        mqttConnection.registerMqttConnectionStateListener(this);
+        qcdmMqttConnection = new QcdmMqttConnection(deviceId, gpsListener);
+        qcdmMqttConnection.registerMqttConnectionStateListener(this);
     }
 
     /**
@@ -513,20 +516,21 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
      */
     public ConnectionState getMqttConnectionState()
     {
-        if (mqttConnection != null) return mqttConnection.getConnectionState();
+        if (qcdmMqttConnection != null) return qcdmMqttConnection.getConnectionState();
 
         return ConnectionState.DISCONNECTED;
     }
 
     /**
-     * Adds an {@link IConnectionStateListener} so that it will be notified of all future MQTT connection state changes.
+     * Adds an {@link com.craxiom.mqttlibrary.IConnectionStateListener} so that it will be notified of all future MQTT connection state changes.
      *
      * @param connectionStateListener The listener to add.
      * @since 0.2.0
      */
+    @Override
     public void registerMqttConnectionStateListener(IConnectionStateListener connectionStateListener)
     {
-        mqttConnection.registerMqttConnectionStateListener(connectionStateListener);
+        qcdmMqttConnection.registerMqttConnectionStateListener(connectionStateListener);
     }
 
     /**
@@ -535,9 +539,10 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
      * @param connectionStateListener The listener to remove.
      * @since 0.2.0
      */
+    @Override
     public void unregisterMqttConnectionStateListener(IConnectionStateListener connectionStateListener)
     {
-        mqttConnection.unregisterMqttConnectionStateListener(connectionStateListener);
+        qcdmMqttConnection.unregisterMqttConnectionStateListener(connectionStateListener);
     }
 
     /**
@@ -546,11 +551,12 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
      * @param connectionInfo The information needed to connect to the MQTT broker.
      * @since 0.2.0
      */
-    public void connectToMqttBroker(MqttBrokerConnectionInfo connectionInfo)
+    @Override
+    public void connectToMqttBroker(BrokerConnectionInfo connectionInfo)
     {
-        mqttConnection.connect(getApplicationContext(), connectionInfo);
+        qcdmMqttConnection.connect(getApplicationContext(), connectionInfo);
 
-        qcdmMessageProcessor.registerQcdmMessageListener(mqttConnection);
+        qcdmMessageProcessor.registerQcdmMessageListener(qcdmMqttConnection);
     }
 
     /**
@@ -562,9 +568,9 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     {
         Timber.i("Disconnecting from the MQTT Broker");
 
-        qcdmMessageProcessor.unregisterQcdmMessageListener(mqttConnection);
+        qcdmMessageProcessor.unregisterQcdmMessageListener(qcdmMqttConnection);
 
-        mqttConnection.disconnect();
+        qcdmMqttConnection.disconnect();
     }
 
     /**
@@ -581,7 +587,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
             return;
         }
 
-        final MqttBrokerConnectionInfo connectionInfo = getMdmMqttBrokerConnectionInfo();
+        final BrokerConnectionInfo connectionInfo = getMdmBrokerConnectionInfo();
 
         if (connectionInfo != null)
         {
@@ -589,7 +595,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
             // disconnectFromMqttBroker() method because it will cause the listener to get unregistered, which will
             // cause the QcdmService to get stopped if it is the last listener/user of the service.  Since we
             // are starting the connection right back up there is not a need to remove the listener.
-            mqttConnection.disconnect();
+            qcdmMqttConnection.disconnect();
 
             connectToMqttBroker(connectionInfo);
         } else
@@ -607,7 +613,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     private boolean isMqttMdmOverrideEnabled()
     {
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        return preferences.getBoolean(Constants.PROPERTY_MQTT_MDM_OVERRIDE, false);
+        return preferences.getBoolean(MqttConstants.PROPERTY_MQTT_MDM_OVERRIDE, false);
     }
 
     /**
@@ -619,29 +625,29 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
      * the user has overrode the MDM config.
      * @since 0.2.0
      */
-    private MqttBrokerConnectionInfo getMdmMqttBrokerConnectionInfo()
+    private BrokerConnectionInfo getMdmBrokerConnectionInfo()
     {
         final RestrictionsManager restrictionsManager = (RestrictionsManager) getSystemService(Context.RESTRICTIONS_SERVICE);
         if (restrictionsManager != null)
         {
             final Bundle mdmProperties = restrictionsManager.getApplicationRestrictions();
 
-            final boolean hasBrokerHost = mdmProperties.containsKey(Constants.PROPERTY_MQTT_CONNECTION_HOST);
+            final boolean hasBrokerHost = mdmProperties.containsKey(MqttConstants.PROPERTY_MQTT_CONNECTION_HOST);
             if (!hasBrokerHost) return null;
 
-            final String mqttBrokerHost = mdmProperties.getString(Constants.PROPERTY_MQTT_CONNECTION_HOST);
-            final int portNumber = mdmProperties.getInt(Constants.PROPERTY_MQTT_CONNECTION_PORT, Constants.DEFAULT_MQTT_PORT);
-            final boolean tlsEnabled = mdmProperties.getBoolean(Constants.PROPERTY_MQTT_CONNECTION_TLS_ENABLED, Constants.DEFAULT_MQTT_TLS_SETTING);
-            final String clientId = mdmProperties.getString(Constants.PROPERTY_MQTT_CLIENT_ID);
-            final String username = mdmProperties.getString(Constants.PROPERTY_MQTT_USERNAME);
-            final String password = mdmProperties.getString(Constants.PROPERTY_MQTT_PASSWORD);
+            final String mqttBrokerHost = mdmProperties.getString(MqttConstants.PROPERTY_MQTT_CONNECTION_HOST);
+            final int portNumber = mdmProperties.getInt(MqttConstants.PROPERTY_MQTT_CONNECTION_PORT, MqttConstants.DEFAULT_MQTT_PORT);
+            final boolean tlsEnabled = mdmProperties.getBoolean(MqttConstants.PROPERTY_MQTT_CONNECTION_TLS_ENABLED, MqttConstants.DEFAULT_MQTT_TLS_SETTING);
+            final String clientId = mdmProperties.getString(MqttConstants.PROPERTY_MQTT_CLIENT_ID);
+            final String username = mdmProperties.getString(MqttConstants.PROPERTY_MQTT_USERNAME);
+            final String password = mdmProperties.getString(MqttConstants.PROPERTY_MQTT_PASSWORD);
 
             if (mqttBrokerHost == null || clientId == null)
             {
                 return null;
             }
 
-            return new MqttBrokerConnectionInfo(mqttBrokerHost, portNumber, tlsEnabled, clientId, username, password);
+            return new BrokerConnectionInfo(mqttBrokerHost, portNumber, tlsEnabled, clientId, username, password);
         }
 
         return null;
@@ -661,7 +667,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
      * Class used for the client Binder.  Because we know this service always runs in the same
      * process as its clients, we don't need to deal with IPC.
      */
-    public class QcdmServiceBinder extends Binder
+    public class QcdmServiceBinder extends AConnectionFragment.ServiceBinder
     {
         public QcdmService getService()
         {

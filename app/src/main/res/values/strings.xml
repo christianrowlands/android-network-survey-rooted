@@ -28,7 +28,7 @@
 
     <string name="missing_location_permission">Missing Location Permission</string>
     <string name="no_gps_device">No GPS detected in device</string>
-    <string name="turn_on_gps">Turn on GPS</string>
+    <string name="turn_on_gps">Turn on GPS</string>st
     <string name="searching_for_location">Searching for GPS …</string>
     <string name="low_gps_confidence">Low GPS Confidence</string>
     <string name="location_placeholder">Location:</string>
@@ -40,38 +40,6 @@
     <string name="auto_start_logging_summary_off">Logging will only start when manually enabled</string>
 
     <string name="log_rollover_size_title">Log Rollover Size (MB)</string>
-
-    <!-- MQTT Connection UI Constants -->
-    <string name="auto_start_cellular_logging_summary_on">Cellular logging will be started upon app opening</string>
-    <string name="auto_start_cellular_logging_summary_off">Cellular logging will only start when manually enabled</string>
-    <string name="stream_cellular_title">Stream Cellular</string>
-    <string name="stream_wifi_title">Stream Wi-Fi</string>
-    <string name="stream_gnss_title">Stream GNSS</string>
-    <string name="mqtt_connection_title_full">MQTT Broker Connection</string>
-    <string name="mqtt_connection_title">MQTT Broker</string>
-    <string name="mqtt_mdm_override_description">Your MQTT connection settings have been set by a Mobile Device Management server.  Toggle the switch below to override those settings so you can specify your own MQTT Broker connection information.</string>
-    <string name="mqtt_mdm_override_title">Override MDM MQTT Settings</string>
-    <string name="tls">TLS</string>
-    <string name="client_id_hint">Client ID</string>
-    <string name="username_hint">MQTT Username</string>
-    <string name="password_hint">MQTT Password</string>
-    <string name="help_title">Help?</string>
-    <string name="mqtt_connection_description">Here you can connect to an MQTT broker.  Once connected, all future survey results will be streamed to the server.
-        \n\nSteps for Connecting:
-        \n\n1. Enter in the following information:
-        \n     a. The MQTT broker IP Address or Hostname
-        \n     b. The MQTT broker Port Number (Default: 1883 for plain text and 8883 for TLS)
-        \n     c. If the server does not support SSL/TLS, then turn off the TLS toggle switch
-        \n     d. A client id that is used to identify this device on the server
-        \n     e. (Optional) The username and password used to authenticate with the MQTT Broker
-        \n\n2. Click the connect toggle switch</string>
-    <string name="server_host_hint">Server Address</string>
-    <string name="server_port_hint">Port Number</string>
-
-    <string name="status_disconnected">Disconnected</string>
-    <string name="status_connecting">Connecting …</string>
-    <string name="status_connected">Connected</string>
-    <string name="status_disconnecting">Disconnecting …</string>
 
     <!-- App Restriction Constants -->
     <string name="auto_start_logging_on_boot_description">If true, when the phone boots cellular pcap logging will be started</string>
