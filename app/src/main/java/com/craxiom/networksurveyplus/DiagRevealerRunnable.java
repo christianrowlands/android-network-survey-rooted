@@ -83,7 +83,7 @@ public class DiagRevealerRunnable implements Runnable
     {
         final String diagRevealer = context.getApplicationInfo().nativeLibraryDir + "/" + Constants.LIB_DIAG_REVEALER_NAME;
 
-        return new String[]{"su", "-c", "exec " + diagRevealer + " " + context.getFilesDir() + "/" + context.getResources().getResourceEntryName(R.raw.rrc_filter_diag) + " " + fifoPipeName};
+        return new String[]{"su", "-c", "exec " + diagRevealer + " " + context.getFilesDir() + "/" + context.getResources().getResourceEntryName(R.raw.diag) + " " + fifoPipeName};
     }
 
     /**

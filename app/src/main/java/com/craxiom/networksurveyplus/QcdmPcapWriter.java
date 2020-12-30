@@ -21,7 +21,12 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 import timber.log.Timber;
 
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_NAS_EMM_OTA_IN_MSG_LOG_C;
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_NAS_EMM_OTA_OUT_MSG_LOG_C;
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_NAS_ESM_OTA_IN_MSG_LOG_C;
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_NAS_ESM_OTA_OUT_MSG_LOG_C;
 import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_RRC_OTA_MSG_LOG_C;
+import static com.craxiom.networksurveyplus.messages.QcdmMessageUtils.convertLteNasMessage;
 import static com.craxiom.networksurveyplus.messages.QcdmMessageUtils.convertLteRrcOtaMessage;
 
 /**
@@ -99,17 +104,27 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     {
         try
         {
+            final int logType = qcdmMessage.getLogType();
+            final String logTypeHexString = Integer.toHexString(logType);
+
+            Timber.i("Received message of log type: %s", logTypeHexString);
+
             if (qcdmMessage.getOpCode() == DiagCommand.DIAG_LOG_F)
             {
                 Timber.d("Pcap Writer listener: %s", qcdmMessage);
 
                 byte[] pcapRecord = null;
 
-                final int logType = qcdmMessage.getLogType();
                 switch (logType)
                 {
                     case LOG_LTE_RRC_OTA_MSG_LOG_C:
                         pcapRecord = convertLteRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation());
+                        break;
+                    case LOG_LTE_NAS_EMM_OTA_IN_MSG_LOG_C:
+                    case LOG_LTE_NAS_EMM_OTA_OUT_MSG_LOG_C:
+                    case LOG_LTE_NAS_ESM_OTA_IN_MSG_LOG_C:
+                    case LOG_LTE_NAS_ESM_OTA_OUT_MSG_LOG_C:
+                        pcapRecord = convertLteNasMessage(qcdmMessage, gpsListener.getLatestLocation());
                         break;
                 }
 

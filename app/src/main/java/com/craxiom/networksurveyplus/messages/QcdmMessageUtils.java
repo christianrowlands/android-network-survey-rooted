@@ -20,6 +20,8 @@ import timber.log.Timber;
 
 import static com.craxiom.networksurveyplus.NetworkSurveyUtils.doubleToFixed37;
 import static com.craxiom.networksurveyplus.NetworkSurveyUtils.doubleToFixed64;
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_NAS_EMM_OTA_OUT_MSG_LOG_C;
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_NAS_ESM_OTA_OUT_MSG_LOG_C;
 import static com.craxiom.networksurveyplus.messages.QcdmConstants.LTE_UL_CCCH;
 import static com.craxiom.networksurveyplus.messages.QcdmConstants.LTE_UL_DCCH;
 
@@ -190,6 +192,36 @@ public class QcdmMessageUtils
                 ppiPacketHeader.length + layer3Header.length + layer4Header.length + gsmtapHeader.length + message.length);
 
         return concatenateByteArrays(pcapRecordHeader, ppiPacketHeader, layer3Header, layer4Header, gsmtapHeader, message);
+    }
+
+    /**
+     * Given a {@link QcdmMessage} that contains an LTE NAS message, convert it to a pcap record byte array that
+     * can be consumed by tools like Wireshark.
+     *
+     * @param qcdmMessage The QCDM message to convert into a pcap record.
+     * @param location    The location to tie to the QCDM message when writing it to a pcap file. If null then no
+     *                    location will be added to the PPI header.
+     * @return The pcap record byte array to write to a pcap file.
+     */
+    public static byte[] convertLteNasMessage(QcdmMessage qcdmMessage, Location location)
+    {
+        Timber.v("Handling an LTE NAS message");
+
+        final byte[] logPayload = qcdmMessage.getLogPayload();
+
+        final byte[] signallingMessage = Arrays.copyOfRange(logPayload, 4, logPayload.length);
+        boolean isUplink = qcdmMessage.getLogType() == LOG_LTE_NAS_EMM_OTA_OUT_MSG_LOG_C ||
+                qcdmMessage.getLogType() == LOG_LTE_NAS_ESM_OTA_OUT_MSG_LOG_C;
+
+        final byte[] gsmtapHeader = getGsmtapHeader(GsmtapConstants.GSMTAP_TYPE_LTE_NAS, LteNasSubtypes.GSMTAP_LTE_NAS_PLAIN.ordinal(), 0, isUplink, 0, 0);
+        final byte[] layer4Header = getLayer4Header(gsmtapHeader.length + signallingMessage.length);
+        final byte[] layer3Header = getLayer3Header(layer4Header.length + gsmtapHeader.length + signallingMessage.length);
+        final byte[] ppiPacketHeader = getPpiPacketHeader(location);
+        final long currentTimeMillis = System.currentTimeMillis();
+        final byte[] pcapRecordHeader = getPcapRecordHeader(currentTimeMillis / 1000, (currentTimeMillis * 1000) % 1_000_000,
+                ppiPacketHeader.length + layer3Header.length + layer4Header.length + gsmtapHeader.length + signallingMessage.length);
+
+        return concatenateByteArrays(pcapRecordHeader, ppiPacketHeader, layer3Header, layer4Header, gsmtapHeader, signallingMessage);
     }
 
     /**
