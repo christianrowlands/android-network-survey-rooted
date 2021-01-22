@@ -97,13 +97,13 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
 
         initializeLocationListener();
 
-        initializeQcdmFeed(); // Must be called after initializing the location listener.
-
-        updateServiceNotification();
+        initializeQcdmFeed(); // Must be called after initializing the location listener
 
         // Must register for MDM updates AFTER initializing the MQTT connection because we try to make an MQTT connection if the MDM settings change
         initializeMqttConnection();
         registerManagedConfigurationListener();
+
+        updateServiceNotification(); // Must be called after initializing the MQTT connection
     }
 
     @Override
@@ -123,6 +123,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     @Override
     public IBinder onBind(Intent intent)
     {
+        //noinspection ReturnOfInnerClass
         return qcdmServiceBinder;
     }
 
@@ -162,9 +163,6 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
 
     /**
      * Creates the {@link QcdmMqttConnection} instance.
-     * <p>
-     * If connection information is specified for an MQTT Broker via the MDM Managed Configuration, then kick off an
-     * MQTT connection.
      *
      * @since 0.1.1
      */
@@ -263,7 +261,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     public boolean isBeingUsed()
     {
         return pcapLoggingEnabled.get()
-                //|| getMqttConnectionState() != ConnectionState.DISCONNECTED
+                || getMqttConnectionState() != ConnectionState.DISCONNECTED
                 || qcdmMessageProcessor.isBeingUsed();
     }
 
@@ -443,7 +441,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     private Notification buildNotification()
     {
         final boolean logging = pcapLoggingEnabled.get();
-        final ConnectionState connectionState = ConnectionState.DISCONNECTED;// TODO mqttConnection.getConnectionState();
+        final ConnectionState connectionState = qcdmMqttConnection.getConnectionState();
         final boolean mqttConnectionActive = connectionState == ConnectionState.CONNECTED || connectionState == ConnectionState.CONNECTING;
         final CharSequence notificationTitle = getText(R.string.network_survey_notification_title);
         final String notificationText = getNotificationText(logging, mqttConnectionActive, connectionState);
@@ -514,6 +512,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
      *
      * @since 0.2.0
      */
+    @Override
     public ConnectionState getMqttConnectionState()
     {
         if (qcdmMqttConnection != null) return qcdmMqttConnection.getConnectionState();
@@ -564,6 +563,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
      *
      * @since 0.2.0
      */
+    @Override
     public void disconnectFromMqttBroker()
     {
         Timber.i("Disconnecting from the MQTT Broker");
@@ -579,6 +579,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
      * @param forceDisconnect True, if a forced disconnect is desired.
      * @since 0.2.0
      */
+    @Override
     public void attemptMqttConnectWithMdmConfig(boolean forceDisconnect)
     {
         if (isMqttMdmOverrideEnabled())
@@ -669,6 +670,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
      */
     public class QcdmServiceBinder extends AConnectionFragment.ServiceBinder
     {
+        @Override
         public QcdmService getService()
         {
             return QcdmService.this;

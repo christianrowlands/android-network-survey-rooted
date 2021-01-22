@@ -7,6 +7,7 @@ android {
     ndkVersion "21.3.6528147"
 
     defaultConfig {
+        buildConfigField "String", "MESSAGING_API_VERSION", "\"${networkSurveyMessagingVersion}\""
         applicationId "com.craxiom.networksurveyplus"
         minSdkVersion 26
         targetSdkVersion 29
@@ -77,7 +78,7 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
     implementation 'com.google.protobuf:protobuf-java-util:3.11.4'
 
-    implementation 'com.craxiom:network-survey-messaging:0.3.0'
+    implementation "com.craxiom:network-survey-messaging:${networkSurveyMessagingVersion}"
     implementation 'com.craxiom:mqtt-library:0.1.0'
 
     testImplementation 'junit:junit:4.13'

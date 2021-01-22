@@ -95,7 +95,7 @@ public class QcdmTest
                 (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
                 (byte) 0x00, (byte) 0x00};
 
-        final byte[] header = QcdmMessageUtils.getLayer3Header(45);
+        final byte[] header = QcdmMessageUtils.getLayer3Header(45, 0);
 
         assertArrayEquals(expectedBytes, header);
     }
@@ -246,7 +246,7 @@ public class QcdmTest
         final byte[] expectedQcdmMessagePayloadBytes = {(byte) 0x14, (byte) 0x0e, (byte) 0x30, (byte) 0x00, (byte) 0xed, (byte) 0x01, (byte) 0x6b, (byte) 0x03, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x08, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x06, (byte) 0x00, (byte) 0x41, (byte) 0x3d, (byte) 0x13, (byte) 0x6c, (byte) 0x58, (byte) 0xf8};
         final byte[] expectedPcapRecordBytes = {(byte) 0x52, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x52, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x20, (byte) 0x00, (byte) 0xe4, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x32, (byte) 0x75, (byte) 0x14, (byte) 0x00, (byte) 0x02, (byte) 0xcf, (byte) 0x14, (byte) 0x00, (byte) 0x0e, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x05, (byte) 0x21, (byte) 0x05, (byte) 0x84, (byte) 0x01, (byte) 0x8f, (byte) 0x90, (byte) 0x35, (byte) 0x3f, (byte) 0x1d, (byte) 0x61, (byte) 0x6b, (byte) 0x45, (byte) 0x00, (byte) 0x00, (byte) 0x32, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x40, (byte) 0x11, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x12, (byte) 0x79, (byte) 0x12, (byte) 0x79, (byte) 0x00, (byte) 0x1e, (byte) 0x00, (byte) 0x00, (byte) 0x02, (byte) 0x04, (byte) 0x0d, (byte) 0x00, (byte) 0x43, (byte) 0x6b, (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0xed, (byte) 0x00, (byte) 0x00, (byte) 0x02, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x41, (byte) 0x3d, (byte) 0x13, (byte) 0x6c, (byte) 0x58, (byte) 0xf8};
 
-        final QcdmMessage qcdmMessage = new QcdmMessage(qcdmMessageBytes);
+        final QcdmMessage qcdmMessage = new QcdmMessage(qcdmMessageBytes, 0);
         assertEquals(16, qcdmMessage.getOpCode());
         assertEquals(LOG_LTE_RRC_OTA_MSG_LOG_C, qcdmMessage.getLogType());
         assertArrayEquals("The qcdm message bytes did not match what was expected", expectedQcdmMessagePayloadBytes, qcdmMessage.getLogPayload());
@@ -435,11 +435,11 @@ public class QcdmTest
         int lteRrcIndex = 0;
         for (Map.Entry<Integer, LteRrcSubtypes> entry : channelTypeToGsmtapType.entrySet())
         {
-            final int gsmtapChannelType = QcdmMessageUtils.getGsmtapChannelType(version, entry.getKey());
-            Assert.assertEquals("The converted Gsmtap Channel Type does not match expected LteRrcSubtype", entry.getValue().ordinal(), gsmtapChannelType);
+            final int gsmtapChannelType = QcdmMessageUtils.getGsmtapRrcChannelType(version, entry.getKey());
+            assertEquals("The converted Gsmtap Channel Type does not match expected LteRrcSubtype", entry.getValue().ordinal(), gsmtapChannelType);
 
             final int lteRrcChannelType = gsmtapChannelType + 1;
-            Assert.assertEquals("Found no match in LteRrcChannelTypes for given channel type: " + lteRrcChannelType, lteRrcChannelTypes[lteRrcIndex].getNumber(), lteRrcChannelType);
+            assertEquals("Found no match in LteRrcChannelTypes for given channel type: " + lteRrcChannelType, lteRrcChannelTypes[lteRrcIndex].getNumber(), lteRrcChannelType);
 
             lteRrcIndex++;
         }

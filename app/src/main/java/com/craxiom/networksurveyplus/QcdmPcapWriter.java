@@ -7,7 +7,9 @@ import android.os.Bundle;
 import android.os.Environment;
 
 import com.craxiom.networksurveyplus.messages.DiagCommand;
+import com.craxiom.networksurveyplus.messages.QcdmConstants;
 import com.craxiom.networksurveyplus.messages.QcdmMessage;
+import com.craxiom.networksurveyplus.messages.QcdmMessageUtils;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -20,9 +22,6 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import timber.log.Timber;
-
-import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_RRC_OTA_MSG_LOG_C;
-import static com.craxiom.networksurveyplus.messages.QcdmMessageUtils.convertLteRrcOtaMessage;
 
 /**
  * Writes the QCDM messages to a PCAP file.
@@ -99,17 +98,32 @@ public class QcdmPcapWriter implements IQcdmMessageListener
     {
         try
         {
+            final int logType = qcdmMessage.getLogType();
+            final String logTypeHexString = Integer.toHexString(logType);
+
+            Timber.i("Received message of log type: %s", logTypeHexString);
+
             if (qcdmMessage.getOpCode() == DiagCommand.DIAG_LOG_F)
             {
                 Timber.d("Pcap Writer listener: %s", qcdmMessage);
 
                 byte[] pcapRecord = null;
 
-                final int logType = qcdmMessage.getLogType();
                 switch (logType)
                 {
-                    case LOG_LTE_RRC_OTA_MSG_LOG_C:
-                        pcapRecord = convertLteRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation());
+                    case QcdmConstants.LOG_LTE_RRC_OTA_MSG_LOG_C:
+                        pcapRecord = QcdmMessageUtils.convertLteRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation());
+                        break;
+
+                    case QcdmConstants.LOG_LTE_NAS_EMM_OTA_IN_MSG:
+                    case QcdmConstants.LOG_LTE_NAS_EMM_OTA_OUT_MSG:
+                    case QcdmConstants.LOG_LTE_NAS_ESM_OTA_IN_MSG:
+                    case QcdmConstants.LOG_LTE_NAS_ESM_OTA_OUT_MSG:
+                    case QcdmConstants.LOG_LTE_NAS_EMM_SEC_OTA_IN_MSG:
+                    case QcdmConstants.LOG_LTE_NAS_EMM_SEC_OTA_OUT_MSG:
+                    case QcdmConstants.LOG_LTE_NAS_ESM_SEC_OTA_IN_MSG:
+                    case QcdmConstants.LOG_LTE_NAS_ESM_SEC_OTA_OUT_MSG:
+                        pcapRecord = QcdmMessageUtils.convertLteNasMessage(qcdmMessage, gpsListener.getLatestLocation());
                         break;
                 }
 
