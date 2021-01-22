@@ -207,17 +207,19 @@ public class ParserUtils
                 }
 
                 boolean hasQcdmPrefix = false;
-                // Check to see if we need to remove the QCDM prefix
-                if (ByteBuffer.wrap(QcdmMessage.QCDM_PREFIX).equals(ByteBuffer.wrap(diagMessageBytes, 0, 8)))
+                int simId = 0; // Assume Subscription ID is 0 unless we see otherwise in the QCDM prefix
+                // Check to see if we need to remove the QCDM prefix (checking the first 4 bytes, but it is 8 bytes long.
+                if (ByteBuffer.wrap(QcdmMessage.QCDM_PREFIX).equals(ByteBuffer.wrap(diagMessageBytes, 0, 4)))
                 {
                     hasQcdmPrefix = true;
+                    simId = getInteger(diagMessageBytes, 4, ByteOrder.LITTLE_ENDIAN);
                 }
 
                 final int diagMessageLengthWithoutCrc = diagMessageBytes.length - 2;
                 final short expectedCrc = getShort(diagMessageBytes, diagMessageLengthWithoutCrc, ByteOrder.LITTLE_ENDIAN);
                 final short crc = calculateCrc16X25(diagMessageBytes, diagMessageLengthWithoutCrc);
 
-                //Timber.d("Escaped QCDM Message=%s", convertBytesToHexString(diagMessageBytes, 0, diagMessageBytes.length));
+                //Timber.v("Escaped QCDM Message=%s", convertBytesToHexString(diagMessageBytes, 0, diagMessageBytes.length));
 
                 if (crc != expectedCrc)
                 {
@@ -225,7 +227,7 @@ public class ParserUtils
                 } else
                 {
                     final byte[] qcdmBytes = Arrays.copyOfRange(diagMessageBytes, hasQcdmPrefix ? 8 : 0, diagMessageLengthWithoutCrc);
-                    messageConsumer.accept(new QcdmMessage(qcdmBytes));
+                    messageConsumer.accept(new QcdmMessage(qcdmBytes, simId));
                 }
             }
         } catch (IOException e)

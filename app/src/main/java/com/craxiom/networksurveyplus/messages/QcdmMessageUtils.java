@@ -2,6 +2,9 @@ package com.craxiom.networksurveyplus.messages;
 
 import android.location.Location;
 
+import com.craxiom.messaging.LteNas;
+import com.craxiom.messaging.LteNasChannelType;
+import com.craxiom.messaging.LteNasData;
 import com.craxiom.messaging.LteRrc;
 import com.craxiom.messaging.LteRrcData;
 import com.craxiom.networksurveyplus.BuildConfig;
@@ -10,8 +13,6 @@ import com.google.protobuf.ByteString;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteOrder;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -20,8 +21,10 @@ import timber.log.Timber;
 
 import static com.craxiom.networksurveyplus.NetworkSurveyUtils.doubleToFixed37;
 import static com.craxiom.networksurveyplus.NetworkSurveyUtils.doubleToFixed64;
-import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_NAS_EMM_OTA_OUT_MSG_LOG_C;
-import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_NAS_ESM_OTA_OUT_MSG_LOG_C;
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_NAS_EMM_OTA_IN_MSG;
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_NAS_EMM_OTA_OUT_MSG;
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_NAS_ESM_OTA_IN_MSG;
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_NAS_ESM_OTA_OUT_MSG;
 import static com.craxiom.networksurveyplus.messages.QcdmConstants.LTE_UL_CCCH;
 import static com.craxiom.networksurveyplus.messages.QcdmConstants.LTE_UL_DCCH;
 
@@ -38,39 +41,41 @@ public class QcdmMessageUtils
     private static final short PPI_GPS_FLAG_LAT = 2;
     private static final short PPI_GPS_FLAG_LON = 4;
     private static final short PPI_GPS_FLAG_ALT = 8;
-    private static final String MISSION_ID_PREFIX = "NS "; // todo do we want a different prefix for NS+
     private static final String LTE_RRC_MESSAGE_TYPE = "LteRrc";
-
-    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneId.systemDefault());
+    private static final String LTE_NAS_MESSAGE_TYPE = "LteNas";
 
     /**
-     * Given an {@link QcdmMessage} that contains an LTE RRC OTA message, convert it to a pcap record byte array that
-     * can be consumed by tools like Wireshark.
+     * Given an {@link QcdmMessage} that contains an LTE RRC OTA message, convert it to a Network Survey Messaging
+     * {@link LteRrc} protobuf object so that it can be sent over an MQTT connection.
      *
-     * @param qcdmMessage The QCDM message to convert into a pcap record.
-     * @param location    The location to tie to the QCDM message when writing it to a pcap file. If null then no
-     *                    location will be added to the PPI header.
+     * @param qcdmMessage  The QCDM message to convert into a pcap record.
+     * @param location     The location to tie to the QCDM message when writing it to a pcap file. If null then no
+     *                     location will be added to the PPI header.
+     * @param deviceId     The Device ID to set as the "Device Serial Number" on the protobuf message.
+     * @param missionId    The Mission ID to set on the protobuf message.
+     * @param mqttClientId The MQTT client ID to set as the "Device Name" on the protobuf message. If null it won't be set.
      * @return The pcap record byte array to write to a pcap file.
      */
-    public static LteRrc convertLteRrcOtaMessage(QcdmMessage qcdmMessage, Location location, String deviceId)
+    public static LteRrc convertLteRrcOtaMessage(QcdmMessage qcdmMessage, Location location, String deviceId, String missionId, String mqttClientId)
     {
         Timber.v("Handling an LTE RRC message");
 
         final LteRrc.Builder lteRrcBuilder = LteRrc.newBuilder();
         final LteRrcData.Builder lteRrcDataBuilder = LteRrcData.newBuilder();
 
-        lteRrcBuilder.setVersion(BuildConfig.VERSION_NAME);
+        lteRrcBuilder.setVersion(BuildConfig.MESSAGING_API_VERSION);
         lteRrcBuilder.setMessageType(LTE_RRC_MESSAGE_TYPE);
 
         lteRrcDataBuilder.setDeviceSerialNumber(deviceId);
-        lteRrcDataBuilder.setMissionId(getMissionId(deviceId));
+        if (mqttClientId != null) lteRrcDataBuilder.setDeviceName(mqttClientId);
+        lteRrcDataBuilder.setMissionId(missionId);
         lteRrcDataBuilder.setDeviceTime(getRfc3339String(ZonedDateTime.now()));
         lteRrcDataBuilder.setAltitude((float) location.getAltitude());
         lteRrcDataBuilder.setLatitude(location.getLatitude());
         lteRrcDataBuilder.setLongitude(location.getLongitude());
-        lteRrcDataBuilder.setRawMessage(ByteString.copyFrom(qcdmMessage.getLogPayload()));
 
         final byte[] logPayload = qcdmMessage.getLogPayload();
+        lteRrcDataBuilder.setRawMessage(ByteString.copyFrom(logPayload));
 
         // The base header is 6 bytes:
         // 1 byte each for Ext Header Version, RRC Rel, RRC Version, and Bearer ID
@@ -84,33 +89,13 @@ public class QcdmMessageUtils
         // 2 bytes for length
         final int frequencyLength = extHeaderVersion < 8 ? 2 : 4;
         int channelType = logPayload[6 + frequencyLength + 2];
-        int gsmtapChannelType = getGsmtapChannelType(extHeaderVersion, channelType);
+        int gsmtapChannelType = getGsmtapRrcChannelType(extHeaderVersion, channelType);
 
         lteRrcDataBuilder.setChannelTypeValue(gsmtapChannelType + 1); // Here we offset by 1 to match with the LteRrcChannelType values
 
         lteRrcBuilder.setData(lteRrcDataBuilder.build());
 
         return lteRrcBuilder.build();
-    }
-
-    /**
-     * @return A mission ID that includes a Network Survey prefix, the device's ID, and the current time.
-     */
-    private static String getMissionId(String deviceId)
-    {
-        return MISSION_ID_PREFIX + deviceId + " " + DATE_TIME_FORMATTER.format(LocalDateTime.now());
-    }
-
-    /**
-     * Return an ISO 8601 combined date and time string for specified date/time.
-     *
-     * @param date The date object to use when generating the timestamp.
-     * @return String with format {@link DateTimeFormatter#ISO_OFFSET_DATE_TIME} (e.g. "2020-08-19T18:13:22.548+00:00")
-     * @since 0.2.1
-     */
-    private static String getRfc3339String(ZonedDateTime date)
-    {
-        return DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(date);
     }
 
     /**
@@ -173,7 +158,7 @@ public class QcdmMessageUtils
 
         boolean isUplink = channelType == LTE_UL_CCCH || channelType == LTE_UL_DCCH;
 
-        final int gsmtapChannelType = getGsmtapChannelType(extHeaderVersion, channelType);
+        final int gsmtapChannelType = getGsmtapRrcChannelType(extHeaderVersion, channelType);
         if (gsmtapChannelType == -1)
         {
             Timber.w("Unknown channel type received for LOG_LTE_RRC_OTA_MSG_LOG_C: %d", channelType);
@@ -185,13 +170,58 @@ public class QcdmMessageUtils
         final byte[] message = Arrays.copyOfRange(logPayload, baseAndExtHeaderLength, baseAndExtHeaderLength + length);
         final byte[] gsmtapHeader = getGsmtapHeader(GsmtapConstants.GSMTAP_TYPE_LTE_RRC, gsmtapChannelType, earfcn, isUplink, sfnAndPci, subframeNumber);
         final byte[] layer4Header = getLayer4Header(gsmtapHeader.length + message.length);
-        final byte[] layer3Header = getLayer3Header(layer4Header.length + gsmtapHeader.length + message.length);
+        final byte[] layer3Header = getLayer3Header(layer4Header.length + gsmtapHeader.length + message.length, qcdmMessage.getSimId());
         final byte[] ppiPacketHeader = getPpiPacketHeader(location);
         final long currentTimeMillis = System.currentTimeMillis();
         final byte[] pcapRecordHeader = getPcapRecordHeader(currentTimeMillis / 1000, (currentTimeMillis * 1000) % 1_000_000,
                 ppiPacketHeader.length + layer3Header.length + layer4Header.length + gsmtapHeader.length + message.length);
 
         return concatenateByteArrays(pcapRecordHeader, ppiPacketHeader, layer3Header, layer4Header, gsmtapHeader, message);
+    }
+
+    /**
+     * Given an {@link QcdmMessage} that contains an LTE NAS OTA message, convert it to a Network Survey Messaging
+     * {@link LteNas} protobuf object so that it can be sent over an MQTT connection.
+     * <p>
+     * Information on how to parse LTE NAS messages was found in Mobile Sentinel:
+     * https://github.com/RUB-SysSec/mobile_sentinel/blob/8485ef811cfbba7ab8b9d39bee7b38ae9072cce8/app/src/main/python/parsers/qualcomm/diagltelogparser.py#L1109
+     *
+     * @param qcdmMessage  The QCDM message to convert into a pcap record.
+     * @param location     The location to tie to the QCDM message when writing it to a pcap file. If null then no
+     *                     location will be added to the PPI header.
+     * @param deviceId     The Device ID to set as the "Device Serial Number" on the protobuf message.
+     * @param missionId    The Mission ID to set on the protobuf message.
+     * @param mqttClientId The MQTT client ID to set as the "Device Name" on the protobuf message. If null it won't be set.
+     * @return The pcap record byte array to write to a pcap file.
+     */
+    public static LteNas convertLteNasMessage(QcdmMessage qcdmMessage, Location location, String deviceId, String missionId, String mqttClientId)
+    {
+        Timber.v("Handling an LTE NAS message");
+
+        final LteNasData.Builder lteNasDataBuilder = LteNasData.newBuilder();
+
+        lteNasDataBuilder.setDeviceSerialNumber(deviceId);
+        if (mqttClientId != null) lteNasDataBuilder.setDeviceName(mqttClientId);
+        lteNasDataBuilder.setMissionId(missionId);
+        lteNasDataBuilder.setDeviceTime(getRfc3339String(ZonedDateTime.now()));
+        lteNasDataBuilder.setAltitude((float) location.getAltitude());
+        lteNasDataBuilder.setLatitude(location.getLatitude());
+        lteNasDataBuilder.setLongitude(location.getLongitude());
+        lteNasDataBuilder.setRawMessage(ByteString.copyFrom(qcdmMessage.getLogPayload()));
+
+        final int logType = qcdmMessage.getLogType();
+        final boolean isPlain = logType == LOG_LTE_NAS_EMM_OTA_IN_MSG || logType == LOG_LTE_NAS_EMM_OTA_OUT_MSG
+                || logType == LOG_LTE_NAS_ESM_OTA_IN_MSG || logType == LOG_LTE_NAS_ESM_OTA_OUT_MSG;
+        final LteNasChannelType gsmtapChannelType = isPlain ? LteNasChannelType.PLAIN : LteNasChannelType.SEC_HEADER;
+
+        lteNasDataBuilder.setChannelType(gsmtapChannelType);
+
+        final LteNas.Builder lteNasBuilder = LteNas.newBuilder();
+        lteNasBuilder.setVersion(BuildConfig.MESSAGING_API_VERSION);
+        lteNasBuilder.setMessageType(LTE_NAS_MESSAGE_TYPE);
+        lteNasBuilder.setData(lteNasDataBuilder.build());
+
+        return lteNasBuilder.build();
     }
 
     /**
@@ -209,19 +239,22 @@ public class QcdmMessageUtils
 
         final byte[] logPayload = qcdmMessage.getLogPayload();
 
-        final byte[] signallingMessage = Arrays.copyOfRange(logPayload, 4, logPayload.length);
-        boolean isUplink = qcdmMessage.getLogType() == LOG_LTE_NAS_EMM_OTA_OUT_MSG_LOG_C ||
-                qcdmMessage.getLogType() == LOG_LTE_NAS_ESM_OTA_OUT_MSG_LOG_C;
+        final byte[] signalingMessage = Arrays.copyOfRange(logPayload, 4, logPayload.length);
+        final int logType = qcdmMessage.getLogType();
+        final boolean isUplink = (logType & 0x01) == 1; // All uplink log types are odd
+        final boolean isPlain = logType == LOG_LTE_NAS_EMM_OTA_IN_MSG || logType == LOG_LTE_NAS_EMM_OTA_OUT_MSG
+                || logType == LOG_LTE_NAS_ESM_OTA_IN_MSG || logType == LOG_LTE_NAS_ESM_OTA_OUT_MSG;
+        final int gsmtapChannelType = isPlain ? LteNasSubtypes.GSMTAP_LTE_NAS_PLAIN.ordinal() : LteNasSubtypes.GSMTAP_LTE_NAS_SEC_HEADER.ordinal();
 
-        final byte[] gsmtapHeader = getGsmtapHeader(GsmtapConstants.GSMTAP_TYPE_LTE_NAS, LteNasSubtypes.GSMTAP_LTE_NAS_PLAIN.ordinal(), 0, isUplink, 0, 0);
-        final byte[] layer4Header = getLayer4Header(gsmtapHeader.length + signallingMessage.length);
-        final byte[] layer3Header = getLayer3Header(layer4Header.length + gsmtapHeader.length + signallingMessage.length);
+        final byte[] gsmtapHeader = getGsmtapHeader(GsmtapConstants.GSMTAP_TYPE_LTE_NAS, gsmtapChannelType, 0, isUplink, 0, 0);
+        final byte[] layer4Header = getLayer4Header(gsmtapHeader.length + signalingMessage.length);
+        final byte[] layer3Header = getLayer3Header(layer4Header.length + gsmtapHeader.length + signalingMessage.length, qcdmMessage.getSimId());
         final byte[] ppiPacketHeader = getPpiPacketHeader(location);
         final long currentTimeMillis = System.currentTimeMillis();
         final byte[] pcapRecordHeader = getPcapRecordHeader(currentTimeMillis / 1000, (currentTimeMillis * 1000) % 1_000_000,
-                ppiPacketHeader.length + layer3Header.length + layer4Header.length + gsmtapHeader.length + signallingMessage.length);
+                ppiPacketHeader.length + layer3Header.length + layer4Header.length + gsmtapHeader.length + signalingMessage.length);
 
-        return concatenateByteArrays(pcapRecordHeader, ppiPacketHeader, layer3Header, layer4Header, gsmtapHeader, signallingMessage);
+        return concatenateByteArrays(pcapRecordHeader, ppiPacketHeader, layer3Header, layer4Header, gsmtapHeader, signalingMessage);
     }
 
     /**
@@ -239,7 +272,7 @@ public class QcdmMessageUtils
      * frame contains.
      */
     @SuppressWarnings("SwitchStatementWithoutDefaultBranch")
-    public static int getGsmtapChannelType(int versionNumber, int channelType)
+    public static int getGsmtapRrcChannelType(int versionNumber, int channelType)
     {
         switch (versionNumber)
         {
@@ -508,9 +541,10 @@ public class QcdmMessageUtils
      * total length field, which it calculates using the provided value (it adds 20 because the IP header is 20 bytes).
      *
      * @param packetLength The length of the layer 4 header, GSM TAP header, and the payload.
+     * @param simId        The Subscription ID that will be used as the last octet of the destination IP address.
      * @return The byte array for the layer 3 header.
      */
-    public static byte[] getLayer3Header(int packetLength)
+    public static byte[] getLayer3Header(int packetLength, int simId)
     {
         final int totalLength = 20 + packetLength;
 
@@ -524,7 +558,7 @@ public class QcdmMessageUtils
                 (byte) 0x11, // Protocol (17 UDP)
                 (byte) 0x00, (byte) 0x00, // Header checksum
                 (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, // Source IP
-                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, // Destination IP
+                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) (simId & 0xFF), // Destination IP
         };
     }
 
@@ -644,5 +678,16 @@ public class QcdmMessageUtils
                 (byte) (length & 0xFF), (byte) ((length & 0xFF00) >>> 8), (byte) ((length & 0xFF0000) >>> 16), (byte) (length >>> 24), // Frame length
                 (byte) (length & 0xFF), (byte) ((length & 0xFF00) >>> 8), (byte) ((length & 0xFF0000) >>> 16), (byte) (length >>> 24), // Capture length
         };
+    }
+
+    /**
+     * Return an ISO 8601 combined date and time string for specified date/time.
+     *
+     * @param date The date object to use when generating the timestamp.
+     * @return String with format {@link DateTimeFormatter#ISO_OFFSET_DATE_TIME} (e.g. "2020-08-19T18:13:22.548+00:00")
+     */
+    private static String getRfc3339String(ZonedDateTime date)
+    {
+        return DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(date);
     }
 }

@@ -1,15 +1,18 @@
 package com.craxiom.networksurveyplus.mqtt;
 
+import com.craxiom.messaging.LteNas;
 import com.craxiom.messaging.LteRrc;
-import com.craxiom.messaging.LteRrcData;
 import com.craxiom.mqttlibrary.connection.DefaultMqttConnection;
 import com.craxiom.networksurveyplus.GpsListener;
 import com.craxiom.networksurveyplus.IQcdmMessageListener;
 import com.craxiom.networksurveyplus.messages.DiagCommand;
+import com.craxiom.networksurveyplus.messages.QcdmConstants;
 import com.craxiom.networksurveyplus.messages.QcdmMessage;
 import com.craxiom.networksurveyplus.messages.QcdmMessageUtils;
 
-import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_RRC_OTA_MSG_LOG_C;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Class for creating a connection to an MQTT server.
@@ -19,15 +22,18 @@ import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_RRC_O
 public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMessageListener
 {
     private static final String MQTT_LTE_RRC_OTA_MESSAGE_TOPIC = "lte_ota_message";
+    private static final String MISSION_ID_PREFIX = "NS+ ";
 
     private final String deviceId;
     private final GpsListener gpsListener;
+    private final String missionId;
 
     public QcdmMqttConnection(String deviceId, GpsListener gpsListener)
     {
         super();
         this.deviceId = deviceId;
         this.gpsListener = gpsListener;
+        missionId = MISSION_ID_PREFIX + deviceId + " " + DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneId.systemDefault()).format(LocalDateTime.now());
     }
 
     @Override
@@ -37,8 +43,19 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMe
         {
             switch (qcdmMessage.getLogType())
             {
-                case LOG_LTE_RRC_OTA_MSG_LOG_C:
-                    convertAndPublishLteRrcOtaMessage(qcdmMessage);
+                case QcdmConstants.LOG_LTE_RRC_OTA_MSG_LOG_C:
+                    convertAndPublishLteRrcMessage(qcdmMessage);
+                    break;
+
+                case QcdmConstants.LOG_LTE_NAS_EMM_OTA_IN_MSG:
+                case QcdmConstants.LOG_LTE_NAS_EMM_OTA_OUT_MSG:
+                case QcdmConstants.LOG_LTE_NAS_ESM_OTA_IN_MSG:
+                case QcdmConstants.LOG_LTE_NAS_ESM_OTA_OUT_MSG:
+                case QcdmConstants.LOG_LTE_NAS_EMM_SEC_OTA_IN_MSG:
+                case QcdmConstants.LOG_LTE_NAS_EMM_SEC_OTA_OUT_MSG:
+                case QcdmConstants.LOG_LTE_NAS_ESM_SEC_OTA_IN_MSG:
+                case QcdmConstants.LOG_LTE_NAS_ESM_SEC_OTA_OUT_MSG:
+                    convertAndPublishLteNasMessage(qcdmMessage);
                     break;
             }
         }
@@ -49,18 +66,22 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMe
      *
      * @param qcdmMessage The received QCDM message
      */
-    private void convertAndPublishLteRrcOtaMessage(QcdmMessage qcdmMessage)
+    private void convertAndPublishLteRrcMessage(QcdmMessage qcdmMessage)
     {
-        final LteRrc lteRrc = QcdmMessageUtils.convertLteRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId);
-        final LteRrcData.Builder lteRrcDataBuilder = lteRrc.getData().toBuilder();
-        lteRrcDataBuilder.setDeviceSerialNumber(deviceId);
-
-        // Set the device name to the user entered value in the MQTT connection UI (or the value provided via MDM)
-        if (mqttClientId != null)
-        {
-            lteRrcDataBuilder.setDeviceName(mqttClientId);
-        }
+        final LteRrc lteRrc = QcdmMessageUtils.convertLteRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
 
         publishMessage(MQTT_LTE_RRC_OTA_MESSAGE_TOPIC, lteRrc);
+    }
+
+    /**
+     * Converts a QCDM message into an LteNas message and publishes it to the MQTT server.
+     *
+     * @param qcdmMessage The received QCDM message
+     */
+    private void convertAndPublishLteNasMessage(QcdmMessage qcdmMessage)
+    {
+        final LteNas lteNas = QcdmMessageUtils.convertLteNasMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
+
+        publishMessage(MQTT_LTE_RRC_OTA_MESSAGE_TOPIC, lteNas);
     }
 }
