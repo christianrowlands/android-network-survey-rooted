@@ -99,9 +99,6 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         try
         {
             final int logType = qcdmMessage.getLogType();
-            final String logTypeHexString = Integer.toHexString(logType);
-
-            Timber.i("Received message of log type: %s", logTypeHexString);
 
             if (qcdmMessage.getOpCode() == DiagCommand.DIAG_LOG_F)
             {

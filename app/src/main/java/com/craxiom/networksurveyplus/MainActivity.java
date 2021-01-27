@@ -85,10 +85,11 @@ public class MainActivity extends AppCompatActivity
 
         setupNotificationChannel();
 
-        copyConfigFile(R.raw.diag);
+        //copyConfigFile(R.raw.diag);
         //copyConfigFile(R.raw.full_diag);
         //copyConfigFile(R.raw.rrc_diag);
         //copyConfigFile(R.raw.rrc_filter_diag);
+        copyConfigFile(R.raw.rrc_filter_diag_edit);
     }
 
     @Override

@@ -7,7 +7,8 @@ import org.junit.Test;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Unit tests for the parser utils class.
@@ -33,6 +34,33 @@ public class ParserUtilsTest
         final byte[] inputBytes = "123456789".getBytes(StandardCharsets.US_ASCII);
 
         final int crc = ParserUtils.calculateCrc16X25(inputBytes, inputBytes.length);
+        assertEquals(expectedCrc, crc);
+    }
+
+    /**
+     * Tests the original Diag Command that is used to activate the LTE RRC messages from the rrc_filter_diag.cfg.
+     */
+    @Test
+    public void testCrc16X25LteDiagCommandCalculation()
+    {
+        final int expectedCrc = (short) 0xA1FA;
+        final byte[] diagCommandBytes = {(byte) 0x73, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x03, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x0B, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x9B, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0x03, (byte) 0x0F, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x07, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00};
+
+        final int crc = ParserUtils.calculateCrc16X25(diagCommandBytes, diagCommandBytes.length);
+        assertEquals(expectedCrc, crc);
+    }
+
+    /**
+     * Tests the modified Diag Command that is used to activate the LTE NAS messages in addition to the LTE RRC messages
+     * as part of the rrc_filter_diag_edit.cfg.
+     */
+    @Test
+    public void testCrc16X25LteDiagCommandModificationCalculation()
+    {
+        final int expectedCrc = (short) 0xD606;
+        final byte[] diagCommandBytes = {(byte) 0x73, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x03, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x0B, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x9B, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0x03, (byte) 0x0F, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x07, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x0F, (byte) 0x3C, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00};
+
+        final int crc = ParserUtils.calculateCrc16X25(diagCommandBytes, diagCommandBytes.length);
         assertEquals(expectedCrc, crc);
     }
 
