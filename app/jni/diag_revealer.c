@@ -426,7 +426,7 @@ write_commands (int fd, BinaryBuffer *pbuf_write)
             // memcpy(send_buf + 4, p + i, len);
             memcpy(send_buf + offset, p + i, len);
             LOGD("Writing %lu bytes of data\n", len + 4);
-            print_hex(send_buf, len + 4);
+            //print_hex(send_buf, len + 4);
             fflush(stdout);
             // int ret = write(fd, (const void *) send_buf, len + 4);
             int ret = write(fd, (const void *) send_buf, len + offset);
@@ -449,7 +449,7 @@ write_commands (int fd, BinaryBuffer *pbuf_write)
             } else {
                 LOGD("Reading %d bytes of resp\n", read_len);
                 LOGD("write_commands responses\n");
-                print_hex(buf_read, read_len);
+                //print_hex(buf_read, read_len);
             }
             LOGD("After read\n");
         }
@@ -1160,7 +1160,7 @@ main (int argc, char **argv)
                     // LOGI("memcpy: msg_len=%d\n", msg_len);
                     if (msg_len < 0)
                         continue;
-                    print_hex(buf_read + offset + 4, msg_len);
+                    //print_hex(buf_read + offset + 4, msg_len);
                     // Wirte msg type to pipe
 
                     //LOGD("ret_err0");
@@ -1237,7 +1237,7 @@ main (int argc, char **argv)
                     // LOGI("memcpy: msg_len=%d\n", msg_len);
                     if (msg_len < 0)
                         continue;
-                    print_hex(buf_read + offset + 4, msg_len);
+                    //print_hex(buf_read + offset + 4, msg_len);
                     // Wirte msg type to pipe
 
                     //LOGD("ret_err0");
