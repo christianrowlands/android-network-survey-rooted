@@ -75,6 +75,10 @@ are a list of other projects that might be of interest to you.
 
 ## Changelog
 
+##### [0.2.0](https://github.com/christianrowlands/android-network-survey-rooted/releases/tag/v0.2.0) - 2021-01-29
+ * Added support for streaming LTE OTA messages over an MQTT connection.
+ * LTE NAS messages are now logged to the pcap file and streamed over MQTT.
+
 ##### [0.1.2](https://github.com/christianrowlands/android-network-survey-rooted/releases/tag/v0.1.2) - 2020-11-02
  * Fixed a bug where the diag_revealer.so file was not being unpacked.
 
