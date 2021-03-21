@@ -1,6 +1,6 @@
 # Network Survey Plus Android App
 
-[![Build Status](https://travis-ci.com/christianrowlands/android-network-survey.svg?branch=develop)](https://travis-ci.com/github/christianrowlands/android-network-survey-plus)
+[![Build Status](https://travis-ci.com/christianrowlands/android-network-survey-rooted.svg?branch=develop)](https://travis-ci.com/github/christianrowlands/android-network-survey-rooted)
 [![License](https://img.shields.io/badge/license-Apache%202-green.svg?style=flat)](https://github.com/christianrowlands/android-network-survey-rooted/blob/develop/LICENSE)
 
 ## What is it?
