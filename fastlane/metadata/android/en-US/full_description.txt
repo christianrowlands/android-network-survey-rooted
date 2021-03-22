@@ -1,0 +1,7 @@
+<p>FOR ROOTED ANDROID PHONES WITH CERTAIN QUALCOMM CHIPS ONLY.</p>
+<p>So far, the only device that this app has been tested against is a Pixel 3a. Other devices will be added at a later date.</p>
+<p>The Network Survey+ app is the "advanced" version of the regular Network Survey app. NS+ accesses the Qualcomm diag device to get QCDM messages. The QCDM messages are then processed and logged to a pcap file. Currently, only LTE RRC OTA messages are processed and logged. In addition, each pcap record is geotagged with the device's current location.</p>
+<p>The pcap files can be opened and viewed in Wireshark.</p>
+<p>This app also supports streaming the LTE OTA messages over an MQTT connection. See https://messaging.networksurvey.app/#operation-publish-lte_ota_message for details.</p>
+<p>Note that this app only works on rooted Android phones, and requires a cellular qualcomm chip that exposes the /dev/diag device and supports QCDM messages. See https://github.com/christianrowlands/android-network-survey-rooted for a list of compatible devices.</p>
+<p>See https://mosquitto.org for information on setting up a MQTT Broker.</p>
