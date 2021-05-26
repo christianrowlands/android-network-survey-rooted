@@ -2,7 +2,7 @@
  * Read diagnostic message from Android's /dev/diag device. Messages are output
  * using a Linux FIFO pipe.
  *
- * Author: Jiayao Li
+ * Author: Jiayao Li, Yuanjie Li, Haotian Deng
  * Changes:
  *   Ruihan Li: Probe ioctl argument length.
  *              Fix libdiag.so logging switching.
@@ -172,6 +172,8 @@ struct diag_dci_reg_tbl_t {
 /*
  * Android 10.0: switch_logging_mode structure
  * Reference: https://android.googlesource.com/kernel/msm.git/+/android-10.0.0_r0.87/drivers/char/diag/diagchar.h
+ * Android 11.0.0 (RD1A.201105.003.C1)
+ * https://android.googlesource.com/kernel/msm.git/+/refs/tags/android-11.0.0_r0.27/drivers/char/diag/diagchar.h
  */
 struct diag_logging_mode_param_t_q {
     uint32_t req_mode;
@@ -769,7 +771,7 @@ enable_logging (int fd, int mode)
     // Nexus-6-only logging optimizations
     // It will fail on other devices (errno=EFAULT), since DIAG_IOCTL_OPTIMIZED_LOGGING is equal to DIAG_IOCTL_PERIPHERAL_BUF_CONFIG.
     // Reference: https://github.com/MotorolaMobilityLLC/kernel-msm/blob/kitkat-4.4.4-release-victara/drivers/char/diag/diagchar_core.c#L1189
-    //ret = ioctl(fd, DIAG_IOCTL_OPTIMIZED_LOGGING, (long) 1);
+    // ret = ioctl(fd, DIAG_IOCTL_OPTIMIZED_LOGGING, (long) 1);
     // if (ret >= 0) {
     // 	ret = ioctl(fd, DIAG_IOCTL_OPTIMIZED_LOGGING_FLUSH, NULL);
     // 	if (ret < 0) {
@@ -822,7 +824,7 @@ enable_logging (int fd, int mode)
         LOGD("ioctl DIAG_IOCTL_PERIPHERAL_BUF_CONFIG fails, with ret val = %d\n", ret);
         printf("ioctl DIAG_IOCTL_PERIPHERAL_BUF_CONFIG fails, with ret val = %d\n", ret);
         LOGE("ioctl DIAG_IOCTL_PERIPHERAL_BUF_CONFIG");
-        perror("ioctl DIAG_IOCTL_PERIPHERAL_BUF_CONFIG");
+        //perror("ioctl DIAG_IOCTL_PERIPHERAL_BUF_CONFIG");
     }
 
     // uint8_t peripheral = 0;
