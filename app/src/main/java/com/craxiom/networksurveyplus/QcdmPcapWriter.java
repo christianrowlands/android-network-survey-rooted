@@ -8,8 +8,10 @@ import android.os.Environment;
 
 import com.craxiom.networksurveyplus.messages.DiagCommand;
 import com.craxiom.networksurveyplus.messages.QcdmConstants;
+import com.craxiom.networksurveyplus.messages.QcdmLteParser;
 import com.craxiom.networksurveyplus.messages.QcdmMessage;
-import com.craxiom.networksurveyplus.messages.QcdmMessageUtils;
+import com.craxiom.networksurveyplus.messages.QcdmUmtsParser;
+import com.craxiom.networksurveyplus.messages.QcdmWcdmaParser;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -109,7 +111,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
                 switch (logType)
                 {
                     case QcdmConstants.LOG_LTE_RRC_OTA_MSG_LOG_C:
-                        pcapRecord = QcdmMessageUtils.convertLteRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation());
+                        pcapRecord = QcdmLteParser.convertLteRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation());
                         break;
 
                     case QcdmConstants.LOG_LTE_NAS_EMM_OTA_IN_MSG:
@@ -120,7 +122,33 @@ public class QcdmPcapWriter implements IQcdmMessageListener
                     case QcdmConstants.LOG_LTE_NAS_EMM_SEC_OTA_OUT_MSG:
                     case QcdmConstants.LOG_LTE_NAS_ESM_SEC_OTA_IN_MSG:
                     case QcdmConstants.LOG_LTE_NAS_ESM_SEC_OTA_OUT_MSG:
-                        pcapRecord = QcdmMessageUtils.convertLteNasMessage(qcdmMessage, gpsListener.getLatestLocation());
+                        pcapRecord = QcdmLteParser.convertLteNasMessage(qcdmMessage, gpsListener.getLatestLocation());
+                        break;
+
+                    /*case QcdmConstants.WCDMA_SEARCH_CELL_RESELECTION_RANK:
+                        Timber.i("WCDMA_SEARCH_CELL_RESELECTION_RANK");
+                        break;
+                    case QcdmConstants.WCDMA_RRC_STATES:
+                        Timber.i("WCDMA_RRC_STATES");
+                        break;
+                    case QcdmConstants.WCDMA_CELL_ID:
+                        Timber.i("WCDMA_CELL_ID");
+                        break;
+                    case QcdmConstants.WCDMA_SIB:
+                        Timber.i("WCDMA_SIB");
+                        break;*/
+                    case QcdmConstants.WCDMA_SIGNALING_MESSAGES:
+                        pcapRecord = QcdmWcdmaParser.convertWcdmaSignalingMessage(qcdmMessage, gpsListener.getLatestLocation());
+                        break;
+
+                    case QcdmConstants.UMTS_NAS_OTA:
+                        Timber.i("UMTS_NAS_OTA: %s", qcdmMessage);
+                        pcapRecord = QcdmUmtsParser.convertUmtsNasOta(qcdmMessage, gpsListener.getLatestLocation());
+                        break;
+
+                    case QcdmConstants.UMTS_NAS_OTA_DSDS:
+                        Timber.i("UMTS_NAS_OTA_DSDS: %s", qcdmMessage);
+                        pcapRecord = QcdmUmtsParser.convertUmtsNasOtaDsds(qcdmMessage, gpsListener.getLatestLocation());
                         break;
                 }
 

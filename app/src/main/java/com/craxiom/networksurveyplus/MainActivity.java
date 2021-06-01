@@ -89,7 +89,7 @@ public class MainActivity extends AppCompatActivity
         //copyConfigFile(R.raw.full_diag);
         //copyConfigFile(R.raw.rrc_diag);
         //copyConfigFile(R.raw.rrc_filter_diag);
-        copyConfigFile(R.raw.rrc_filter_diag_edit);
+        copyConfigFile(R.raw.ns_plus_diag);
     }
 
     @Override
