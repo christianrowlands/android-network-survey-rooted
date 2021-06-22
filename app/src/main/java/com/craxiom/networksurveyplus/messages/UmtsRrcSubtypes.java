@@ -5,63 +5,63 @@ public enum UmtsRrcSubtypes
     GSMTAP_RRC_SUB_DL_DCCH_Message, // 0
     GSMTAP_RRC_SUB_UL_DCCH_Message, // 1
     GSMTAP_RRC_SUB_DL_CCCH_Message, // 2
-    GSMTAP_RRC_SUB_UL_CCCH_Message, // ...
-    GSMTAP_RRC_SUB_PCCH_Message,
-    GSMTAP_RRC_SUB_DL_SHCCH_Message,
-    GSMTAP_RRC_SUB_UL_SHCCH_Message,
-    GSMTAP_RRC_SUB_BCCH_FACH_Message,
-    GSMTAP_RRC_SUB_BCCH_BCH_Message,
-    GSMTAP_RRC_SUB_MCCH_Message,
-    GSMTAP_RRC_SUB_MSCH_Message,
-    GSMTAP_RRC_SUB_HandoverToUTRANCommand,
-    GSMTAP_RRC_SUB_InterRATHandoverInfo,
-    GSMTAP_RRC_SUB_SystemInformation_BCH,
-    GSMTAP_RRC_SUB_System_Information_Container,
-    GSMTAP_RRC_SUB_UE_RadioAccessCapabilityInfo,
-    GSMTAP_RRC_SUB_MasterInformationBlock,
-    GSMTAP_RRC_SUB_SysInfoType1,
-    GSMTAP_RRC_SUB_SysInfoType2,
-    GSMTAP_RRC_SUB_SysInfoType3,
-    GSMTAP_RRC_SUB_SysInfoType4,
-    GSMTAP_RRC_SUB_SysInfoType5,
-    GSMTAP_RRC_SUB_SysInfoType5bis,
-    GSMTAP_RRC_SUB_SysInfoType6,
-    GSMTAP_RRC_SUB_SysInfoType7,
-    GSMTAP_RRC_SUB_SysInfoType8,
-    GSMTAP_RRC_SUB_SysInfoType9,
-    GSMTAP_RRC_SUB_SysInfoType10,
-    GSMTAP_RRC_SUB_SysInfoType11,
-    GSMTAP_RRC_SUB_SysInfoType11bis,
-    GSMTAP_RRC_SUB_SysInfoType12,
-    GSMTAP_RRC_SUB_SysInfoType13,
-    GSMTAP_RRC_SUB_SysInfoType13_1,
-    GSMTAP_RRC_SUB_SysInfoType13_2,
-    GSMTAP_RRC_SUB_SysInfoType13_3,
-    GSMTAP_RRC_SUB_SysInfoType13_4,
-    GSMTAP_RRC_SUB_SysInfoType14,
-    GSMTAP_RRC_SUB_SysInfoType15,
-    GSMTAP_RRC_SUB_SysInfoType15bis,
-    GSMTAP_RRC_SUB_SysInfoType15_1,
-    GSMTAP_RRC_SUB_SysInfoType15_1bis,
-    GSMTAP_RRC_SUB_SysInfoType15_2,
-    GSMTAP_RRC_SUB_SysInfoType15_2bis,
-    GSMTAP_RRC_SUB_SysInfoType15_2ter,
-    GSMTAP_RRC_SUB_SysInfoType15_3,
-    GSMTAP_RRC_SUB_SysInfoType15_3bis,
-    GSMTAP_RRC_SUB_SysInfoType15_4,
-    GSMTAP_RRC_SUB_SysInfoType15_5,
-    GSMTAP_RRC_SUB_SysInfoType15_6,
-    GSMTAP_RRC_SUB_SysInfoType15_7,
-    GSMTAP_RRC_SUB_SysInfoType15_8,
-    GSMTAP_RRC_SUB_SysInfoType16,
-    GSMTAP_RRC_SUB_SysInfoType17,
-    GSMTAP_RRC_SUB_SysInfoType18,
-    GSMTAP_RRC_SUB_SysInfoType19,
-    GSMTAP_RRC_SUB_SysInfoType20,
-    GSMTAP_RRC_SUB_SysInfoType21,
-    GSMTAP_RRC_SUB_SysInfoType22,
-    GSMTAP_RRC_SUB_SysInfoTypeSB1,
-    GSMTAP_RRC_SUB_SysInfoTypeSB2,
-    GSMTAP_RRC_SUB_ToTargetRNC_Container,
-    GSMTAP_RRC_SUB_TargetRNC_ToSourceRNC_Container
+    GSMTAP_RRC_SUB_UL_CCCH_Message, // 3
+    GSMTAP_RRC_SUB_PCCH_Message, // 4
+    GSMTAP_RRC_SUB_DL_SHCCH_Message, // 5
+    GSMTAP_RRC_SUB_UL_SHCCH_Message, // 6
+    GSMTAP_RRC_SUB_BCCH_FACH_Message, // 7
+    GSMTAP_RRC_SUB_BCCH_BCH_Message, // 8
+    GSMTAP_RRC_SUB_MCCH_Message, // 9
+    GSMTAP_RRC_SUB_MSCH_Message, // 10
+    GSMTAP_RRC_SUB_HandoverToUTRANCommand, // 11
+    GSMTAP_RRC_SUB_InterRATHandoverInfo, // 12
+    GSMTAP_RRC_SUB_SystemInformation_BCH, // 13
+    GSMTAP_RRC_SUB_System_Information_Container, // 14
+    GSMTAP_RRC_SUB_UE_RadioAccessCapabilityInfo, // 15
+    GSMTAP_RRC_SUB_MasterInformationBlock, // 16
+    GSMTAP_RRC_SUB_SysInfoType1, // 17
+    GSMTAP_RRC_SUB_SysInfoType2, // 18
+    GSMTAP_RRC_SUB_SysInfoType3, // 19
+    GSMTAP_RRC_SUB_SysInfoType4, // 20
+    GSMTAP_RRC_SUB_SysInfoType5, // 21
+    GSMTAP_RRC_SUB_SysInfoType5bis, // 22
+    GSMTAP_RRC_SUB_SysInfoType6, // 23
+    GSMTAP_RRC_SUB_SysInfoType7, // 24
+    GSMTAP_RRC_SUB_SysInfoType8, // 25
+    GSMTAP_RRC_SUB_SysInfoType9, // 26
+    GSMTAP_RRC_SUB_SysInfoType10, // 27
+    GSMTAP_RRC_SUB_SysInfoType11, // 28
+    GSMTAP_RRC_SUB_SysInfoType11bis, // 29
+    GSMTAP_RRC_SUB_SysInfoType12, // 30
+    GSMTAP_RRC_SUB_SysInfoType13, // 31
+    GSMTAP_RRC_SUB_SysInfoType13_1, // 32
+    GSMTAP_RRC_SUB_SysInfoType13_2, // 33
+    GSMTAP_RRC_SUB_SysInfoType13_3, // 34
+    GSMTAP_RRC_SUB_SysInfoType13_4, // 35
+    GSMTAP_RRC_SUB_SysInfoType14, // 36
+    GSMTAP_RRC_SUB_SysInfoType15, // 37
+    GSMTAP_RRC_SUB_SysInfoType15bis, // 38
+    GSMTAP_RRC_SUB_SysInfoType15_1, // 39
+    GSMTAP_RRC_SUB_SysInfoType15_1bis, // 40
+    GSMTAP_RRC_SUB_SysInfoType15_2, // 41
+    GSMTAP_RRC_SUB_SysInfoType15_2bis, // 42
+    GSMTAP_RRC_SUB_SysInfoType15_2ter, // 43
+    GSMTAP_RRC_SUB_SysInfoType15_3, // 44
+    GSMTAP_RRC_SUB_SysInfoType15_3bis, // 45
+    GSMTAP_RRC_SUB_SysInfoType15_4, // 46
+    GSMTAP_RRC_SUB_SysInfoType15_5, // 47
+    GSMTAP_RRC_SUB_SysInfoType15_6, // 48
+    GSMTAP_RRC_SUB_SysInfoType15_7, // 49
+    GSMTAP_RRC_SUB_SysInfoType15_8, // 50
+    GSMTAP_RRC_SUB_SysInfoType16, // 51
+    GSMTAP_RRC_SUB_SysInfoType17, // 52
+    GSMTAP_RRC_SUB_SysInfoType18, // 53
+    GSMTAP_RRC_SUB_SysInfoType19, // 54
+    GSMTAP_RRC_SUB_SysInfoType20, // 55
+    GSMTAP_RRC_SUB_SysInfoType21, // 56
+    GSMTAP_RRC_SUB_SysInfoType22, // 57
+    GSMTAP_RRC_SUB_SysInfoTypeSB1, // 58
+    GSMTAP_RRC_SUB_SysInfoTypeSB2, // 59
+    GSMTAP_RRC_SUB_ToTargetRNC_Container, // 60
+    GSMTAP_RRC_SUB_TargetRNC_ToSourceRNC_Container // 61
 }

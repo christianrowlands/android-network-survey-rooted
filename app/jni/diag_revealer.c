@@ -867,32 +867,59 @@ enable_logging (int fd, int mode)
      * And the version can be deduced from the length. It is not very precise, but it is enough at least
      * for now.
      */
-    ssize_t arglen = 24;//probe_ioctl_arglen(DIAG_IOCTL_SWITCH_LOGGING, sizeof(struct diag_logging_mode_param_t_q));
-    switch (arglen) {
-        case sizeof(struct diag_logging_mode_param_t_q): {
-            /* Android 10.0 mode
-             * Reference:
-             *   https://android.googlesource.com/kernel/msm.git/+/android-10.0.0_r0.87/drivers/char/diag/diagchar_core.c
-             *   and the disassembly code of libdiag.so
-             */
-            struct diag_logging_mode_param_t_q new_mode;
-            struct diag_con_all_param_t con_all;
-            con_all.diag_con_all = 0xff /* DIAG_CON_ALL */;
-            ret = ioctl(fd, DIAG_IOCTL_QUERY_CON_ALL, &con_all);
-            if (ret == 0)
-                new_mode.peripheral_mask = con_all.diag_con_all;
-            else
-                new_mode.peripheral_mask = 0x7f;
-            new_mode.req_mode = mode;
-            new_mode.pd_mask = 0;
-            new_mode.mode_param = 1;
-            new_mode.diag_id = 0;
-            new_mode.pd_val = 0;
-            new_mode.peripheral = -22;
-            new_mode.device_mask = 1 << DIAG_MD_LOCAL;
-            ret = ioctl(fd, DIAG_IOCTL_SWITCH_LOGGING, &new_mode);
-            break;
+    // Testing: get device info
+    char *board_pf_cmd = "su -c getprop ro.board.platform";
+    char board_name[256];
+    FILE *fp;
+    if ((fp = popen(board_pf_cmd, "r")) != NULL) {
+        while (fgets(board_name, 256, fp) != NULL) {
+            // printf("OUTPUT: %s\n", board_name);
         }
+        pclose(fp);
+    }
+
+    char *sys_ver_cmd = "su -c getprop ro.build.version.release";
+    char system_version[256];
+    if ((fp = popen(sys_ver_cmd, "r")) != NULL) {
+        while (fgets(system_version, 256, fp) != NULL) {
+            // printf("OUTPUT: %s\n", system_version);
+        }
+        pclose(fp);
+    }
+
+    ssize_t arglen = probe_ioctl_arglen(DIAG_IOCTL_SWITCH_LOGGING, sizeof(struct diag_logging_mode_param_t_q));
+
+    if (strstr(board_name, "lito") != NULL && strstr(system_version, "11") != NULL){
+        LOGD("MATCHED.\n");
+        //printf("MATCHED.\n");
+        /* Android 11.0.0 (RD1A.201105.003.C1)
+         * Reference:
+         *   https://android.googlesource.com/kernel/msm.git/+/refs/tags/android-11.0.0_r0.27/drivers/char/diag/diagchar_core.c
+         */
+        struct diag_logging_mode_param_t_q new_mode;
+        struct diag_con_all_param_t con_all;
+        con_all.diag_con_all = 0xff;
+        ret = ioctl(fd, DIAG_IOCTL_QUERY_CON_ALL, &con_all);
+        if (ret == 0)
+            new_mode.peripheral_mask = con_all.diag_con_all;
+        else
+            new_mode.peripheral_mask = 0x7f;
+        new_mode.req_mode = mode;
+        new_mode.pd_mask = 0;
+        new_mode.mode_param = 1;
+        new_mode.diag_id = 0;
+        new_mode.pd_val = 0;
+        new_mode.peripheral = 0;
+        new_mode.device_mask = 1 << DIAG_MD_LOCAL;
+        ret = ioctl(fd, DIAG_IOCTL_SWITCH_LOGGING, &new_mode);
+        LOGD("Enable for Android 11: %d\n", ret);
+        printf("Enable for Android 11: %d\n", ret);
+        goto next;
+    }
+    // Testing end
+    LOGD("Not pixel-5 or Android 11: arglen=%ld, struct_q_size=%lu\n", arglen, sizeof(struct diag_logging_mode_param_t_q));
+    switch (arglen) {
+
         case sizeof(struct diag_logging_mode_param_t_pie): {
             /* Android 9.0 mode
              * Reference: https://android.googlesource.com/kernel/msm.git/+/android-9.0.0_r0.31/drivers/char/diag/diagchar_core.c
@@ -903,8 +930,38 @@ enable_logging (int fd, int mode)
             new_mode.pd_mask = 0;
             new_mode.peripheral_mask = DIAG_CON_ALL;
             ret = ioctl(fd, DIAG_IOCTL_SWITCH_LOGGING, &new_mode);
-            break;
+
+            if(ret >= 0)
+                break;
         }
+            // case (sizeof(struct diag_logging_mode_param_t_q)): {
+            // 	/* Android 10.0 mode
+            // 	 * Reference:
+            // 	 *   https://android.googlesource.com/kernel/msm.git/+/android-10.0.0_r0.87/drivers/char/diag/diagchar_core.c
+            // 	 *   and the disassembly code of libdiag.so
+            // 	 */
+            // 	LOGD("Matched with Android 10: arglen=%ld, struct_q_size=%lu\n", arglen, sizeof(struct diag_logging_mode_param_t_q));
+            // 	struct diag_logging_mode_param_t_q new_mode;
+            // 	struct diag_con_all_param_t con_all;
+            //        	con_all.diag_con_all = 0xff;
+            // 	ret = ioctl(fd, DIAG_IOCTL_QUERY_CON_ALL, &con_all);
+            // 	if (ret == 0)
+            // 		new_mode.peripheral_mask = con_all.diag_con_all;
+            // 	else
+            // 		new_mode.peripheral_mask = 0x7f;
+            // 	new_mode.req_mode = mode;
+            // 	new_mode.peripheral_mask = DIAG_CON_ALL;
+            // 	new_mode.pd_mask = 0;
+            // 	new_mode.mode_param = 1;
+            // 	new_mode.diag_id = 0;
+            // 	new_mode.pd_val = 0;
+            // 	new_mode.peripheral = -22;
+            // 	new_mode.device_mask = 1 << DIAG_MD_LOCAL;
+            // 	ret = ioctl(fd, DIAG_IOCTL_SWITCH_LOGGING, &new_mode);
+
+            //     if(ret >= 0)
+            // 	    break;
+            // }
         case sizeof(struct diag_logging_mode_param_t): {
             /* Android 7.0 mode
              * Reference: https://android.googlesource.com/kernel/msm.git/+/android-7.1.0_r0.3/drivers/char/diag/diagchar_core.c
@@ -914,7 +971,9 @@ enable_logging (int fd, int mode)
             new_mode.peripheral_mask = DIAG_CON_ALL;
             new_mode.mode_param = 0;
             ret = ioctl(fd, DIAG_IOCTL_SWITCH_LOGGING, &new_mode);
-            break;
+
+            if(ret >= 0)
+                break;
         }
         case sizeof(int):
             /* Android 6.0 mode
@@ -929,7 +988,8 @@ enable_logging (int fd, int mode)
              * Reference: https://android.googlesource.com/kernel/msm.git/+/android-10.0.0_r0.87/fs/ioctl.c#692
              */
             ret = ioctl(fd, DIAG_IOCTL_SWITCH_LOGGING, &mode, 12, 0, 0, 0, 0);
-            break;
+            if (ret >= 0)
+                break;
         case 0:
             // Yuanjie: the following works for Samsung S5
             ret = ioctl(fd, DIAG_IOCTL_SWITCH_LOGGING, (long) mode);
@@ -938,17 +998,21 @@ enable_logging (int fd, int mode)
             // Same question as above: Is it really necessary?
             // Yuanjie: the following is used for Xiaomi RedMi 4
             ret = ioctl(fd, DIAG_IOCTL_SWITCH_LOGGING, (long) mode, 12, 0, 0, 0, 0);
-            break;
+            if (ret >= 0)
+                break;
         default:
             LOGW("ioctl DIAG_IOCTL_SWITCH_LOGGING with arglen=%ld is not supported\n", arglen);
             ret = -8080;
             break;
     }
+    next:
+    // printf("Reach the next\n");
     if (ret < 0 && ret != -8080)
         LOGE("ioctl DIAG_IOCTL_SWITCH_LOGGING with arglen=%ld is supported, "
              "but it failed (%s)\n", arglen, strerror(errno));
     else if (ret >= 0)
         LOGI("ioctl DIAG_IOCTL_SWITCH_LOGGING with arglen=%ld succeeded\n", arglen);
+    // printf("ioctl DIAG_IOCTL_SWITCH_LOGGING with arglen=%ld succeeded\n", arglen);
 
     if (ret < 0) {
         /* Ultimate approach: Use libdiag.so */
@@ -1139,88 +1203,11 @@ main (int argc, char **argv)
     }
 
     while (1) {
-        LOGI("Reading logs...\n");
+        //LOGI("Reading logs...\n");
         int read_len = read(fd, buf_read, sizeof(buf_read));
-        LOGI("Received logs. read_len=%d\n", read_len);
+        //LOGI("Received logs. read_len=%d\n", read_len);
         if (read_len > 0) {
             if (*((int *)buf_read) == USER_SPACE_DATA_TYPE) {
-                int num_data = *((int *) (buf_read + 4));
-                // LOGI("num_data=%d\n", num_data);
-                int i = 0;
-                // long long offset = 8;
-                long long offset = remote_dev ? 12 : 8;
-                for (i = 0; i < num_data; i++) {
-                    int ret_err;
-                    short fifo_msg_type = FIFO_MSG_TYPE_LOG;
-                    short fifo_msg_len;
-                    double ts = get_posix_timestamp();
-
-                    // Copy msg_len
-                    int msg_len = 0;
-                    memcpy(&msg_len, buf_read + offset, sizeof(int));
-                    // memcpy(&msg_len, buf_read + offset + 4, sizeof(int));
-                    // LOGI("memcpy: msg_len=%d\n", msg_len);
-                    if (msg_len < 0)
-                        continue;
-                    //print_hex(buf_read + offset + 4, msg_len);
-                    // Wirte msg type to pipe
-
-                    //LOGD("ret_err0");
-                    ret_err = write(fifo_fd, &fifo_msg_type, sizeof(short));
-
-                    // Write size of (payload + timestamp)
-                    fifo_msg_len = (short) msg_len + 8;
-                    ret_err = write(fifo_fd, &fifo_msg_len, sizeof(short));
-                    if (ret_err < 0) {
-                        // LOGI("Pipe closed, diag_revealer will exit");
-                        LOGI("Pipe error (msg_len): %s", strerror(errno));
-                        close(fd);
-                        return -1;
-                    }
-
-                    // Write timestamp of sending payload to pipe
-                    ret_err = write(fifo_fd, &ts, sizeof(double));
-                    if (ret_err < 0) {
-                        // LOGI("Pipe closed, diag_revealer will exit");
-                        LOGI("Pipe error (timestamp): %s", strerror(errno));
-                        close(fd);
-                        return -1;
-                    }
-
-                    // Write payload to pipe
-                    ret_err = write(fifo_fd, buf_read + offset + 4, msg_len);
-                    if (ret_err < 0) {
-                        LOGI("Pipe error (payload): %s", strerror(errno));
-                        LOGD("Debug: msg_len=%d buf_read+offset+4=%s\n", msg_len,
-                             buf_read + offset + 4);
-                        // LOGI("Pipe closed, diag_revealer will exit");
-                        close(fd);
-                        return -1;
-                    }
-
-                    // Write mi2log output if necessary
-                    if (state.log_fp != NULL) {
-                        int ret2 = manager_append_log(&state, fifo_fd, msg_len);
-                        if (ret2 == 0) {
-                            size_t log_res = fwrite(buf_read + offset + 4, sizeof(char), msg_len,
-                                                    state.log_fp);
-                            if (log_res != msg_len) {
-                                LOGI("Fail to save logs. diag_revealer will exit");
-                                close(fd);
-                                return -1;
-                            }
-                            fflush(state.log_fp);
-                        } else {
-                            // TODO: error handling
-                            LOGI("Fail to append logs. diag_revealer will exit");
-                            close(fd);
-                            return -1;
-                        }
-                    }
-                    offset += msg_len + 4;
-                }
-            } else if (*((int *)buf_read) == MSG_MASKS_TYPE) {
-                LOGI("MSG_MASKS_TYPE");
                 int num_data = *((int *)(buf_read + 4));
                 // LOGI("num_data=%d\n", num_data);
                 int i = 0;
@@ -1239,10 +1226,10 @@ main (int argc, char **argv)
                     // LOGI("memcpy: msg_len=%d\n", msg_len);
                     if (msg_len < 0)
                         continue;
-                    //print_hex(buf_read + offset + 4, msg_len);
+                    // print_hex(buf_read + offset + 4, msg_len);
                     // Wirte msg type to pipe
 
-                    //LOGD("ret_err0");
+                    // LOGD("ret_err0");
                     ret_err = write(fifo_fd, &fifo_msg_type, sizeof(short));
 
                     // Write size of (payload + timestamp)

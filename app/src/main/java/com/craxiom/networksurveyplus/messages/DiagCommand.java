@@ -657,6 +657,18 @@ public final class DiagCommand
 
     public static final int LG_DIAG_CMD_LINE_LEN = 256;
 
+    /*
+     * The Diag Subsystem Identifiers used to activate the diag device with the DIAG_LOG_CONFIG_F command.
+     */
+    public static final int DIAG_SUBSYS_ID_1X = 0x01;
+    public static final int DIAG_SUBSYS_ID_WCDMA = 0x04;
+    public static final int DIAG_SUBSYS_ID_GSM = 0x05;
+    public static final int DIAG_SUBSYS_ID_UMTS = 0x07;
+    public static final int DIAG_SUBSYS_ID_DTV = 0x0A;
+    public static final int DIAG_SUBSYS_ID_APPS = 0x0B;
+    public static final int DIAG_SUBSYS_ID_LTE = 0x0B;
+    public static final int DIAG_SUBSYS_ID_TDSCDMA = 0x0D;
+
     /**
      * The mapping for the Diag subsystems to the corresponding numerical value that is used in the message.
      */
