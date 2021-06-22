@@ -142,12 +142,10 @@ public class QcdmPcapWriter implements IQcdmMessageListener
                         break;
 
                     case QcdmConstants.UMTS_NAS_OTA:
-                        Timber.i("UMTS_NAS_OTA: %s", qcdmMessage);
                         pcapRecord = QcdmUmtsParser.convertUmtsNasOta(qcdmMessage, gpsListener.getLatestLocation());
                         break;
 
                     case QcdmConstants.UMTS_NAS_OTA_DSDS:
-                        Timber.i("UMTS_NAS_OTA_DSDS: %s", qcdmMessage);
                         pcapRecord = QcdmUmtsParser.convertUmtsNasOtaDsds(qcdmMessage, gpsListener.getLatestLocation());
                         break;
                 }
