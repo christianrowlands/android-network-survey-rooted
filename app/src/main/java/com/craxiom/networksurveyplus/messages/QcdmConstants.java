@@ -11,6 +11,10 @@ public final class QcdmConstants
     {
     }
 
+    // GSM Signaling
+    public static final int GSM_RR_SIGNALING_MESSAGES = 0x512F;
+    public static final int GSM_POWER_SCAN_C = 0x64; //Used to view the BA List power levels
+
     // UMTS/WCDMA
     public static final int WCDMA_SEARCH_CELL_RESELECTION_RANK = 0x4005;
     public static final int WCDMA_RRC_STATES = 0x4125;

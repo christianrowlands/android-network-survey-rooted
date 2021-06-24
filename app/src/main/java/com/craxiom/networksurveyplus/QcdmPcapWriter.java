@@ -8,6 +8,7 @@ import android.os.Environment;
 
 import com.craxiom.networksurveyplus.messages.DiagCommand;
 import com.craxiom.networksurveyplus.messages.QcdmConstants;
+import com.craxiom.networksurveyplus.messages.QcdmGSMParser;
 import com.craxiom.networksurveyplus.messages.QcdmLteParser;
 import com.craxiom.networksurveyplus.messages.QcdmMessage;
 import com.craxiom.networksurveyplus.messages.QcdmUmtsParser;
@@ -147,6 +148,14 @@ public class QcdmPcapWriter implements IQcdmMessageListener
 
                     case QcdmConstants.UMTS_NAS_OTA_DSDS:
                         pcapRecord = QcdmUmtsParser.convertUmtsNasOtaDsds(qcdmMessage, gpsListener.getLatestLocation());
+                        break;
+
+                    case QcdmConstants.GSM_RR_SIGNALING_MESSAGES:
+                        //pcapRecord = QcdmGSMParser.convertGSMRRSignaling(qcdmMessage, gpsListener.getLatestLocation());
+                        break;
+
+                    case QcdmConstants.GSM_POWER_SCAN_C:
+                        //pcapRecord = QcdmGSMParser.convertGSMPowerScan(qcdmMessage, gpsListener.getLatestLocation());
                         break;
                 }
 
