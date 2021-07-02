@@ -2,9 +2,21 @@ package com.craxiom.networksurveyplus.messages;
 
 import android.location.Location;
 
+import com.craxiom.messaging.LteNas;
+import com.craxiom.messaging.LteNasChannelType;
+import com.craxiom.messaging.LteNasData;
+import com.craxiom.networksurveyplus.BuildConfig;
+import com.google.protobuf.ByteString;
+
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 
 import timber.log.Timber;
+
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_NAS_EMM_OTA_IN_MSG;
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_NAS_EMM_OTA_OUT_MSG;
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_NAS_ESM_OTA_IN_MSG;
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_NAS_ESM_OTA_OUT_MSG;
 
 /**
  * Contains parser methods for converting the QCDM WCDMA messages to various formats, like pcap records or protobuf
@@ -91,5 +103,33 @@ public class QcdmUmtsParser
 
         return PcapUtils.getGsmtapPcapRecord(GsmtapConstants.GSMTAP_TYPE_ABIS, nasMessage, 0, 0,
                 isUplink, 0, 0, simId, location);
+    }
+
+    public static UmtsNas convertUmtsNasMessage(QcdmMessage qcdmMessage, Location location, String deviceId, String missionId, String mqttClientId)
+    {
+        Timber.v("Handling an UMTS NAS message");
+
+        final byte[] logPayload = qcdmMessage.getLogPayload();
+        final int simId = logPayload[0] & 0xFF;
+
+        //return convertUmtsNasOta(qcdmMessage, location, true, simId);
+
+        final UmtsNasData.Builder umtsNasDataBuilder = UmtsNasData.newBuilder();
+
+        umtsNasDataBuilder.setDeviceSerialNumber(deviceId);
+        if (mqttClientId != null) umtsNasDataBuilder.setDeviceName(mqttClientId);
+        umtsNasDataBuilder.setMissionId(missionId);
+        umtsNasDataBuilder.setDeviceTime(getRfc3339String(ZonedDateTime.now()));
+        umtsNasDataBuilder.setAltitude((float) location.getAltitude());
+        umtsNasDataBuilder.setLatitude(location.getLatitude());
+        umtsNasDataBuilder.setLongitude(location.getLongitude());
+        umtsNasDataBuilder.setRawMessage(ByteString.copyFrom(qcdmMessage.getLogPayload()));
+
+        final UmtsNas.Builder UmtsNasBuilder = UmtsNas.newBuilder();
+        UmtsNasBuilder.setVersion(BuildConfig.MESSAGING_API_VERSION);
+        UmtsNasBuilder.setMessageType(UMTS_NAS_OTA);
+        UmtsNasBuilder.setData(UmtsNasDataBuilder.build());
+
+        return UmtsNasBuilder.build();
     }
 }

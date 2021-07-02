@@ -9,6 +9,8 @@ import com.craxiom.networksurveyplus.messages.DiagCommand;
 import com.craxiom.networksurveyplus.messages.QcdmConstants;
 import com.craxiom.networksurveyplus.messages.QcdmLteParser;
 import com.craxiom.networksurveyplus.messages.QcdmMessage;
+import com.craxiom.networksurveyplus.messages.QcdmUmtsParser;
+import com.craxiom.networksurveyplus.messages.QcdmWcdmaParser;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -21,7 +23,7 @@ import java.time.format.DateTimeFormatter;
  */
 public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMessageListener
 {
-    private static final String MQTT_LTE_RRC_OTA_MESSAGE_TOPIC = "lte_ota_message";
+    private static final String MQTT_CELLULAR_OTA_MESSAGE_TOPIC = "cellular_ota_message";
     private static final String MISSION_ID_PREFIX = "NS+ ";
 
     private final String deviceId;
@@ -70,8 +72,27 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMe
     {
         final LteRrc lteRrc = QcdmLteParser.convertLteRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
 
-        publishMessage(MQTT_LTE_RRC_OTA_MESSAGE_TOPIC, lteRrc);
+        publishMessage(MQTT_CELLULAR_OTA_MESSAGE_TOPIC, lteRrc);
     }
+
+
+    private void convertAndPublishWcdmaRRCMessage(QcdmMessage qcdmMessage)
+    {
+        //Find out where the mqtt broker files are that we can create Wcdma objects
+        final WcdmaRrc wcdmaRrc = QcdmWcdmaParser.convertWcdmaSignalingMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
+
+        publishMessage(MQTT_CELLULAR_OTA_MESSAGE_TOPIC, wcdmaRrc);
+    }
+
+
+    private void convertAndPublishUmtsMessage(QcdmMessage qcdmMessage)
+    {
+        //Find out where the mqtt broker files are that we can create Wcdma objects
+        final UmtsNas umtsNas = QcdmUmtsParser.convertUmtsNasMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
+
+        publishMessage(MQTT_CELLULAR_OTA_MESSAGE_TOPIC, umtsNas);
+    }
+
 
     /**
      * Converts a QCDM message into an LteNas message and publishes it to the MQTT server.
@@ -82,6 +103,6 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMe
     {
         final LteNas lteNas = QcdmLteParser.convertLteNasMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
 
-        publishMessage(MQTT_LTE_RRC_OTA_MESSAGE_TOPIC, lteNas);
+        publishMessage(MQTT_CELLULAR_OTA_MESSAGE_TOPIC, lteNas);
     }
 }
