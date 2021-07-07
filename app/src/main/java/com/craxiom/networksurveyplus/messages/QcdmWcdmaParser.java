@@ -2,10 +2,20 @@ package com.craxiom.networksurveyplus.messages;
 
 import android.location.Location;
 
+import com.craxiom.messaging.WcdmaRrcChannelType;
+import com.craxiom.messaging.WcdmaRrcData;
+import com.craxiom.messaging.LteRrcData;
+import com.craxiom.messaging.WcdmaRrc;
+import com.craxiom.networksurveyplus.BuildConfig;
+import com.google.protobuf.ByteString;
+
 import java.nio.ByteOrder;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 
 import timber.log.Timber;
+
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.WCDMA_SIGNALING_MESSAGES;
 
 /**
  * Contains parser methods for converting the QCDM WCDMA messages to various formats, like pcap records or protobuf
@@ -19,6 +29,7 @@ public class QcdmWcdmaParser
     {
     }
 
+    private static final String WCDMA_RRC_MESSAGE_TYPE = "WcdmaRrc";
     /**
      * Given a {@link QcdmMessage} that contains a WCDMA Signaling message {@link QcdmConstants#WCDMA_SIGNALING_MESSAGES},
      * convert it to a pcap record byte array that can be consumed by tools like Wireshark.
@@ -124,6 +135,94 @@ public class QcdmWcdmaParser
         // TODO It is possible that the PSC can be passed where the LTE PCI was normally passed.
         return PcapUtils.getGsmtapPcapRecord(GsmtapConstants.GSMTAP_TYPE_UMTS_RRC, signalingMessage, subtype, uarfcn,
                 isUplink, 0, 0, qcdmMessage.getSimId(), location);
+    }
+
+    public static WcdmaRrc convertWcdmaRrcOtaMessage(QcdmMessage qcdmMessage, Location location, String deviceId, String missionId, String mqttClientId)
+    {
+        Timber.e("Handling an WCDMA RRC message MQTT");
+
+        final byte[] logPayload = qcdmMessage.getLogPayload();
+
+        final int channelType = logPayload[0] & 0xFF;
+        //final int rbid = logPayload[1] & 0xFF;
+        //final int messageLength = ParserUtils.getShort(logPayload, 2, ByteOrder.LITTLE_ENDIAN);
+
+        int headerLength;
+        int uarfcn = -1;
+        int psc = -1;
+
+        int subtype = getGsmtapWcdmaRrcChannelType(channelType);
+        if (subtype != -1)
+        {
+            headerLength = 4;
+        } else if ((subtype = getGsmtapWcdmaRrcChannelTypeExtended(channelType)) != -1)
+        {
+            headerLength = 5;
+
+            final int sibType = logPayload[4] & 0xFF;
+            subtype = getSubtypeFromSibType(sibType);
+            if (subtype == -1)
+            {
+                Timber.e("Unknown WCDMA SIB Type %d", sibType);
+                return null;
+            }
+        } else if ((subtype = getGsmtapWcdmaRrcChannelTypeNew(channelType)) != -1)
+        {
+            headerLength = 8;
+
+            uarfcn = ParserUtils.getShort(logPayload, 4, ByteOrder.LITTLE_ENDIAN);
+            psc = ParserUtils.getShort(logPayload, 6, ByteOrder.LITTLE_ENDIAN);
+        } else if ((subtype = getGsmtapWcdmaRrcChannelTypeNewExtended(channelType)) != -1)
+        {
+            headerLength = 9;
+
+            uarfcn = ParserUtils.getShort(logPayload, 4, ByteOrder.LITTLE_ENDIAN);
+            psc = ParserUtils.getShort(logPayload, 6, ByteOrder.LITTLE_ENDIAN);
+
+            final int sibType = logPayload[8] & 0xFF;
+            subtype = getSubtypeFromSibTypeNew(sibType);
+            if (subtype == -1)
+            {
+                Timber.e("Unknown WCDMA SIB Type %d", sibType);
+                return null;
+            }
+        } else
+        {
+            Timber.e("Unknown WCDMA RRC Channel Type %d", channelType);
+            return null;
+        }
+
+        final byte[] signalingMessage = Arrays.copyOfRange(logPayload, headerLength, logPayload.length);
+
+        final boolean isUplink = subtype == UmtsRrcSubtypes.GSMTAP_RRC_SUB_UL_DCCH_Message.ordinal()
+                || subtype == UmtsRrcSubtypes.GSMTAP_RRC_SUB_UL_CCCH_Message.ordinal()
+                || subtype == UmtsRrcSubtypes.GSMTAP_RRC_SUB_UL_SHCCH_Message.ordinal();
+
+
+        final WcdmaRrc.Builder wcdmaRrcBuilder = WcdmaRrc.newBuilder();
+        final WcdmaRrcData.Builder wcdmaRrcDataBuilder = WcdmaRrcData.newBuilder();
+
+        wcdmaRrcBuilder.setVersion(BuildConfig.MESSAGING_API_VERSION);
+        wcdmaRrcBuilder.setMessageType(WCDMA_RRC_MESSAGE_TYPE);
+
+        wcdmaRrcDataBuilder.setDeviceSerialNumber(deviceId);
+        if (mqttClientId != null) wcdmaRrcDataBuilder.setDeviceName(mqttClientId);
+        wcdmaRrcDataBuilder.setMissionId(missionId);
+        wcdmaRrcDataBuilder.setDeviceTime(QcdmLteParser.getRfc3339String(ZonedDateTime.now()));
+        wcdmaRrcDataBuilder.setAltitude((float) location.getAltitude());
+        wcdmaRrcDataBuilder.setLatitude(location.getLatitude());
+        wcdmaRrcDataBuilder.setLongitude(location.getLongitude());
+
+        //final byte[] logPayload = qcdmMessage.getLogPayload();
+        wcdmaRrcDataBuilder.setRawMessage(ByteString.copyFrom(logPayload));
+
+
+        //int gsmtapChannelType = getGsmtapWcdmaRrcChannelType(channelType);
+
+        wcdmaRrcDataBuilder.setChannelTypeValue(subtype + 1); // Here we offset by 1 to match with the LteRrcChannelType values
+        wcdmaRrcBuilder.setData(wcdmaRrcDataBuilder.build());
+
+        return wcdmaRrcBuilder.build();
     }
 
     /**

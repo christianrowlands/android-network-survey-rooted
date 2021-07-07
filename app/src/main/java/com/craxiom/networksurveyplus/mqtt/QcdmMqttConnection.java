@@ -2,6 +2,8 @@ package com.craxiom.networksurveyplus.mqtt;
 
 import com.craxiom.messaging.LteNas;
 import com.craxiom.messaging.LteRrc;
+import com.craxiom.messaging.UmtsNas;
+import com.craxiom.messaging.WcdmaRrc;
 import com.craxiom.mqttlibrary.connection.DefaultMqttConnection;
 import com.craxiom.networksurveyplus.GpsListener;
 import com.craxiom.networksurveyplus.IQcdmMessageListener;
@@ -79,7 +81,7 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMe
     private void convertAndPublishWcdmaRRCMessage(QcdmMessage qcdmMessage)
     {
         //Find out where the mqtt broker files are that we can create Wcdma objects
-        final WcdmaRrc wcdmaRrc = QcdmWcdmaParser.convertWcdmaSignalingMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
+        final WcdmaRrc wcdmaRrc = QcdmWcdmaParser.convertWcdmaRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
 
         publishMessage(MQTT_CELLULAR_OTA_MESSAGE_TOPIC, wcdmaRrc);
     }

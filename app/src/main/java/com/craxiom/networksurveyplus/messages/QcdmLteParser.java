@@ -63,7 +63,7 @@ public class QcdmLteParser
         if (mqttClientId != null) lteRrcDataBuilder.setDeviceName(mqttClientId);
         lteRrcDataBuilder.setMissionId(missionId);
         lteRrcDataBuilder.setDeviceTime(getRfc3339String(ZonedDateTime.now()));
-        lteRrcDataBuilder.setAltitude((float) location.getAltitude());
+        lteRrcDataBuilder.setAltitude((float)location.getAltitude());
         lteRrcDataBuilder.setLatitude(location.getLatitude());
         lteRrcDataBuilder.setLongitude(location.getLongitude());
 
@@ -418,7 +418,7 @@ public class QcdmLteParser
      * @param date The date object to use when generating the timestamp.
      * @return String with format {@link DateTimeFormatter#ISO_OFFSET_DATE_TIME} (e.g. "2020-08-19T18:13:22.548+00:00")
      */
-    private static String getRfc3339String(ZonedDateTime date)
+    public static String getRfc3339String(ZonedDateTime date)
     {
         return DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(date);
     }
