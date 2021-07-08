@@ -18,6 +18,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
+import timber.log.Timber;
+
 /**
  * Class for creating a connection to an MQTT server.
  *
@@ -51,7 +53,7 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMe
                     convertAndPublishLteRrcMessage(qcdmMessage);
                     break;
                 case QcdmConstants.UMTS_NAS_OTA:
-                    convertAndPublishLteRrcMessage(qcdmMessage);
+                    convertAndPublishUmtsMessage(qcdmMessage);
                     break;
                 case QcdmConstants.WCDMA_SIGNALING_MESSAGES:
                     convertAndPublishWcdmaRRCMessage(qcdmMessage);
@@ -88,6 +90,7 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMe
         //Find out where the mqtt broker files are that we can create Wcdma objects
         final WcdmaRrc wcdmaRrc = QcdmWcdmaParser.convertWcdmaRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
 
+        Timber.e("Got to the publish message for WCMA");
         publishMessage(MQTT_CELLULAR_OTA_MESSAGE_TOPIC, wcdmaRrc);
     }
 
@@ -96,7 +99,7 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMe
     {
         //Find out where the mqtt broker files are that we can create Wcdma objects
         final UmtsNas umtsNas = QcdmUmtsParser.convertUmtsNasMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
-
+        Timber.e("Got to the publish message for UMTS");
         publishMessage(MQTT_CELLULAR_OTA_MESSAGE_TOPIC, umtsNas);
     }
 
