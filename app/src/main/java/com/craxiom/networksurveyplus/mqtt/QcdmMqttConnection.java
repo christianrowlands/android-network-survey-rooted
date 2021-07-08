@@ -50,7 +50,12 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMe
                 case QcdmConstants.LOG_LTE_RRC_OTA_MSG_LOG_C:
                     convertAndPublishLteRrcMessage(qcdmMessage);
                     break;
-
+                case QcdmConstants.UMTS_NAS_OTA:
+                    convertAndPublishLteRrcMessage(qcdmMessage);
+                    break;
+                case QcdmConstants.WCDMA_SIGNALING_MESSAGES:
+                    convertAndPublishWcdmaRRCMessage(qcdmMessage);
+                    break;
                 case QcdmConstants.LOG_LTE_NAS_EMM_OTA_IN_MSG:
                 case QcdmConstants.LOG_LTE_NAS_EMM_OTA_OUT_MSG:
                 case QcdmConstants.LOG_LTE_NAS_ESM_OTA_IN_MSG:
