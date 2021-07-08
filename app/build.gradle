@@ -60,12 +60,14 @@ android {
     testOptions {
         unitTests.returnDefaultValues = true
     }
-}
 
     packagingOptions {
         exclude 'META-INF/INDEX.LIST'
         exclude 'META-INF/io.netty.versions.properties'
     }
+}
+
+
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation 'com.jakewharton.timber:timber:4.7.1'
