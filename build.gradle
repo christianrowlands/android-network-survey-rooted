@@ -16,7 +16,7 @@ buildscript {
 }
 
 ext {
-    networkSurveyMessagingVersion = '0.7.0-SNAPSHOT'
+    networkSurveyMessagingVersion = '0.7.0-SN'
 }
 
 allprojects {

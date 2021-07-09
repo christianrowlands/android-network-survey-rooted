@@ -27,7 +27,7 @@ import timber.log.Timber;
  */
 public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMessageListener
 {
-    private static final String MQTT_CELLULAR_OTA_MESSAGE_TOPIC = "cellular_ota_message";
+    private static final String MQTT_CELLULAR_OTA_MESSAGE_TOPIC = "lte_ota_message";
     private static final String MISSION_ID_PREFIX = "NS+ ";
 
     private final String deviceId;
@@ -97,7 +97,6 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMe
 
     private void convertAndPublishUmtsMessage(QcdmMessage qcdmMessage)
     {
-        //Find out where the mqtt broker files are that we can create Wcdma objects
         final UmtsNas umtsNas = QcdmUmtsParser.convertUmtsNasMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
         Timber.e("Got to the publish message for UMTS");
         publishMessage(MQTT_CELLULAR_OTA_MESSAGE_TOPIC, umtsNas);

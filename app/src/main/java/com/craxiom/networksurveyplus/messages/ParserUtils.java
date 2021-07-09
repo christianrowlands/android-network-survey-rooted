@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.function.Consumer;
 
@@ -358,5 +360,10 @@ public class ParserUtils
             stringBuilder.append(String.format("%02x ", bytes[i]));
         }
         return stringBuilder.toString();
+    }
+
+    public static String getRfc3339String(ZonedDateTime date)
+    {
+        return DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(date);
     }
 }
