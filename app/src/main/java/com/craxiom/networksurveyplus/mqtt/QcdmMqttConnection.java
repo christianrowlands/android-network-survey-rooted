@@ -58,6 +58,9 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMe
                 case QcdmConstants.WCDMA_SIGNALING_MESSAGES:
                     convertAndPublishWcdmaRRCMessage(qcdmMessage);
                     break;
+                case QcdmConstants.UMTS_NAS_OTA_DSDS:
+                    convertAndPublishUmtsDsdsMessage(qcdmMessage);
+                    break;
                 case QcdmConstants.LOG_LTE_NAS_EMM_OTA_IN_MSG:
                 case QcdmConstants.LOG_LTE_NAS_EMM_OTA_OUT_MSG:
                 case QcdmConstants.LOG_LTE_NAS_ESM_OTA_IN_MSG:
@@ -102,6 +105,12 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMe
         publishMessage(MQTT_CELLULAR_OTA_MESSAGE_TOPIC, umtsNas);
     }
 
+    private void convertAndPublishUmtsDsdsMessage(QcdmMessage qcdmMessage)
+    {
+        final UmtsNasDsds umtsNasDsds = QcdmUmtsParser.convertUmtsNasDsdsMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
+        Timber.e("Got to the publish message for UMTS DSDS");
+        publishMessage(MQTT_CELLULAR_OTA_MESSAGE_TOPIC, umtsNasDsds);
+    }
 
     /**
      * Converts a QCDM message into an LteNas message and publishes it to the MQTT server.

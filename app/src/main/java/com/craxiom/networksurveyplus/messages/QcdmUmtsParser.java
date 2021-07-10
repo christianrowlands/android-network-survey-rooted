@@ -24,6 +24,7 @@ public class QcdmUmtsParser
     {
     }
 
+    private static final String UMTS_NAS_DSDS_MESSAGE_TYPE= "UmtsNasDsds";
     private static final String UMTS_NAS_MESSAGE_TYPE = "UmtsNas";
     /**
      * Given a {@link QcdmMessage} that contains a UMTS NAS OTA message {@link QcdmConstants#UMTS_NAS_OTA},
@@ -117,9 +118,27 @@ public class QcdmUmtsParser
      * @return Mqtt message to be published and sent to the listening device.
      */
 
-    public static UmtsNas convertUmtsNasMessage(QcdmMessage qcdmMessage, Location location, String deviceId, String missionId, String mqttClientId)
+    public static UmtsNasDsds convertUmtsNasDsdsMessage(QcdmMessage qcdmMessage, Location location, String deviceId, String missionId, String mqttClientId){
+        boolean isDsds = true;
+
+        return convertUmtsNasMessage(qcdmMessage, isDsds, location, deviceId, missionId,mqttClientId);
+    }
+
+    public static UmtsNas converUmtsNasMessage(QcdmMessage qcdmMessage, Location location, String deviceId, String missionId, String mqttClientId){
+        boolean isDsds = false;
+
+        return convertUmtsNasMessage(qcdmMessage, isDsds, location, deviceId, missionId, mqttClientId);
+    }
+
+
+    public static UmtsNas convertUmtsNasMessage(QcdmMessage qcdmMessage, boolean isDsds,  Location location, String deviceId, String missionId, String mqttClientId)
     {
-        Timber.v("Handling an UMTS NAS message");
+        int startByte = isDsds ? 1 : 0;
+        if (startByte == 1)
+            Timber.v("Handling an UMTS NAS message MQTT DSDS");
+        else {
+            Timber.v("Handling an UMTS NAS message MQTT");
+        }
 
         final byte[] logPayload = qcdmMessage.getLogPayload();
         final int simId = logPayload[0] & 0xFF;
@@ -137,7 +156,8 @@ public class QcdmUmtsParser
 
         final UmtsNas.Builder UmtsNasBuilder = UmtsNas.newBuilder();
         UmtsNasBuilder.setVersion(BuildConfig.MESSAGING_API_VERSION);
-        UmtsNasBuilder.setMessageType(UMTS_NAS_MESSAGE_TYPE);
+        final string messageType = isDsds ? UMTS_NAS_DSDS_MESSAGE_TYPE : UMTS_NAS_MESSAGE_TYPE;
+        UmtsNasBuilder.setMessageType(messageType);
         UmtsNasBuilder.setData(umtsNasDataBuilder.build());
 
         return UmtsNasBuilder.build();
