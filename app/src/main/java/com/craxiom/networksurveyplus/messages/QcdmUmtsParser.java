@@ -3,6 +3,7 @@ package com.craxiom.networksurveyplus.messages;
 import android.location.Location;
 import com.craxiom.messaging.UmtsNas;
 import com.craxiom.messaging.UmtsNasData;
+import com.craxiom.messaging.UmtsNasDsds;
 import com.craxiom.messaging.WcdmaRrc;
 import com.craxiom.networksurveyplus.BuildConfig;
 import com.google.protobuf.ByteString;
@@ -103,8 +104,8 @@ public class QcdmUmtsParser
 
 
     /**
-     * Given an {@link QcdmMessage} that contains an UMTS NAS OTA message, convert it to a Network Survey Messaging
-     * {@link UmtsNas} protobuf object so that it can be sent over an MQTT connection.
+     * Given an {@link QcdmMessage} that contains an UMTS NAS DSDS OTA message, convert it to a Network Survey Messaging
+     * {@link UmtsNasDsds} protobuf object so that it can be sent over an MQTT connection.
      * <p>
      * Information on how to parse UMTS NAS messages was found in Mobile Sentinel:
      * https://github.com/RUB-SysSec/mobile_sentinel/blob/8485ef811cfbba7ab8b9d39bee7b38ae9072cce8/app/src/main/python/parsers/qualcomm/diagltelogparser.py#L1109
@@ -118,18 +119,15 @@ public class QcdmUmtsParser
      * @return Mqtt message to be published and sent to the listening device.
      */
 
-    public static UmtsNasDsds convertUmtsNasDsdsMessage(QcdmMessage qcdmMessage, Location location, String deviceId, String missionId, String mqttClientId){
+    public static UmtsNas convertUmtsNasDsdsMessage(QcdmMessage qcdmMessage, Location location, String deviceId, String missionId, String mqttClientId){
         boolean isDsds = true;
-
         return convertUmtsNasMessage(qcdmMessage, isDsds, location, deviceId, missionId,mqttClientId);
     }
 
-    public static UmtsNas converUmtsNasMessage(QcdmMessage qcdmMessage, Location location, String deviceId, String missionId, String mqttClientId){
+    public static UmtsNas convertUmtsNasMessage(QcdmMessage qcdmMessage, Location location, String deviceId, String missionId, String mqttClientId){
         boolean isDsds = false;
-
         return convertUmtsNasMessage(qcdmMessage, isDsds, location, deviceId, missionId, mqttClientId);
     }
-
 
     public static UmtsNas convertUmtsNasMessage(QcdmMessage qcdmMessage, boolean isDsds,  Location location, String deviceId, String missionId, String mqttClientId)
     {
@@ -156,7 +154,7 @@ public class QcdmUmtsParser
 
         final UmtsNas.Builder UmtsNasBuilder = UmtsNas.newBuilder();
         UmtsNasBuilder.setVersion(BuildConfig.MESSAGING_API_VERSION);
-        final string messageType = isDsds ? UMTS_NAS_DSDS_MESSAGE_TYPE : UMTS_NAS_MESSAGE_TYPE;
+        final String messageType = isDsds ? UMTS_NAS_DSDS_MESSAGE_TYPE : UMTS_NAS_MESSAGE_TYPE;
         UmtsNasBuilder.setMessageType(messageType);
         UmtsNasBuilder.setData(umtsNasDataBuilder.build());
 

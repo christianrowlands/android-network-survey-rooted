@@ -4,6 +4,7 @@ import com.craxiom.messaging.LteNas;
 import com.craxiom.messaging.LteRrc;
 import com.craxiom.messaging.UmtsNas;
 import com.craxiom.messaging.WcdmaRrc;
+import com.craxiom.messaging.UmtsNasDsds;
 import com.craxiom.mqttlibrary.connection.DefaultMqttConnection;
 import com.craxiom.networksurveyplus.GpsListener;
 import com.craxiom.networksurveyplus.IQcdmMessageListener;
@@ -83,17 +84,13 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMe
     private void convertAndPublishLteRrcMessage(QcdmMessage qcdmMessage)
     {
         final LteRrc lteRrc = QcdmLteParser.convertLteRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
-
         publishMessage(MQTT_CELLULAR_OTA_MESSAGE_TOPIC, lteRrc);
     }
 
 
     private void convertAndPublishWcdmaRRCMessage(QcdmMessage qcdmMessage)
     {
-        //Find out where the mqtt broker files are that we can create Wcdma objects
         final WcdmaRrc wcdmaRrc = QcdmWcdmaParser.convertWcdmaRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
-
-        Timber.e("Got to the publish message for WCMA");
         publishMessage(MQTT_CELLULAR_OTA_MESSAGE_TOPIC, wcdmaRrc);
     }
 
@@ -101,14 +98,13 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMe
     private void convertAndPublishUmtsMessage(QcdmMessage qcdmMessage)
     {
         final UmtsNas umtsNas = QcdmUmtsParser.convertUmtsNasMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
-        Timber.e("Got to the publish message for UMTS");
         publishMessage(MQTT_CELLULAR_OTA_MESSAGE_TOPIC, umtsNas);
     }
 
     private void convertAndPublishUmtsDsdsMessage(QcdmMessage qcdmMessage)
     {
-        final UmtsNasDsds umtsNasDsds = QcdmUmtsParser.convertUmtsNasDsdsMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
-        Timber.e("Got to the publish message for UMTS DSDS");
+        final UmtsNas umtsNasDsds = QcdmUmtsParser.convertUmtsNasDsdsMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
+        Timber.v("Got to the publish message for UMTS DSDS");
         publishMessage(MQTT_CELLULAR_OTA_MESSAGE_TOPIC, umtsNasDsds);
     }
 
@@ -120,7 +116,6 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMe
     private void convertAndPublishLteNasMessage(QcdmMessage qcdmMessage)
     {
         final LteNas lteNas = QcdmLteParser.convertLteNasMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
-
         publishMessage(MQTT_CELLULAR_OTA_MESSAGE_TOPIC, lteNas);
     }
 }
