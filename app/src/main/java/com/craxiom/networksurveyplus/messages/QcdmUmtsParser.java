@@ -84,7 +84,7 @@ public class QcdmUmtsParser
      *                    location will be added to the PPI header.
      * @param isDsds      True if the message is for DSDS, false otherwise.
      * @param simId       The SIM ID (aka Radio ID) associated with this message.
-     * @return
+     * @return The pcap record byte array to write to a pcap file, or null if the message could not be parsed.
      */
     private static byte[] convertUmtsNasOta(QcdmMessage qcdmMessage, Location location, boolean isDsds, int simId)
     {
@@ -124,10 +124,42 @@ public class QcdmUmtsParser
         return convertUmtsNasMessage(qcdmMessage, isDsds, location, deviceId, missionId,mqttClientId);
     }
 
+    /**
+     * Given an {@link QcdmMessage} that contains an UMTS NAS OTA message, convert it to a Network Survey Messaging
+     * {@link UmtsNas} protobuf object so that it can be sent over an MQTT connection.
+     * <p>
+     * Information on how to parse UMTS NAS messages was found in Mobile Sentinel:
+     * https://github.com/RUB-SysSec/mobile_sentinel/blob/8485ef811cfbba7ab8b9d39bee7b38ae9072cce8/app/src/main/python/parsers/qualcomm/diagltelogparser.py#L1109
+     *
+     * @param qcdmMessage  The QCDM message to convert into a pcap record.
+     * @param location     The location to tie to the QCDM message when writing it to a pcap file. If null then no
+     *                     location will be added to the PPI header.
+     * @param deviceId     The Device ID to set as the "Device Serial Number" on the protobuf message.
+     * @param missionId    The Mission ID to set on the protobuf message.
+     * @param mqttClientId The MQTT client ID to set as the "Device Name" on the protobuf message. If null it won't be set.
+     * @return Mqtt message to be published and sent to the listening device.
+     */
+
     public static UmtsNas convertUmtsNasMessage(QcdmMessage qcdmMessage, Location location, String deviceId, String missionId, String mqttClientId){
         boolean isDsds = false;
         return convertUmtsNasMessage(qcdmMessage, isDsds, location, deviceId, missionId, mqttClientId);
     }
+
+    /**
+     * Given an {@link QcdmMessage} that contains an UMTS NAS DSDS and UMTS NAS OTA message, convert it to a Network Survey Messaging
+     * {@link UmtsNas} protobuf object so that it can be sent over an MQTT connection.
+     * <p>
+     * Information on how to parse UMTS NAS messages was found in Mobile Sentinel:
+     * https://github.com/RUB-SysSec/mobile_sentinel/blob/8485ef811cfbba7ab8b9d39bee7b38ae9072cce8/app/src/main/python/parsers/qualcomm/diagltelogparser.py#L1109
+     *
+     * @param qcdmMessage  The QCDM message to convert into a pcap record.
+     * @param location     The location to tie to the QCDM message when writing it to a pcap file. If null then no
+     *                     location will be added to the PPI header. If there is no location available it will not stream to MQTT.
+     * @param deviceId     The Device ID to set as the "Device Serial Number" on the protobuf message.
+     * @param missionId    The Mission ID to set on the protobuf message.
+     * @param mqttClientId The MQTT client ID to set as the "Device Name" on the protobuf message. If null it won't be set.
+     * @return Mqtt message to be published and sent to the listening device.
+     */
 
     public static UmtsNas convertUmtsNasMessage(QcdmMessage qcdmMessage, boolean isDsds,  Location location, String deviceId, String missionId, String mqttClientId)
     {
