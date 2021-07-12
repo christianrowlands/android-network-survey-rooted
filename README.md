@@ -24,6 +24,7 @@ The following is a list of devices that have been confirmed to work with this Ne
 
 | Device        | Comments      |
 | ------------- | ------------- |
+| Nexus 5X      |               |
 | Pixel 3a      |               |
 
 
@@ -74,6 +75,9 @@ are a list of other projects that might be of interest to you.
 
 
 ## Changelog
+
+##### [0.3.0](https://github.com/christianrowlands/android-network-survey-rooted/releases/tag/v0.2.0) - 2021-07-12
+ * Added support for logging UMTS NAS and WCDMA RRC messages to pcap records.
 
 ##### [0.2.0](https://github.com/christianrowlands/android-network-survey-rooted/releases/tag/v0.2.0) - 2021-01-29
  * Added support for streaming LTE OTA messages over an MQTT connection.
