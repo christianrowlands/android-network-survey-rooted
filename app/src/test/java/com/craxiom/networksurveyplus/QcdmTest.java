@@ -7,10 +7,10 @@ import com.craxiom.networksurveyplus.messages.DiagRevealerMessage;
 import com.craxiom.networksurveyplus.messages.GsmtapConstants;
 import com.craxiom.networksurveyplus.messages.LteRrcSubtypes;
 import com.craxiom.networksurveyplus.messages.ParserUtils;
+import com.craxiom.networksurveyplus.messages.PcapUtils;
+import com.craxiom.networksurveyplus.messages.QcdmLteParser;
 import com.craxiom.networksurveyplus.messages.QcdmMessage;
-import com.craxiom.networksurveyplus.messages.QcdmMessageUtils;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.BufferedInputStream;
@@ -59,7 +59,7 @@ public class QcdmTest
 
         final int sfnAndPci = 0x01ed0016;
 
-        final byte[] gsmtapHeader = QcdmMessageUtils.getGsmtapHeader(GsmtapConstants.GSMTAP_TYPE_LTE_RRC, 0, 875, false, sfnAndPci, 9);
+        final byte[] gsmtapHeader = PcapUtils.getGsmtapHeader(GsmtapConstants.GSMTAP_TYPE_LTE_RRC, 0, 875, false, sfnAndPci, 9);
 
         assertArrayEquals(expectedBytes, gsmtapHeader);
     }
@@ -71,7 +71,7 @@ public class QcdmTest
                 (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0xed, (byte) 0x00, (byte) 0x95,
                 (byte) 0x06, (byte) 0x00, (byte) 0x09, (byte) 0x00};
 
-        final byte[] gsmtapHeader = QcdmMessageUtils.getGsmtapHeader(GsmtapConstants.GSMTAP_TYPE_LTE_RRC, GSMTAP_LTE_RRC_SUB_PCCH_Message.ordinal(), 875, false, 32309397, 9);
+        final byte[] gsmtapHeader = PcapUtils.getGsmtapHeader(GsmtapConstants.GSMTAP_TYPE_LTE_RRC, GSMTAP_LTE_RRC_SUB_PCCH_Message.ordinal(), 875, false, 32309397, 9);
 
         assertArrayEquals(expectedBytes, gsmtapHeader);
     }
@@ -82,7 +82,7 @@ public class QcdmTest
         final byte[] expectedBytes = {(byte) 0x12, (byte) 0x79, (byte) 0x12, (byte) 0x79, (byte) 0x00, (byte) 0x2d,
                 (byte) 0x00, (byte) 0x00};
 
-        final byte[] header = QcdmMessageUtils.getLayer4Header(37);
+        final byte[] header = PcapUtils.getLayer4Header(37);
 
         assertArrayEquals(expectedBytes, header);
     }
@@ -95,7 +95,7 @@ public class QcdmTest
                 (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
                 (byte) 0x00, (byte) 0x00};
 
-        final byte[] header = QcdmMessageUtils.getLayer3Header(45, 0);
+        final byte[] header = PcapUtils.getLayer3Header(45, 0);
 
         assertArrayEquals(expectedBytes, header);
     }
@@ -108,7 +108,7 @@ public class QcdmTest
                 (byte) 0x00, (byte) 0x00, (byte) 0x00
         };
 
-        final byte[] header = QcdmMessageUtils.getPpiPacketHeader(null);
+        final byte[] header = PcapUtils.getPpiPacketHeader(null);
 
         assertArrayEquals(expectedBytes, header);
     }
@@ -148,7 +148,7 @@ public class QcdmTest
                 (byte) 0x06, (byte) 0x00, (byte) 0x4f, (byte) 0x00, (byte) 0x00, (byte) 0x00,
                 (byte) 0x4f, (byte) 0x00, (byte) 0x00, (byte) 0x00};
 
-        final byte[] header = QcdmMessageUtils.getPcapRecordHeader(1597423852, 452689, 79);
+        final byte[] header = PcapUtils.getPcapRecordHeader(1597423852, 452689, 79);
 
         assertArrayEquals(expectedBytes, header);
     }
@@ -228,7 +228,7 @@ public class QcdmTest
             assertEquals(LOG_LTE_RRC_OTA_MSG_LOG_C, m.getLogType());
             assertArrayEquals("The qcdm message bytes did not match what was expected", expectedQcdmMessagePayloadBytes, m.getLogPayload());
 
-            final byte[] pcapRecordBytes = QcdmMessageUtils.convertLteRrcOtaMessage(m, null);
+            final byte[] pcapRecordBytes = QcdmLteParser.convertLteRrcOtaMessage(m, null);
 
             assertNotNull(pcapRecordBytes);
 
@@ -256,7 +256,7 @@ public class QcdmTest
         location.setLongitude(-90.1333759);
         location.setAltitude(152.6591);
 
-        final byte[] pcapRecordBytes = QcdmMessageUtils.convertLteRrcOtaMessage(qcdmMessage, location);
+        final byte[] pcapRecordBytes = QcdmLteParser.convertLteRrcOtaMessage(qcdmMessage, location);
 
         assertNotNull(pcapRecordBytes);
 
@@ -435,7 +435,7 @@ public class QcdmTest
         int lteRrcIndex = 0;
         for (Map.Entry<Integer, LteRrcSubtypes> entry : channelTypeToGsmtapType.entrySet())
         {
-            final int gsmtapChannelType = QcdmMessageUtils.getGsmtapRrcChannelType(version, entry.getKey());
+            final int gsmtapChannelType = QcdmLteParser.getGsmtapLteRrcSubtype(version, entry.getKey());
             assertEquals("The converted Gsmtap Channel Type does not match expected LteRrcSubtype", entry.getValue().ordinal(), gsmtapChannelType);
 
             final int lteRrcChannelType = gsmtapChannelType + 1;

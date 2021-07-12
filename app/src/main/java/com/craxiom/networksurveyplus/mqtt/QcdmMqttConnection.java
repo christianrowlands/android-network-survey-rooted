@@ -7,8 +7,8 @@ import com.craxiom.networksurveyplus.GpsListener;
 import com.craxiom.networksurveyplus.IQcdmMessageListener;
 import com.craxiom.networksurveyplus.messages.DiagCommand;
 import com.craxiom.networksurveyplus.messages.QcdmConstants;
+import com.craxiom.networksurveyplus.messages.QcdmLteParser;
 import com.craxiom.networksurveyplus.messages.QcdmMessage;
-import com.craxiom.networksurveyplus.messages.QcdmMessageUtils;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -68,7 +68,7 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMe
      */
     private void convertAndPublishLteRrcMessage(QcdmMessage qcdmMessage)
     {
-        final LteRrc lteRrc = QcdmMessageUtils.convertLteRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
+        final LteRrc lteRrc = QcdmLteParser.convertLteRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
 
         publishMessage(MQTT_LTE_RRC_OTA_MESSAGE_TOPIC, lteRrc);
     }
@@ -80,7 +80,7 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IQcdmMe
      */
     private void convertAndPublishLteNasMessage(QcdmMessage qcdmMessage)
     {
-        final LteNas lteNas = QcdmMessageUtils.convertLteNasMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
+        final LteNas lteNas = QcdmLteParser.convertLteNasMessage(qcdmMessage, gpsListener.getLatestLocation(), deviceId, missionId, mqttClientId);
 
         publishMessage(MQTT_LTE_RRC_OTA_MESSAGE_TOPIC, lteNas);
     }

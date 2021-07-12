@@ -58,8 +58,6 @@
             android:exported="false"
             android:foregroundServiceType="location" />
 
-        <service android:name="org.eclipse.paho.android.service.MqttService" />
-
         <meta-data
             android:name="android.content.APP_RESTRICTIONS"
             android:resource="@xml/app_restrictions" />
