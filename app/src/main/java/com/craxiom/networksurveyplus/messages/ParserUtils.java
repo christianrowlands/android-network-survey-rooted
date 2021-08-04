@@ -359,4 +359,25 @@ public class ParserUtils
         }
         return stringBuilder.toString();
     }
+
+    /**
+     * Converts a byte array to a hex string with the Java byte cast as a prefix and a comma at the end of each byte.
+     * This allows for the output to be placed in a byte array initializer for use in unit tests.
+     *
+     * @param bytes  The byte array to convert.
+     * @param offset Offset within bytes to start processing.
+     * @param length Number of bytes to process.
+     * @return The byte array represented as a hex string.
+     * @since 0.4.0
+     */
+    public static String convertBytesToHexStringByteCast(byte[] bytes, int offset, int length)
+    {
+        final StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.setLength(0);
+        for (int i = offset, end = offset + length; i < end; i++)
+        {
+            stringBuilder.append(String.format("(byte) 0x%02x, ", bytes[i]));
+        }
+        return stringBuilder.toString();
+    }
 }
