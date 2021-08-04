@@ -107,7 +107,7 @@ public class QcdmGsmParser
             case 3: // 0x03
                 return GsmSubtypes.GSMTAP_CHANNEL_CCCH.ordinal();
             case 4: // 0x04
-                return 0x88; // Not sure why 4 maps to 0x88, but that is what SCAT and others do
+                return 0x88; // Not sure why 4 maps to 0x88, but that is what SCAT and others do. In wireshark this is SACCH/8
 
             default:
                 return 0;
