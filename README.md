@@ -76,7 +76,11 @@ are a list of other projects that might be of interest to you.
 
 ## Changelog
 
-##### [0.3.0](https://github.com/christianrowlands/android-network-survey-rooted/releases/tag/v0.2.0) - 2021-07-12
+##### [0.4.0](https://github.com/christianrowlands/android-network-survey-rooted/releases/tag/v0.4.0) - 2021-08-04
+ * Added support for logging GSM RR Signaling messages to pcap records.
+ * Added the version number to the home screen.
+
+##### [0.3.0](https://github.com/christianrowlands/android-network-survey-rooted/releases/tag/v0.3.0) - 2021-07-12
  * Added support for logging UMTS NAS and WCDMA RRC messages to pcap records.
 
 ##### [0.2.0](https://github.com/christianrowlands/android-network-survey-rooted/releases/tag/v0.2.0) - 2021-01-29

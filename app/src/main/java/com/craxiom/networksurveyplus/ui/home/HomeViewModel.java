@@ -20,6 +20,7 @@ public class HomeViewModel extends ViewModel implements IServiceStatusListener
     private final MutableLiveData<Location> location = new MutableLiveData<>();
     private final MutableLiveData<Integer> recordCount = new MutableLiveData<>();
     private final MutableLiveData<ServiceStatusMessage.LocationProviderStatus> providerStatus = new MutableLiveData<>();
+    private final MutableLiveData<String> appVersion = new MutableLiveData<>();
 
     public LiveData<Location> getLocation()
     {
@@ -57,5 +58,15 @@ public class HomeViewModel extends ViewModel implements IServiceStatusListener
                 Timber.e("Unrecognized service message type: %s", serviceMessage.what);
                 break;
         }
+    }
+
+    public LiveData<String> getAppVersion()
+    {
+        return appVersion;
+    }
+
+    public void setAppVersion(String version)
+    {
+        appVersion.postValue(version);
     }
 }

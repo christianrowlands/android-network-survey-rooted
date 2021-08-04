@@ -2,6 +2,7 @@ package com.craxiom.networksurveyplus.ui.home;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
@@ -54,6 +55,10 @@ public class HomeFragment extends Fragment
         homeViewModel.getRecordCount().observe(viewLifecycleOwner,
                 recordCount -> binding.tvRecordCount.setText(String.format(Locale.US, "%d", recordCount)));
         homeViewModel.getProviderStatus().observe(viewLifecycleOwner, this::updateLocationProviderStatus);
+
+        homeViewModel.getAppVersion().observe(viewLifecycleOwner, versionName -> binding.appVersionName.setText(getString(R.string.app_version, versionName)));
+
+        setAppVersionNumber();
 
         return binding.getRoot();
     }
@@ -208,6 +213,24 @@ public class HomeFragment extends Fragment
                 tvLocation.setText(R.string.turn_on_gps);
                 tvLocation.setTextColor(getResources().getColor(R.color.connectionStatusConnecting, null));
                 break;
+        }
+    }
+
+    /**
+     * Get the app version number and set it at the bottom of the view.
+     *
+     * @since 0.4.0
+     */
+    private void setAppVersionNumber()
+    {
+        try
+        {
+            final Context context = requireContext();
+            final PackageInfo info = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+            binding.getVm().setAppVersion(info.versionName);
+        } catch (Exception e)
+        {
+            Timber.wtf(e, "Could not set the app version number");
         }
     }
 }
