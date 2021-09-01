@@ -90,6 +90,19 @@ public class ParserUtilsTest
         assertEquals(Integer.toHexString(expectedCrc), Integer.toHexString(crc >= 0 ? crc : 0x10000 + crc));
     }
 
+    /**
+     * Tests the modified Diag Command that is used to activate the GSM messages as part of the ns_plus_diag.cfg.
+     */
+    @Test
+    public void testCrc16X25GsmDiagCommandCalculation()
+    {
+        final int expectedCrc = (short) 0x8bf8;
+        final byte[] diagCommandBytes = {(byte) 0x73, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x03, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x05, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x34, (byte) 0x01, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x80, (byte) 0x10};
+
+        final int crc = ParserUtils.calculateCrc16X25(diagCommandBytes, diagCommandBytes.length);
+        assertEquals(Integer.toHexString(0x10000 + expectedCrc), Integer.toHexString(crc >= 0 ? crc : 0x10000 + crc));
+    }
+
     @Test
     public void testCrcQcdmMessage()
     {

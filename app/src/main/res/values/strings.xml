@@ -4,6 +4,8 @@
     <string name="title_settings">Settings</string>
     <string name="title_mqtt">MQTT</string>
 
+    <string name="app_version">v%1$s</string>
+
     <string name="permissions_rationale_title">Network Survey+ Permissions</string>
     <string name="permissions_rationale">The Network Survey+ app requires a couple permissions to work.  Denying these permissions will result in the app not functioning properly.
         \n\n1. <b>Access this Device\'s Location</b>:  This app creates a log file which includes the location at which the cellular record was captured.

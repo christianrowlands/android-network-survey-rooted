@@ -8,6 +8,7 @@ import android.os.Environment;
 
 import com.craxiom.networksurveyplus.messages.DiagCommand;
 import com.craxiom.networksurveyplus.messages.QcdmConstants;
+import com.craxiom.networksurveyplus.messages.QcdmGsmParser;
 import com.craxiom.networksurveyplus.messages.QcdmLteParser;
 import com.craxiom.networksurveyplus.messages.QcdmMessage;
 import com.craxiom.networksurveyplus.messages.QcdmUmtsParser;
@@ -148,6 +149,15 @@ public class QcdmPcapWriter implements IQcdmMessageListener
                     case QcdmConstants.UMTS_NAS_OTA_DSDS:
                         pcapRecord = QcdmUmtsParser.convertUmtsNasOtaDsds(qcdmMessage, gpsListener.getLatestLocation());
                         break;
+
+                    case QcdmConstants.GSM_RR_SIGNALING_MESSAGES:
+                        pcapRecord = QcdmGsmParser.convertGsmSignalingMessage(qcdmMessage, gpsListener.getLatestLocation());
+                        break;
+
+                    /*case QcdmConstants.GSM_RR_CELL_INFORMATION_C:
+                        // TODO delete me once I find a record for this
+                        Timber.i("GSM RR Cell Information: %s", qcdmMessage);
+                        break;*/
                 }
 
                 if (pcapRecord != null)
