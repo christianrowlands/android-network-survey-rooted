@@ -184,3 +184,4 @@ out
 app/release/output.json
 app/release/output-metadata.json
 **/release/**
+*.patch

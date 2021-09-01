@@ -51,7 +51,7 @@ public class QcdmLteParser
      */
     public static LteRrc convertLteRrcOtaMessage(QcdmMessage qcdmMessage, Location location, String deviceId, String missionId, String mqttClientId)
     {
-        Timber.v("Handling an LTE RRC message");
+        Timber.v("Handling an LTE RRC message MQTT");
 
         final LteRrc.Builder lteRrcBuilder = LteRrc.newBuilder();
         final LteRrcData.Builder lteRrcDataBuilder = LteRrcData.newBuilder();
@@ -62,8 +62,8 @@ public class QcdmLteParser
         lteRrcDataBuilder.setDeviceSerialNumber(deviceId);
         if (mqttClientId != null) lteRrcDataBuilder.setDeviceName(mqttClientId);
         lteRrcDataBuilder.setMissionId(missionId);
-        lteRrcDataBuilder.setDeviceTime(getRfc3339String(ZonedDateTime.now()));
-        lteRrcDataBuilder.setAltitude((float) location.getAltitude());
+        lteRrcDataBuilder.setDeviceTime(ParserUtils.getRfc3339String(ZonedDateTime.now()));
+        lteRrcDataBuilder.setAltitude((float)location.getAltitude());
         lteRrcDataBuilder.setLatitude(location.getLatitude());
         lteRrcDataBuilder.setLongitude(location.getLongitude());
 
@@ -180,7 +180,7 @@ public class QcdmLteParser
      * @param deviceId     The Device ID to set as the "Device Serial Number" on the protobuf message.
      * @param missionId    The Mission ID to set on the protobuf message.
      * @param mqttClientId The MQTT client ID to set as the "Device Name" on the protobuf message. If null it won't be set.
-     * @return The pcap record byte array to write to a pcap file.
+     * @return Mqtt message to be published and sent to the listening device.
      */
     public static LteNas convertLteNasMessage(QcdmMessage qcdmMessage, Location location, String deviceId, String missionId, String mqttClientId)
     {
@@ -191,7 +191,7 @@ public class QcdmLteParser
         lteNasDataBuilder.setDeviceSerialNumber(deviceId);
         if (mqttClientId != null) lteNasDataBuilder.setDeviceName(mqttClientId);
         lteNasDataBuilder.setMissionId(missionId);
-        lteNasDataBuilder.setDeviceTime(getRfc3339String(ZonedDateTime.now()));
+        lteNasDataBuilder.setDeviceTime(ParserUtils.getRfc3339String(ZonedDateTime.now()));
         lteNasDataBuilder.setAltitude((float) location.getAltitude());
         lteNasDataBuilder.setLatitude(location.getLatitude());
         lteNasDataBuilder.setLongitude(location.getLongitude());
@@ -418,8 +418,5 @@ public class QcdmLteParser
      * @param date The date object to use when generating the timestamp.
      * @return String with format {@link DateTimeFormatter#ISO_OFFSET_DATE_TIME} (e.g. "2020-08-19T18:13:22.548+00:00")
      */
-    private static String getRfc3339String(ZonedDateTime date)
-    {
-        return DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(date);
-    }
+
 }

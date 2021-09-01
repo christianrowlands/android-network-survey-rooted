@@ -3,8 +3,8 @@ apply from: "../artifacts.gradle"
 
 android {
     compileSdkVersion 29
-    buildToolsVersion "29.0.3"
-    ndkVersion "21.3.6528147"
+    buildToolsVersion '29.0.3'
+    ndkVersion '21.3.6528147'
 
     defaultConfig {
         buildConfigField "String", "MESSAGING_API_VERSION", "\"${networkSurveyMessagingVersion}\""
@@ -63,6 +63,7 @@ android {
         exclude 'META-INF/io.netty.versions.properties'
     }
 }
+
 
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
