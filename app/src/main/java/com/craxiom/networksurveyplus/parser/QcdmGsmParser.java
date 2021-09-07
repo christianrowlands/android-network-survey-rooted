@@ -1,6 +1,14 @@
-package com.craxiom.networksurveyplus.messages;
+package com.craxiom.networksurveyplus.parser;
 
 import android.location.Location;
+
+import com.craxiom.networksurveyplus.messages.CraxiomConstants;
+import com.craxiom.networksurveyplus.messages.GsmSubtypes;
+import com.craxiom.networksurveyplus.messages.GsmtapConstants;
+import com.craxiom.networksurveyplus.messages.PcapMessage;
+import com.craxiom.networksurveyplus.messages.QcdmConstants;
+import com.craxiom.networksurveyplus.messages.QcdmMessage;
+import com.craxiom.networksurveyplus.util.PcapUtils;
 
 import java.util.Arrays;
 
@@ -36,9 +44,9 @@ public class QcdmGsmParser
      * @param qcdmMessage The QCDM message to convert into a pcap record.
      * @param location    The location to tie to the QCDM message when writing it to a pcap file. If null then no
      *                    location will be added to the PPI header.
-     * @return The pcap record byte array to write to a pcap file, or null if the message could not be parsed.
+     * @return The pcap record to write to a pcap file or stream over MQTT, or null if the message could not be parsed.
      */
-    public static byte[] convertGsmSignalingMessage(QcdmMessage qcdmMessage, Location location)
+    public static PcapMessage convertGsmSignalingMessage(QcdmMessage qcdmMessage, Location location)
     {
         Timber.v("Handling a GSM RR Signaling message");
 
@@ -84,8 +92,10 @@ public class QcdmGsmParser
         // Any channel type dir that has the 0x80 bit set is downlink, everything else is uplink
         final boolean isUplink = (channelTypeDir & 0x80) == 0x00;
 
-        return PcapUtils.getGsmtapPcapRecord(GsmtapConstants.GSMTAP_TYPE_UM, l3Message, subtype, 0,
+        final byte[] pcapRecord = PcapUtils.getGsmtapPcapRecord(GsmtapConstants.GSMTAP_TYPE_UM, l3Message, subtype, 0,
                 isUplink, 0, 0, qcdmMessage.getSimId(), location);
+
+        return new PcapMessage(pcapRecord, CraxiomConstants.GSM_SIGNALING_MESSAGE_TYPE, subtype);
     }
 
     /**

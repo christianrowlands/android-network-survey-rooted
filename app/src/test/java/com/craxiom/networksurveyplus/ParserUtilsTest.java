@@ -1,6 +1,6 @@
 package com.craxiom.networksurveyplus;
 
-import com.craxiom.networksurveyplus.messages.ParserUtils;
+import com.craxiom.networksurveyplus.util.ParserUtils;
 
 import org.junit.Test;
 

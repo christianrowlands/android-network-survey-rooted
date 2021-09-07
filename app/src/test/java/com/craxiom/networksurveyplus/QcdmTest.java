@@ -6,10 +6,12 @@ import com.craxiom.messaging.LteRrcChannelType;
 import com.craxiom.networksurveyplus.messages.DiagRevealerMessage;
 import com.craxiom.networksurveyplus.messages.GsmtapConstants;
 import com.craxiom.networksurveyplus.messages.LteRrcSubtypes;
-import com.craxiom.networksurveyplus.messages.ParserUtils;
-import com.craxiom.networksurveyplus.messages.PcapUtils;
-import com.craxiom.networksurveyplus.messages.QcdmLteParser;
+import com.craxiom.networksurveyplus.messages.PcapMessage;
 import com.craxiom.networksurveyplus.messages.QcdmMessage;
+import com.craxiom.networksurveyplus.parser.QcdmLteParser;
+import com.craxiom.networksurveyplus.util.NetworkSurveyUtils;
+import com.craxiom.networksurveyplus.util.ParserUtils;
+import com.craxiom.networksurveyplus.util.PcapUtils;
 
 import org.junit.Test;
 
@@ -228,9 +230,11 @@ public class QcdmTest
             assertEquals(LOG_LTE_RRC_OTA_MSG_LOG_C, m.getLogType());
             assertArrayEquals("The qcdm message bytes did not match what was expected", expectedQcdmMessagePayloadBytes, m.getLogPayload());
 
-            final byte[] pcapRecordBytes = QcdmLteParser.convertLteRrcOtaMessage(m, null);
+            final PcapMessage pcapMessage = QcdmLteParser.convertLteRrcOtaMessage(m, null);
 
-            assertNotNull(pcapRecordBytes);
+            assertNotNull(pcapMessage);
+
+            final byte[] pcapRecordBytes = pcapMessage.getPcapRecord();
 
             // Ignore the first 8 bytes since it contains the record timestamp.
             assertArrayEquals(expectedPcapRecordBytes, Arrays.copyOfRange(pcapRecordBytes, 8, pcapRecordBytes.length));
@@ -256,9 +260,11 @@ public class QcdmTest
         location.setLongitude(-90.1333759);
         location.setAltitude(152.6591);
 
-        final byte[] pcapRecordBytes = QcdmLteParser.convertLteRrcOtaMessage(qcdmMessage, location);
+        final PcapMessage pcapMessage = QcdmLteParser.convertLteRrcOtaMessage(qcdmMessage, location);
 
-        assertNotNull(pcapRecordBytes);
+        assertNotNull(pcapMessage);
+
+        final byte[] pcapRecordBytes = pcapMessage.getPcapRecord();
 
         // Ignore the first 8 bytes since it contains the record timestamp.
         assertArrayEquals(expectedPcapRecordBytes, Arrays.copyOfRange(pcapRecordBytes, 8, pcapRecordBytes.length));

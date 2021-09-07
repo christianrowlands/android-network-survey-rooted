@@ -1,5 +1,7 @@
 package com.craxiom.networksurveyplus.messages;
 
+import com.craxiom.networksurveyplus.util.ParserUtils;
+
 import timber.log.Timber;
 
 /**

@@ -10,7 +10,7 @@
 //  DFARS 252.227-7013 (OCT 1988).
 //=======================================================================
 
-package com.craxiom.networksurveyplus;
+package com.craxiom.networksurveyplus.util;
 
 import com.google.common.io.ByteStreams;
 
