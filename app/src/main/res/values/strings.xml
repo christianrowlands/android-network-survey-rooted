@@ -34,7 +34,7 @@
     <string name="searching_for_location">Searching for GPS …</string>
     <string name="low_gps_confidence">Low GPS Confidence</string>
     <string name="location_placeholder">Location:</string>
-    <string name="records_logged_placeholder">Records Logged:</string>
+    <string name="records_logged">Records Processed:</string>
 
     <!-- User Preference Constants -->
     <string name="auto_start_logging_title">Auto start logging</string>
