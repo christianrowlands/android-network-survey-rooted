@@ -2,8 +2,9 @@ package com.craxiom.networksurveyplus;
 
 import android.location.Location;
 
+import com.craxiom.networksurveyplus.messages.PcapMessage;
 import com.craxiom.networksurveyplus.messages.QcdmConstants;
-import com.craxiom.networksurveyplus.messages.QcdmGsmParser;
+import com.craxiom.networksurveyplus.parser.QcdmGsmParser;
 import com.craxiom.networksurveyplus.messages.QcdmMessage;
 
 import org.junit.Test;
@@ -38,9 +39,11 @@ public class GsmParserTest
         location.setLongitude(-90.1333759);
         location.setAltitude(152.6591);
 
-        final byte[] pcapRecordBytes = QcdmGsmParser.convertGsmSignalingMessage(qcdmMessage, location);
+        final PcapMessage pcapMessage = QcdmGsmParser.convertGsmSignalingMessage(qcdmMessage, location);
 
-        assertNotNull(pcapRecordBytes);
+        assertNotNull(pcapMessage);
+
+        final byte[] pcapRecordBytes = pcapMessage.getPcapRecord();
 
         // Ignore the first 8 bytes since it contains the record timestamp.
         assertArrayEquals(expectedPcapRecordBytes, Arrays.copyOfRange(pcapRecordBytes, 8, pcapRecordBytes.length));

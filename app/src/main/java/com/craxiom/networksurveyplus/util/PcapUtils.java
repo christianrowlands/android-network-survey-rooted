@@ -1,4 +1,4 @@
-package com.craxiom.networksurveyplus.messages;
+package com.craxiom.networksurveyplus.util;
 
 import android.location.Location;
 
@@ -7,8 +7,8 @@ import java.io.IOException;
 
 import timber.log.Timber;
 
-import static com.craxiom.networksurveyplus.NetworkSurveyUtils.doubleToFixed37;
-import static com.craxiom.networksurveyplus.NetworkSurveyUtils.doubleToFixed64;
+import static com.craxiom.networksurveyplus.util.NetworkSurveyUtils.doubleToFixed37;
+import static com.craxiom.networksurveyplus.util.NetworkSurveyUtils.doubleToFixed64;
 
 /**
  * A collection of utilities to help with creating PCAP files and GSMTAP PCAP records.

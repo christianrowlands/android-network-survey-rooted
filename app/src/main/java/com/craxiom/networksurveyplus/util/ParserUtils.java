@@ -1,4 +1,8 @@
-package com.craxiom.networksurveyplus.messages;
+package com.craxiom.networksurveyplus.util;
+
+import com.craxiom.networksurveyplus.messages.DiagRevealerMessage;
+import com.craxiom.networksurveyplus.messages.DiagRevealerMessageHeader;
+import com.craxiom.networksurveyplus.messages.QcdmMessage;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -382,7 +386,14 @@ public class ParserUtils
         }
         return stringBuilder.toString();
     }
- 
+
+    /**
+     * Converts the provided {@link ZonedDateTime} to a valid RFC 3339 Date/Time String.
+     *
+     * @param date The date/time to convert to the String.
+     * @return An RFC 3339 compliant Date/Time.
+     * @since 0.5.0
+     */
     public static String getRfc3339String(ZonedDateTime date)
     {
         return DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(date);

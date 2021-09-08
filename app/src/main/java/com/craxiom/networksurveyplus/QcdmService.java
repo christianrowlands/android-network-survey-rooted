@@ -65,7 +65,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     private FifoReadRunnable fifoReadRunnable;
     private DiagRevealerRunnable diagRevealerRunnable;
 
-    private final QcdmMessageProcessor qcdmMessageProcessor;
+    private QcdmMessageProcessor qcdmMessageProcessor;
     private QcdmPcapWriter qcdmPcapWriter;
 
     private QcdmMqttConnection qcdmMqttConnection;
@@ -73,7 +73,6 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     public QcdmService()
     {
         qcdmServiceBinder = new QcdmServiceBinder();
-        qcdmMessageProcessor = new QcdmMessageProcessor();
     }
 
     @Override
@@ -184,9 +183,9 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
             gpsListener.registerLocationUpdatesListener(listener);
         }
 
-        if (qcdmPcapWriter != null)
+        if (qcdmMessageProcessor != null)
         {
-            qcdmPcapWriter.registerRecordsLoggedListener(listener);
+            qcdmMessageProcessor.registerRecordsLoggedListener(listener);
         }
     }
 
@@ -200,9 +199,9 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
             gpsListener.unregisterLocationUpdatesListener(listener);
         }
 
-        if (qcdmPcapWriter != null)
+        if (qcdmMessageProcessor != null)
         {
-            qcdmPcapWriter.unregisterRecordsLoggedListener(listener);
+            qcdmMessageProcessor.unregisterRecordsLoggedListener(listener);
         }
     }
 
@@ -363,6 +362,8 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
         final String fifoPipeName = applicationContext.getFilesDir() + "/" + Constants.FIFO_PIPE;
         createNamedPipe(fifoPipeName);
 
+        qcdmMessageProcessor = new QcdmMessageProcessor(gpsListener);
+
         fifoReadRunnable = new FifoReadRunnable(fifoPipeName, qcdmMessageProcessor);
         fifoReadHandler.post(fifoReadRunnable);
 
@@ -373,7 +374,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
         {
             try
             {
-                qcdmPcapWriter = new QcdmPcapWriter(gpsListener);
+                qcdmPcapWriter = new QcdmPcapWriter();
             } catch (Exception e)
             {
                 Timber.e(e, "Could not create the QCDM PCAP writer");

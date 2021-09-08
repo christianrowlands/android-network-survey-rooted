@@ -1,4 +1,4 @@
-package com.craxiom.networksurveyplus;
+package com.craxiom.networksurveyplus.util;
 
 import java.io.IOException;
 import java.io.InputStream;

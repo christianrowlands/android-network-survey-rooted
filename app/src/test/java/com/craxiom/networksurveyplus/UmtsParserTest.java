@@ -2,9 +2,10 @@ package com.craxiom.networksurveyplus;
 
 import android.location.Location;
 
+import com.craxiom.networksurveyplus.messages.PcapMessage;
 import com.craxiom.networksurveyplus.messages.QcdmConstants;
 import com.craxiom.networksurveyplus.messages.QcdmMessage;
-import com.craxiom.networksurveyplus.messages.QcdmUmtsParser;
+import com.craxiom.networksurveyplus.parser.QcdmUmtsParser;
 
 import org.junit.Test;
 
@@ -33,9 +34,11 @@ public class UmtsParserTest
         location.setLongitude(-90.1333759);
         location.setAltitude(152.6591);
 
-        final byte[] pcapRecordBytes = QcdmUmtsParser.convertUmtsNasOta(qcdmMessage, location);
+        final PcapMessage pcapMessage = QcdmUmtsParser.convertUmtsNasOta(qcdmMessage, location);
 
-        assertNotNull(pcapRecordBytes);
+        assertNotNull(pcapMessage);
+
+        final byte[] pcapRecordBytes = pcapMessage.getPcapRecord();
 
         // Ignore the first 8 bytes since it contains the record timestamp.
         assertArrayEquals(expectedPcapRecordBytes, Arrays.copyOfRange(pcapRecordBytes, 8, pcapRecordBytes.length));

@@ -1,22 +1,20 @@
-package com.craxiom.networksurveyplus.messages;
+package com.craxiom.networksurveyplus.parser;
 
 import android.location.Location;
 
-import com.craxiom.messaging.LteNas;
-import com.craxiom.messaging.WcdmaRrcChannelType;
-import com.craxiom.messaging.WcdmaRrcData;
-import com.craxiom.messaging.LteRrcData;
-import com.craxiom.messaging.WcdmaRrc;
-import com.craxiom.networksurveyplus.BuildConfig;
-import com.google.protobuf.ByteString;
+import com.craxiom.networksurveyplus.messages.CraxiomConstants;
+import com.craxiom.networksurveyplus.messages.GsmtapConstants;
+import com.craxiom.networksurveyplus.messages.PcapMessage;
+import com.craxiom.networksurveyplus.messages.QcdmConstants;
+import com.craxiom.networksurveyplus.messages.QcdmMessage;
+import com.craxiom.networksurveyplus.messages.UmtsRrcSubtypes;
+import com.craxiom.networksurveyplus.util.ParserUtils;
+import com.craxiom.networksurveyplus.util.PcapUtils;
 
 import java.nio.ByteOrder;
-import java.time.ZonedDateTime;
 import java.util.Arrays;
 
 import timber.log.Timber;
-
-import static com.craxiom.networksurveyplus.messages.QcdmConstants.WCDMA_SIGNALING_MESSAGES;
 
 /**
  * Contains parser methods for converting the QCDM WCDMA messages to various formats, like pcap records or protobuf
@@ -30,7 +28,6 @@ public class QcdmWcdmaParser
     {
     }
 
-    private static final String WCDMA_RRC_MESSAGE_TYPE = "WcdmaRrc";
     /**
      * Given a {@link QcdmMessage} that contains a WCDMA Signaling message {@link QcdmConstants#WCDMA_SIGNALING_MESSAGES},
      * convert it to a pcap record byte array that can be consumed by tools like Wireshark.
@@ -70,9 +67,9 @@ public class QcdmWcdmaParser
      * @param qcdmMessage The QCDM message to convert into a pcap record.
      * @param location    The location to tie to the QCDM message when writing it to a pcap file. If null then no
      *                    location will be added to the PPI header.
-     * @return The pcap record byte array to write to a pcap file, or null if the message could not be parsed.
+     * @return The pcap record to write to a pcap file or stream over MQTT, or null if the message could not be parsed.
      */
-    public static byte[] convertWcdmaSignalingMessage(QcdmMessage qcdmMessage, Location location)
+    public static PcapMessage convertWcdmaSignalingMessage(QcdmMessage qcdmMessage, Location location)
     {
         Timber.v("Handling a WCDMA Signaling message");
 
@@ -134,90 +131,10 @@ public class QcdmWcdmaParser
                 || subtype == UmtsRrcSubtypes.GSMTAP_RRC_SUB_UL_SHCCH_Message.ordinal();
 
         // TODO It is possible that the PSC can be passed where the LTE PCI was normally passed.
-        return PcapUtils.getGsmtapPcapRecord(GsmtapConstants.GSMTAP_TYPE_UMTS_RRC, signalingMessage, subtype, uarfcn,
+        final byte[] pcapRecord = PcapUtils.getGsmtapPcapRecord(GsmtapConstants.GSMTAP_TYPE_UMTS_RRC, signalingMessage, subtype, uarfcn,
                 isUplink, 0, 0, qcdmMessage.getSimId(), location);
-    }
 
-    /**
-     * Given an {@link QcdmMessage} that contains an WCDMA RRC OTA message, convert it to a Network Survey Messaging
-     * {@link WcdmaRrc} protobuf object so that it can be sent over an MQTT connection.
-     * <p>
-     * Information on how to parse WCDMA RRC messages was found in Mobile Sentinel:
-     * https://github.com/RUB-SysSec/mobile_sentinel/blob/8485ef811cfbba7ab8b9d39bee7b38ae9072cce8/app/src/main/python/parsers/qualcomm/diagltelogparser.py#L1109
-     *
-     * @param qcdmMessage  The QCDM message to convert into a pcap record.
-     * @param location     The location to tie to the QCDM message when writing it to a pcap file. If null then no
-     *                     location will be added to the PPI header.
-     * @param deviceId     The Device ID to set as the "Device Serial Number" on the protobuf message.
-     * @param missionId    The Mission ID to set on the protobuf message.
-     * @param mqttClientId The MQTT client ID to set as the "Device Name" on the protobuf message. If null it won't be set.
-     * @return Mqtt message to be published and sent to the listening device.
-     */
-
-    public static WcdmaRrc convertWcdmaRrcOtaMessage(QcdmMessage qcdmMessage, Location location, String deviceId, String missionId, String mqttClientId)
-    {
-        Timber.e("Handling an WCDMA RRC message MQTT");
-
-        final byte[] logPayload = qcdmMessage.getLogPayload();
-        final int channelType = logPayload[0] & 0xFF;
-
-        int headerLength;
-        int uarfcn = -1;
-        int psc = -1;
-
-        int subtype = getGsmtapWcdmaRrcChannelType(channelType);
-        if (subtype != -1)
-        {
-            headerLength = 4;
-        } else if ((subtype = getGsmtapWcdmaRrcChannelTypeExtended(channelType)) != -1)
-        {
-            headerLength = 5;
-
-            final int sibType = logPayload[4] & 0xFF;
-            subtype = getSubtypeFromSibType(sibType);
-            if (subtype == -1)
-            {
-                Timber.e("Unknown WCDMA SIB Type %d", sibType);
-                return null;
-            }
-        } else if ((subtype = getGsmtapWcdmaRrcChannelTypeNew(channelType)) != -1)
-        {
-        } else if ((subtype = getGsmtapWcdmaRrcChannelTypeNewExtended(channelType)) != -1)
-        {
-
-            final int sibType = logPayload[8] & 0xFF;
-            subtype = getSubtypeFromSibTypeNew(sibType);
-            if (subtype == -1)
-            {
-                Timber.e("Unknown WCDMA SIB Type %d", sibType);
-                return null;
-            }
-        } else
-        {
-            Timber.e("Unknown WCDMA RRC Channel Type %d", channelType);
-            return null;
-        }
-
-        final WcdmaRrc.Builder wcdmaRrcBuilder = WcdmaRrc.newBuilder();
-        final WcdmaRrcData.Builder wcdmaRrcDataBuilder = WcdmaRrcData.newBuilder();
-
-        wcdmaRrcBuilder.setVersion(BuildConfig.MESSAGING_API_VERSION);
-        wcdmaRrcBuilder.setMessageType(WCDMA_RRC_MESSAGE_TYPE);
-
-        wcdmaRrcDataBuilder.setDeviceSerialNumber(deviceId);
-        if (mqttClientId != null) wcdmaRrcDataBuilder.setDeviceName(mqttClientId);
-        wcdmaRrcDataBuilder.setMissionId(missionId);
-        wcdmaRrcDataBuilder.setDeviceTime(ParserUtils.getRfc3339String(ZonedDateTime.now()));
-        wcdmaRrcDataBuilder.setAltitude((float) location.getAltitude());
-        wcdmaRrcDataBuilder.setLatitude(location.getLatitude());
-        wcdmaRrcDataBuilder.setLongitude(location.getLongitude());
-
-        wcdmaRrcDataBuilder.setRawMessage(ByteString.copyFrom(logPayload));
-
-        wcdmaRrcDataBuilder.setChannelTypeValue(subtype + 1); // Here we offset by 1 to match with the WcdmaRrcChannelType values
-        wcdmaRrcBuilder.setData(wcdmaRrcDataBuilder.build());
-
-        return wcdmaRrcBuilder.build();
+        return new PcapMessage(pcapRecord, CraxiomConstants.WCDMA_RRC_MESSAGE_TYPE, subtype);
     }
 
     /**

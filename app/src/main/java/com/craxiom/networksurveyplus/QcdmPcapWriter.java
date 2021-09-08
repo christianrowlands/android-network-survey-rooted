@@ -6,13 +6,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Environment;
 
-import com.craxiom.networksurveyplus.messages.DiagCommand;
-import com.craxiom.networksurveyplus.messages.QcdmConstants;
-import com.craxiom.networksurveyplus.messages.QcdmGsmParser;
-import com.craxiom.networksurveyplus.messages.QcdmLteParser;
-import com.craxiom.networksurveyplus.messages.QcdmMessage;
-import com.craxiom.networksurveyplus.messages.QcdmUmtsParser;
-import com.craxiom.networksurveyplus.messages.QcdmWcdmaParser;
+import com.craxiom.networksurveyplus.messages.PcapMessage;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -21,8 +15,6 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
 
 import timber.log.Timber;
 
@@ -40,7 +32,7 @@ import timber.log.Timber;
  *
  * @since 0.1.0
  */
-public class QcdmPcapWriter implements IQcdmMessageListener
+public class QcdmPcapWriter implements IPcapMessageListener
 {
     private static final String LOG_DIRECTORY_NAME = "NetworkSurveyPlusData";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneId.systemDefault());
@@ -58,17 +50,10 @@ public class QcdmPcapWriter implements IQcdmMessageListener
             (byte) 0xc0, 0, 0, 0  // Link Layer Type (4 bytes): 192 is LINKTYPE_PPI
     };
 
-    private final GpsListener gpsListener;
-
     /**
      * The current rollover size. The default value is 5 MB; see {@link R.xml#network_survey_settings}
      */
     private int maxLogSizeBytes = 5 * BYTES_PER_MEGABYTE;
-
-    /**
-     * Overall record count since writing started, across all log files that have been generated.
-     */
-    private int recordsLogged = 0;
 
     /**
      * A lock to protect the block of code writing a pcap record to file. This is so the following
@@ -81,101 +66,28 @@ public class QcdmPcapWriter implements IQcdmMessageListener
      */
     private final Object pcapWriteLock = new Object();
 
-    private final Set<IServiceStatusListener> serviceMessageListeners = new CopyOnWriteArraySet<>();
-
     private BufferedOutputStream outputStream;
 
     private File currentPcapFile;
     private int currentFileSizeBytes = 0;
 
-    /**
-     * Constructs a new QCDM pcap file writer.
-     */
-    QcdmPcapWriter(GpsListener gpsListener)
-    {
-        this.gpsListener = gpsListener;
-    }
-
     @Override
-    public void onQcdmMessage(QcdmMessage qcdmMessage)
+    public void onPcapMessage(PcapMessage pcapMessage)
     {
         try
         {
-            final int logType = qcdmMessage.getLogType();
-
-            if (qcdmMessage.getOpCode() == DiagCommand.DIAG_LOG_F)
+            final byte[] pcapRecord = pcapMessage.getPcapRecord();
+            if (pcapRecord != null)
             {
-                Timber.d("Pcap Writer listener: %s", qcdmMessage);
+                Timber.d("Writing a message to the pcap file");
 
-                byte[] pcapRecord = null;
-
-                switch (logType)
+                synchronized (pcapWriteLock)
                 {
-                    case QcdmConstants.LOG_LTE_RRC_OTA_MSG_LOG_C:
-                        pcapRecord = QcdmLteParser.convertLteRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation());
-                        break;
+                    // Write the pcap record to file
+                    outputStream.write(pcapRecord);
+                    outputStream.flush();
 
-                    case QcdmConstants.LOG_LTE_NAS_EMM_OTA_IN_MSG:
-                    case QcdmConstants.LOG_LTE_NAS_EMM_OTA_OUT_MSG:
-                    case QcdmConstants.LOG_LTE_NAS_ESM_OTA_IN_MSG:
-                    case QcdmConstants.LOG_LTE_NAS_ESM_OTA_OUT_MSG:
-                    case QcdmConstants.LOG_LTE_NAS_EMM_SEC_OTA_IN_MSG:
-                    case QcdmConstants.LOG_LTE_NAS_EMM_SEC_OTA_OUT_MSG:
-                    case QcdmConstants.LOG_LTE_NAS_ESM_SEC_OTA_IN_MSG:
-                    case QcdmConstants.LOG_LTE_NAS_ESM_SEC_OTA_OUT_MSG:
-                        pcapRecord = QcdmLteParser.convertLteNasMessage(qcdmMessage, gpsListener.getLatestLocation());
-                        break;
-
-                    /*case QcdmConstants.WCDMA_SEARCH_CELL_RESELECTION_RANK:
-                        Timber.i("WCDMA_SEARCH_CELL_RESELECTION_RANK");
-                        break;
-                    case QcdmConstants.WCDMA_RRC_STATES:
-                        Timber.i("WCDMA_RRC_STATES");
-                        break;
-                    case QcdmConstants.WCDMA_CELL_ID:
-                        Timber.i("WCDMA_CELL_ID");
-                        break;
-                    case QcdmConstants.WCDMA_SIB:
-                        Timber.i("WCDMA_SIB");
-                        break;*/
-                    case QcdmConstants.WCDMA_SIGNALING_MESSAGES:
-                        pcapRecord = QcdmWcdmaParser.convertWcdmaSignalingMessage(qcdmMessage, gpsListener.getLatestLocation());
-                        break;
-
-                    case QcdmConstants.UMTS_NAS_OTA:
-                        pcapRecord = QcdmUmtsParser.convertUmtsNasOta(qcdmMessage, gpsListener.getLatestLocation());
-                        break;
-
-                    case QcdmConstants.UMTS_NAS_OTA_DSDS:
-                        pcapRecord = QcdmUmtsParser.convertUmtsNasOtaDsds(qcdmMessage, gpsListener.getLatestLocation());
-                        break;
-
-                    case QcdmConstants.GSM_RR_SIGNALING_MESSAGES:
-                        pcapRecord = QcdmGsmParser.convertGsmSignalingMessage(qcdmMessage, gpsListener.getLatestLocation());
-                        break;
-
-                    /*case QcdmConstants.GSM_RR_CELL_INFORMATION_C:
-                        // TODO delete me once I find a record for this
-                        Timber.i("GSM RR Cell Information: %s", qcdmMessage);
-                        break;*/
-                }
-
-                if (pcapRecord != null)
-                {
-                    Timber.d("Writing a message to the pcap file");
-
-                    synchronized (pcapWriteLock)
-                    {
-                        // Write the pcap record to file
-                        outputStream.write(pcapRecord);
-                        outputStream.flush();
-
-                        if (isRolloverNeeded(pcapRecord.length)) createNewPcapFile();
-
-                        // Notify listeners of record count
-                        recordsLogged++;
-                        notifyStatusListeners();
-                    }
+                    if (isRolloverNeeded(pcapRecord.length)) createNewPcapFile();
                 }
             }
         } catch (Exception e)
@@ -188,7 +100,7 @@ public class QcdmPcapWriter implements IQcdmMessageListener
      * Creates a new pcap file and stores the result in {@link #currentPcapFile}.
      * The {@link #outputStream} is also updated, and closed if it was previously in use.
      * <p>
-     * This method MUST be called before the {@link #onQcdmMessage(QcdmMessage)} method as it sets
+     * This method MUST be called before the {@link #onPcapMessage(PcapMessage)} method as it sets
      * up the output stream that the method writes the QCDM message to.
      */
     public void createNewPcapFile() throws IOException
@@ -200,8 +112,6 @@ public class QcdmPcapWriter implements IQcdmMessageListener
                 outputStream.close();
             }
 
-            recordsLogged = 0;
-
             currentFileSizeBytes = 0;
 
             currentPcapFile = new File(createNewFilePath());
@@ -211,8 +121,6 @@ public class QcdmPcapWriter implements IQcdmMessageListener
             outputStream.write(PCAP_FILE_GLOBAL_HEADER);
             outputStream.flush();
         }
-
-        notifyStatusListeners();
     }
 
     /**
@@ -236,7 +144,6 @@ public class QcdmPcapWriter implements IQcdmMessageListener
         try
         {
             if (outputStream != null) outputStream.close();
-            recordsLogged = 0;
         } catch (Exception e)
         {
             Timber.e(e, "Could not close the pcap file output stream");
@@ -278,44 +185,6 @@ public class QcdmPcapWriter implements IQcdmMessageListener
             Timber.d("Received an MDM change event for a log rollover size preference change; new value=%s", newRolloverSizeMb);
             final int newLogSizeMax = newRolloverSizeMb * BYTES_PER_MEGABYTE;
             if (newLogSizeMax != maxLogSizeBytes) maxLogSizeBytes = newLogSizeMax;
-        }
-    }
-
-    /**
-     * Adds a record logged listener.
-     *
-     * @param listener The listener to add
-     */
-    public void registerRecordsLoggedListener(IServiceStatusListener listener)
-    {
-        serviceMessageListeners.add(listener);
-    }
-
-    /**
-     * Removes a record logged listener.
-     *
-     * @param listener The listener to remove
-     */
-    public void unregisterRecordsLoggedListener(IServiceStatusListener listener)
-    {
-        serviceMessageListeners.remove(listener);
-    }
-
-    /**
-     * Notify all the listeners of the updated status if the proper amount of time has passed since the last notification.
-     */
-    private void notifyStatusListeners()
-    {
-        ServiceStatusMessage recordLoggedMessage = new ServiceStatusMessage(ServiceStatusMessage.SERVICE_RECORD_LOGGED_MESSAGE, recordsLogged);
-        for (IServiceStatusListener listener : serviceMessageListeners)
-        {
-            try
-            {
-                listener.onServiceStatusMessage(recordLoggedMessage);
-            } catch (Exception e)
-            {
-                Timber.e(e, "Unable to notify a Status Listener because of an exception");
-            }
         }
     }
 

@@ -1,7 +1,7 @@
 package com.craxiom.networksurveyplus;
 
 import com.craxiom.networksurveyplus.messages.DiagRevealerMessage;
-import com.craxiom.networksurveyplus.messages.ParserUtils;
+import com.craxiom.networksurveyplus.util.ParserUtils;
 
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;

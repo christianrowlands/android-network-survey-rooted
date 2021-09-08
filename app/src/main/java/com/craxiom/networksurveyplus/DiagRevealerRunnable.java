@@ -2,6 +2,7 @@ package com.craxiom.networksurveyplus;
 
 import android.content.Context;
 
+import com.craxiom.networksurveyplus.util.RootUtil;
 import com.google.common.io.ByteStreams;
 
 import java.io.InterruptedIOException;
