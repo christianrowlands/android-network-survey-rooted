@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 apply from: "../artifacts.gradle"
 
-ext.networkSurveyMessagingVersion = '0.7.0-SN'
+ext.networkSurveyMessagingVersion = '0.7.0'
 
 android {
     compileSdkVersion 29

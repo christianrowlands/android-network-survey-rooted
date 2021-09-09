@@ -149,9 +149,13 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IPcapMe
         if (mqttClientId != null) dataBuilder.setDeviceName(mqttClientId);
         dataBuilder.setMissionId(missionId);
         dataBuilder.setDeviceTime(ParserUtils.getRfc3339String(ZonedDateTime.now()));
-        dataBuilder.setAltitude((float) location.getAltitude());
-        dataBuilder.setLatitude(location.getLatitude());
-        dataBuilder.setLongitude(location.getLongitude());
+        if (location != null)
+        {
+            dataBuilder.setAltitude((float) location.getAltitude());
+            dataBuilder.setLatitude(location.getLatitude());
+            dataBuilder.setLongitude(location.getLongitude());
+            dataBuilder.setAccuracy(ParserUtils.roundAccuracy(location.getAccuracy()));
+        }
 
         dataBuilder.setPcapRecord(ByteString.copyFrom(pcapMessage.getPcapRecord()));
 
@@ -171,21 +175,26 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IPcapMe
      */
     public UmtsNas convertUmtsNasMessage(PcapMessage pcapMessage, Location location)
     {
-        final UmtsNasData.Builder umtsNasDataBuilder = UmtsNasData.newBuilder();
+        final UmtsNasData.Builder dataBuilder = UmtsNasData.newBuilder();
 
-        umtsNasDataBuilder.setDeviceSerialNumber(deviceId);
-        if (mqttClientId != null) umtsNasDataBuilder.setDeviceName(mqttClientId);
-        umtsNasDataBuilder.setMissionId(missionId);
-        umtsNasDataBuilder.setDeviceTime(ParserUtils.getRfc3339String(ZonedDateTime.now()));
-        umtsNasDataBuilder.setAltitude((float) location.getAltitude());
-        umtsNasDataBuilder.setLatitude(location.getLatitude());
-        umtsNasDataBuilder.setLongitude(location.getLongitude());
-        umtsNasDataBuilder.setPcapRecord(ByteString.copyFrom(pcapMessage.getPcapRecord()));
+        dataBuilder.setDeviceSerialNumber(deviceId);
+        if (mqttClientId != null) dataBuilder.setDeviceName(mqttClientId);
+        dataBuilder.setMissionId(missionId);
+        dataBuilder.setDeviceTime(ParserUtils.getRfc3339String(ZonedDateTime.now()));
+        if (location != null)
+        {
+            dataBuilder.setAltitude((float) location.getAltitude());
+            dataBuilder.setLatitude(location.getLatitude());
+            dataBuilder.setLongitude(location.getLongitude());
+            dataBuilder.setAccuracy(ParserUtils.roundAccuracy(location.getAccuracy()));
+        }
+
+        dataBuilder.setPcapRecord(ByteString.copyFrom(pcapMessage.getPcapRecord()));
 
         final UmtsNas.Builder umtsNasBuilder = UmtsNas.newBuilder();
         umtsNasBuilder.setVersion(BuildConfig.MESSAGING_API_VERSION);
         umtsNasBuilder.setMessageType(pcapMessage.getMessageType());
-        umtsNasBuilder.setData(umtsNasDataBuilder.build());
+        umtsNasBuilder.setData(dataBuilder.build());
 
         return umtsNasBuilder.build();
     }
@@ -200,23 +209,27 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IPcapMe
     public WcdmaRrc convertWcdmaRrcOtaMessage(PcapMessage pcapMessage, Location location)
     {
         final WcdmaRrc.Builder wcdmaRrcBuilder = WcdmaRrc.newBuilder();
-        final WcdmaRrcData.Builder wcdmaRrcDataBuilder = WcdmaRrcData.newBuilder();
+        final WcdmaRrcData.Builder dataBuilder = WcdmaRrcData.newBuilder();
 
         wcdmaRrcBuilder.setVersion(BuildConfig.MESSAGING_API_VERSION);
         wcdmaRrcBuilder.setMessageType(pcapMessage.getMessageType());
 
-        wcdmaRrcDataBuilder.setDeviceSerialNumber(deviceId);
-        if (mqttClientId != null) wcdmaRrcDataBuilder.setDeviceName(mqttClientId);
-        wcdmaRrcDataBuilder.setMissionId(missionId);
-        wcdmaRrcDataBuilder.setDeviceTime(ParserUtils.getRfc3339String(ZonedDateTime.now()));
-        wcdmaRrcDataBuilder.setAltitude((float) location.getAltitude());
-        wcdmaRrcDataBuilder.setLatitude(location.getLatitude());
-        wcdmaRrcDataBuilder.setLongitude(location.getLongitude());
+        dataBuilder.setDeviceSerialNumber(deviceId);
+        if (mqttClientId != null) dataBuilder.setDeviceName(mqttClientId);
+        dataBuilder.setMissionId(missionId);
+        dataBuilder.setDeviceTime(ParserUtils.getRfc3339String(ZonedDateTime.now()));
+        if (location != null)
+        {
+            dataBuilder.setAltitude((float) location.getAltitude());
+            dataBuilder.setLatitude(location.getLatitude());
+            dataBuilder.setLongitude(location.getLongitude());
+            dataBuilder.setAccuracy(ParserUtils.roundAccuracy(location.getAccuracy()));
+        }
 
-        wcdmaRrcDataBuilder.setPcapRecord(ByteString.copyFrom(pcapMessage.getPcapRecord()));
+        dataBuilder.setPcapRecord(ByteString.copyFrom(pcapMessage.getPcapRecord()));
 
-        wcdmaRrcDataBuilder.setChannelTypeValue(pcapMessage.getChannelType() + 1); // Here we offset by 1 to match with the WcdmaRrcChannelType values
-        wcdmaRrcBuilder.setData(wcdmaRrcDataBuilder.build());
+        dataBuilder.setChannelTypeValue(pcapMessage.getChannelType() + 1); // Here we offset by 1 to match with the WcdmaRrcChannelType values
+        wcdmaRrcBuilder.setData(dataBuilder.build());
 
         return wcdmaRrcBuilder.build();
     }
@@ -231,24 +244,28 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IPcapMe
     private LteRrc convertLteRrcMessage(PcapMessage pcapMessage, Location location)
     {
         final LteRrc.Builder lteRrcBuilder = LteRrc.newBuilder();
-        final LteRrcData.Builder lteRrcDataBuilder = LteRrcData.newBuilder();
+        final LteRrcData.Builder dataBuilder = LteRrcData.newBuilder();
 
         lteRrcBuilder.setVersion(BuildConfig.MESSAGING_API_VERSION);
         lteRrcBuilder.setMessageType(pcapMessage.getMessageType());
 
-        lteRrcDataBuilder.setDeviceSerialNumber(deviceId);
-        if (mqttClientId != null) lteRrcDataBuilder.setDeviceName(mqttClientId);
-        lteRrcDataBuilder.setMissionId(missionId);
-        lteRrcDataBuilder.setDeviceTime(ParserUtils.getRfc3339String(ZonedDateTime.now()));
-        lteRrcDataBuilder.setAltitude((float) location.getAltitude());
-        lteRrcDataBuilder.setLatitude(location.getLatitude());
-        lteRrcDataBuilder.setLongitude(location.getLongitude());
+        dataBuilder.setDeviceSerialNumber(deviceId);
+        if (mqttClientId != null) dataBuilder.setDeviceName(mqttClientId);
+        dataBuilder.setMissionId(missionId);
+        dataBuilder.setDeviceTime(ParserUtils.getRfc3339String(ZonedDateTime.now()));
+        if (location != null)
+        {
+            dataBuilder.setAltitude((float) location.getAltitude());
+            dataBuilder.setLatitude(location.getLatitude());
+            dataBuilder.setLongitude(location.getLongitude());
+            dataBuilder.setAccuracy(ParserUtils.roundAccuracy(location.getAccuracy()));
+        }
 
-        lteRrcDataBuilder.setPcapRecord(ByteString.copyFrom(pcapMessage.getPcapRecord()));
+        dataBuilder.setPcapRecord(ByteString.copyFrom(pcapMessage.getPcapRecord()));
 
-        lteRrcDataBuilder.setChannelTypeValue(pcapMessage.getChannelType() + 1); // Here we offset by 1 to match with the LteRrcChannelType values
+        dataBuilder.setChannelTypeValue(pcapMessage.getChannelType() + 1); // Here we offset by 1 to match with the LteRrcChannelType values
 
-        lteRrcBuilder.setData(lteRrcDataBuilder.build());
+        lteRrcBuilder.setData(dataBuilder.build());
 
         return lteRrcBuilder.build();
     }
@@ -262,23 +279,28 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IPcapMe
      */
     public LteNas convertLteNasMessage(PcapMessage pcapMessage, Location location)
     {
-        final LteNasData.Builder lteNasDataBuilder = LteNasData.newBuilder();
+        final LteNasData.Builder dataBuilder = LteNasData.newBuilder();
 
-        lteNasDataBuilder.setDeviceSerialNumber(deviceId);
-        if (mqttClientId != null) lteNasDataBuilder.setDeviceName(mqttClientId);
-        lteNasDataBuilder.setMissionId(missionId);
-        lteNasDataBuilder.setDeviceTime(ParserUtils.getRfc3339String(ZonedDateTime.now()));
-        lteNasDataBuilder.setAltitude((float) location.getAltitude());
-        lteNasDataBuilder.setLatitude(location.getLatitude());
-        lteNasDataBuilder.setLongitude(location.getLongitude());
-        lteNasDataBuilder.setPcapRecord(ByteString.copyFrom(pcapMessage.getPcapRecord()));
+        dataBuilder.setDeviceSerialNumber(deviceId);
+        if (mqttClientId != null) dataBuilder.setDeviceName(mqttClientId);
+        dataBuilder.setMissionId(missionId);
+        dataBuilder.setDeviceTime(ParserUtils.getRfc3339String(ZonedDateTime.now()));
+        if (location != null)
+        {
+            dataBuilder.setAltitude((float) location.getAltitude());
+            dataBuilder.setLatitude(location.getLatitude());
+            dataBuilder.setLongitude(location.getLongitude());
+            dataBuilder.setAccuracy(ParserUtils.roundAccuracy(location.getAccuracy()));
+        }
 
-        lteNasDataBuilder.setChannelTypeValue(pcapMessage.getChannelType() + 1); // Here we offset by 1 to match with the LteNasChannelType values
+        dataBuilder.setPcapRecord(ByteString.copyFrom(pcapMessage.getPcapRecord()));
+
+        dataBuilder.setChannelTypeValue(pcapMessage.getChannelType() + 1); // Here we offset by 1 to match with the LteNasChannelType values
 
         final LteNas.Builder lteNasBuilder = LteNas.newBuilder();
         lteNasBuilder.setVersion(BuildConfig.MESSAGING_API_VERSION);
         lteNasBuilder.setMessageType(pcapMessage.getMessageType());
-        lteNasBuilder.setData(lteNasDataBuilder.build());
+        lteNasBuilder.setData(dataBuilder.build());
 
         return lteNasBuilder.build();
     }

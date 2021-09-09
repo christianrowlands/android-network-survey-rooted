@@ -5,6 +5,8 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 
+import androidx.annotation.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,8 +22,6 @@ import timber.log.Timber;
  */
 public class GpsListener implements LocationListener
 {
-    private static final float MIN_DISTANCE_ACCURACY = 44f; // Probably need to make this configurable
-
     private Location latestLocation;
     private final List<IServiceStatusListener> serviceMessageListeners = new ArrayList<>();
 
@@ -85,6 +85,10 @@ public class GpsListener implements LocationListener
         serviceMessageListeners.remove(listener);
     }
 
+    /**
+     * @return The last location provided by the Android OS, or null if the location could not be obtained.
+     */
+    @Nullable
     public Location getLatestLocation()
     {
         return latestLocation;
@@ -97,13 +101,9 @@ public class GpsListener implements LocationListener
      */
     private void updateLocation(Location newLocation)
     {
-        if (newLocation != null && newLocation.getAccuracy() <= MIN_DISTANCE_ACCURACY)
+        if (newLocation != null)
         {
             latestLocation = newLocation;
-        } else
-        {
-            Timber.d("The accuracy of the last GPS location (%f) is less than the required minimum (%f)", newLocation.getAccuracy(), MIN_DISTANCE_ACCURACY);
-            latestLocation = null;
         }
 
         ServiceStatusMessage locationMessage = new ServiceStatusMessage(ServiceStatusMessage.SERVICE_LOCATION_MESSAGE, latestLocation);

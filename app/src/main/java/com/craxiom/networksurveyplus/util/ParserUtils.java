@@ -1,5 +1,7 @@
 package com.craxiom.networksurveyplus.util;
 
+import android.location.Location;
+
 import com.craxiom.networksurveyplus.messages.DiagRevealerMessage;
 import com.craxiom.networksurveyplus.messages.DiagRevealerMessageHeader;
 import com.craxiom.networksurveyplus.messages.QcdmMessage;
@@ -397,5 +399,18 @@ public class ParserUtils
     public static String getRfc3339String(ZonedDateTime date)
     {
         return DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(date);
+    }
+
+    /**
+     * Rounds location accuracy to the nearest int. If the accuracy is greater than 0, but less than 0.5,
+     * we must return 1 as an accuracy of 0.0 implies no accuracy was available as per {@link Location#getAccuracy()}
+     *
+     * @param accuracy Location accuracy
+     * @return If accuracy >= 0.5, the location accuracy rounded to the nearest int. If 0.0 < accuracy < 0.5, then 1.
+     */
+    public static int roundAccuracy(float accuracy)
+    {
+        boolean isEdgeCase = 0.0f < accuracy && accuracy < 0.5f;
+        return isEdgeCase ? 1 : Math.round(accuracy);
     }
 }

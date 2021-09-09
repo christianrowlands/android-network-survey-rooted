@@ -76,6 +76,10 @@ are a list of other projects that might be of interest to you.
 
 ## Changelog
 
+##### [0.5.0](https://github.com/christianrowlands/android-network-survey-rooted/releases/tag/v0.5.0) - 2021-09-10
+ * MQTT streaming now sends the entire pcap record in the JSON message.
+ * Switched to send the MQTT messages to the `cellular_ota_message` topic.
+
 ##### [0.4.0](https://github.com/christianrowlands/android-network-survey-rooted/releases/tag/v0.4.0) - 2021-08-04
  * Added support for logging GSM RR Signaling messages to pcap records.
  * Added the version number to the home screen.
