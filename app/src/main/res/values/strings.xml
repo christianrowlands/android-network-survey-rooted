@@ -11,6 +11,11 @@
         \n\n1. <b>Access this Device\'s Location</b>:  This app creates a log file which includes the location at which the cellular record was captured.
         \n\n2. <b>Access Photos, Media, and Files on Your Device</b>:  This permission allows the log file to be written.</string>
 
+    <string name="background_location_permission_rationale_title">Background Location</string>
+    <string name="background_location_permission_rationale">Network Survey+ collects location data to enable starting Cellular survey at boot, even when the app is closed or not in use.
+        \n\nWithout the background location permission, this app will not be able to auto start surveying Cellular at phone boot (it can still be started manually by opening the app without the background location permission).\n\nEnable the background location permission in the Android settings for this app by selecting <b>Allow all the time</b> on the next page.</string>
+    <string name="open_settings">Open Settings</string>
+
     <string name="network_survey_service_description">The Network Survey+ Service runs when the app needs to do work in the background such as write to the log file or stream data out over active connection</string>
 
     <string name="notification_channel_name">Network Survey+</string>
@@ -37,11 +42,20 @@
     <string name="records_logged">Records Processed:</string>
 
     <!-- User Preference Constants -->
+    <string name="mdm_override_title">MDM Override</string>
+    <string name="mdm_override_summary_on">Network Survey is controlled via MDM, but now some of the MDM settings can be overridden</string>
+    <string name="mdm_override_summary_off">Network Survey is controlled via MDM</string>
+
     <string name="auto_start_logging_title">Auto start logging</string>
-    <string name="auto_start_logging_summary_on">Logging will be started upon app opening</string>
+    <string name="auto_start_logging_summary_on">Logging will be started upon app opening or when the phone is turned on</string>
     <string name="auto_start_logging_summary_off">Logging will only start when manually enabled</string>
 
     <string name="log_rollover_size_title">Log Rollover Size (MB)</string>
+
+    <string name="mqtt_connection_config_title">MQTT Connection Config</string>
+
+    <string name="auto_start_mqtt_summary_on">The MQTT connection will be started when the phone is booted (Note that a valid MQTT broker must be configured in the connection UI)</string>
+    <string name="auto_start_mqtt_summary_off">The MQTT connection will only be started manually</string>
 
     <!-- App Restriction Constants -->
     <string name="auto_start_logging_on_boot_description">If true, when the phone boots cellular pcap logging will be started</string>
@@ -53,6 +67,8 @@
     <string name="gnss_stream_title">GNSS Stream Enabled</string>
     <string name="gnss_stream_description">True to stream GNSS data, false otherwise</string>
 
+    <string name="mqtt_start_on_boot_title">MQTT Start at Boot</string>
+    <string name="mqtt_start_on_boot_description">If true, when the phone boots an attempt will be made to connect to the MDM configured MQTT broker</string>
     <string name="mqtt_connection_host_title">MQTT Connection Host</string>
     <string name="mqtt_connection_host_description">The MQTT broker hostname (e.g. mqtt.example.com)</string>
     <string name="mqtt_connection_port_title">MQTT Connection Port</string>

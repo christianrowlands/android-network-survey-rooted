@@ -3,14 +3,15 @@ package com.craxiom.networksurveyplus;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.RestrictionsManager;
-import android.os.Bundle;
+
+import com.craxiom.networksurveyplus.util.PreferenceUtils;
 
 import timber.log.Timber;
 
 /**
  * Starts the Network Survey Service when Android is booted if the {@link Constants#PROPERTY_AUTO_START_PCAP_LOGGING}
- * property has been set by the MDM managed configuration.
+ * property has been set by the MDM managed configuration or if the {@link Constants#PROPERTY_MQTT_START_ON_BOOT}
+ * property has been set in the MDM managed configuration or the regular user settings.
  *
  * @since 0.1.0
  */
@@ -25,13 +26,14 @@ public class StartAtBootReceiver extends BroadcastReceiver
 
         Timber.d("Received the boot completed broadcast message in the Network Survey+ broadcast receiver");
 
-        final RestrictionsManager restrictionsManager = (RestrictionsManager) context.getSystemService(Context.RESTRICTIONS_SERVICE);
-        if (restrictionsManager == null) return;
-
-        final Bundle mdmProperties = restrictionsManager.getApplicationRestrictions();
-        if (mdmProperties.getBoolean(Constants.PROPERTY_AUTO_START_PCAP_LOGGING, false))
+        if (PreferenceUtils.getMqttStartOnBootPreference(context))
         {
-            Timber.i("Auto starting the QCDM Service based on the MDM auto start preference");
+            Timber.i("Auto starting the QCDM Service based on the user or MDM MQTT auto start preference");
+
+            startNetworkSurveyService(context);
+        } else if (PreferenceUtils.getAutoStartPreference(Constants.PROPERTY_AUTO_START_PCAP_LOGGING, false, context))
+        {
+            Timber.i("Auto starting the QCDM Service based on the auto start preference");
 
             startNetworkSurveyService(context);
         }

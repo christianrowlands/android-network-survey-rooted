@@ -23,9 +23,13 @@ public class Constants
     public static final int DEFAULT_LOG_ROLLOVER_SIZE_MB = 5;
 
     // Preferences
+    public static final String PROPERTY_MDM_OVERRIDE_KEY = "mdm_override";
     public static final String PROPERTY_LOCATION_REFRESH_RATE_MS = "location_refresh_rate_ms";
     // the following need to match the keys of preference items within network_survey_settings.xml
     // or more specifically in strings.xml
     public static final String PROPERTY_AUTO_START_PCAP_LOGGING = "auto_start_logging";
     public static final String PROPERTY_LOG_ROLLOVER_SIZE_MB = "log_rollover_size";
+
+    // The following key is used in the app_restrictions.xml file and in the app's shared preferences
+    public static final String PROPERTY_MQTT_START_ON_BOOT = "mqtt_start_on_boot";
 }
