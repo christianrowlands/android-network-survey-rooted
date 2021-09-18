@@ -30,6 +30,7 @@ import com.craxiom.mqttlibrary.connection.BrokerConnectionInfo;
 import com.craxiom.mqttlibrary.connection.ConnectionState;
 import com.craxiom.mqttlibrary.ui.AConnectionFragment;
 import com.craxiom.networksurveyplus.mqtt.QcdmMqttConnection;
+import com.craxiom.networksurveyplus.util.PreferenceUtils;
 import com.google.common.io.ByteStreams;
 
 import java.nio.file.Files;
@@ -113,7 +114,11 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
         if (startedAtBoot)
         {
             Timber.i("Received the startedAtBoot flag in the QcdmService.");
-            if (!pcapLoggingEnabled.get()) togglePcapLogging(true);
+
+            attemptMqttConnectionAtBoot();
+
+            final boolean autoStartPcapLogging = PreferenceUtils.getAutoStartPreference(Constants.PROPERTY_AUTO_START_PCAP_LOGGING, false, getApplicationContext());
+            if (autoStartPcapLogging && !pcapLoggingEnabled.get()) togglePcapLogging(true);
         }
 
         return START_REDELIVER_INTENT;
@@ -380,6 +385,82 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
                 Timber.e(e, "Could not create the QCDM PCAP writer");
             }
         }
+    }
+
+    /**
+     * Tries to establish an MQTT broker connection after the phone is first started up.
+     * <p>
+     * This method only applies to creating the MQTT connection at boot for two reasons. First, it checks the start
+     * MQTT at boot preference before creating the connection, and secondly, it does not first disconnect any existing
+     * connections because it assumes this method is being called from a fresh start of the Android phone.
+     * <p>
+     * First, it tries to create a connection using the MDM configured MQTT parameters as long as the user has not
+     * toggled the MDM override option. In that case, this method will jump straight to using the user provided MQTT
+     * connection information.
+     * <p>
+     * If the MDM override option is enabled, or if the MDM connection information could not be found then this method
+     * attempts to use the user provided MQTT connection information.
+     *
+     * @since 0.6.0
+     */
+    private void attemptMqttConnectionAtBoot()
+    {
+        if (!PreferenceUtils.getMqttStartOnBootPreference(getApplicationContext()))
+        {
+            Timber.i("Skipping the mqtt auto-connect because the preference indicated as such");
+            return;
+        }
+
+        // First try to use the MDM settings. The only exception to this is if the user has overridden the MDM settings
+        boolean mdmConnection = false;
+        if (!isMqttMdmOverrideEnabled())
+        {
+            final RestrictionsManager restrictionsManager = (RestrictionsManager) getSystemService(Context.RESTRICTIONS_SERVICE);
+            if (restrictionsManager != null)
+            {
+                final BrokerConnectionInfo connectionInfo = getMdmBrokerConnectionInfo();
+                if (connectionInfo != null)
+                {
+                    mdmConnection = true;
+                    connectToMqttBroker(connectionInfo);
+                }
+            }
+        }
+
+        if (!mdmConnection)
+        {
+            final BrokerConnectionInfo userBrokerConnectionInfo = getUserBrokerConnectionInfo();
+            if (userBrokerConnectionInfo != null)
+            {
+                connectToMqttBroker(userBrokerConnectionInfo);
+            }
+        }
+    }
+
+    /**
+     * Get the user configured MQTT broker connection information to use to establish the connection.
+     * <p>
+     * If no user defined MQTT broker connection information is present, then null is returned.
+     *
+     * @return The connection settings to use for the MQTT broker, or null if no connection information is present.
+     * @since 0.6.0
+     */
+    private BrokerConnectionInfo getUserBrokerConnectionInfo()
+    {
+        final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+
+        final String mqttBrokerHost = preferences.getString(MqttConstants.PROPERTY_MQTT_CONNECTION_HOST, "");
+        if (mqttBrokerHost.isEmpty()) return null;
+
+        final String clientId = preferences.getString(MqttConstants.PROPERTY_MQTT_CLIENT_ID, "");
+        if (clientId.isEmpty()) return null;
+
+        final int portNumber = preferences.getInt(MqttConstants.PROPERTY_MQTT_CONNECTION_PORT, MqttConstants.DEFAULT_MQTT_PORT);
+        final boolean tlsEnabled = preferences.getBoolean(MqttConstants.PROPERTY_MQTT_CONNECTION_TLS_ENABLED, MqttConstants.DEFAULT_MQTT_TLS_SETTING);
+        final String username = preferences.getString(MqttConstants.PROPERTY_MQTT_USERNAME, "");
+        final String password = preferences.getString(MqttConstants.PROPERTY_MQTT_PASSWORD, "");
+
+        return new BrokerConnectionInfo(mqttBrokerHost, portNumber, tlsEnabled, clientId, username, password);
     }
 
     /**

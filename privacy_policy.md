@@ -1,6 +1,6 @@
 ## Privacy Policy
 
-Christian Rowlands built the Network Survey+ app as an Open Source app. This App is provided by Christian Rowlands at no cost and is intended for use as is.
+Christian Rowlands built the Network Survey+ (aka Network Survey Plus) app as an Open Source app. This App is provided by Christian Rowlands at no cost and is intended for use as is.
 
 This page is used to inform visitors regarding my policies with the collection, use, and disclosure of Personal Information if anyone decided to use the App.
 
@@ -29,8 +29,8 @@ configured and initiated by the user, and a default server is not provided.
 
 **Background Location Permission**
 
-The Network Survey Android app requests permission to access the device's location in the background. This background location
-permission is needed to start Network Survey at boot. Denying the background location permission will prevent the auto-start
+The Network Survey Plus Android app requests permission to access the device's location in the background. This background location
+permission is needed to start Network Survey Plus at boot. Denying the background location permission will prevent the auto-start
 at boot location feature from working correctly on Android 11 and above, but all other app functionality will work as expected.
 
 **Location Permission**
@@ -44,7 +44,7 @@ remote server provided with the app, so it is necessary for the user of the Netw
 server to receive that information. The location data is not used in any other way than defined above. The location data
 is not shared with any 3rd parties, and is not accessable by anyone except for the user. Therefore, the location data
 is not collection, used, or shared by or with anyone that the user has not direclty handed the data to by uploading
-the recorded GeoPackage or sent to by connecting to someone elses MQTT or gRPC server.
+the recorded pcap file or sent to by connecting to someone elses MQTT or gRPC server.
 
 **Log Data**
 

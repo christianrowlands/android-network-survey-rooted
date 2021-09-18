@@ -16,6 +16,13 @@
         android:title="@string/log_rollover_size_title" />
 
     <restriction
+        android:defaultValue="true"
+        android:description="@string/mqtt_start_on_boot_description"
+        android:key="mqtt_start_on_boot"
+        android:restrictionType="bool"
+        android:title="@string/mqtt_start_on_boot_title" />
+
+    <restriction
         android:defaultValue=""
         android:description="@string/mqtt_connection_host_description"
         android:key="mqtt_connection_host"

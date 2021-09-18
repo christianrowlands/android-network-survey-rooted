@@ -13,6 +13,7 @@ import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.view.Menu;
@@ -53,6 +54,8 @@ public class MainActivity extends AppCompatActivity
     public static final String[] PERMISSIONS = {
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.WRITE_EXTERNAL_STORAGE};
+
+    private static final int ACCESS_BACKGROUND_LOCATION_PERMISSION_REQUEST_ID = 2;
 
     private QcdmService qcdmService;
     private QcdmServiceConnection qcdmServiceConnection;
@@ -102,6 +105,10 @@ public class MainActivity extends AppCompatActivity
         {
             showPermissionRationaleAndRequestPermissions();
         }
+
+        // As of Android 11, you have to request the Background location permission as a separate request, otherwise it
+        // fails: https://developer.android.com/about/versions/11/privacy/location#background-location
+        if (missingBackgroundLocationPermission()) showBackgroundLocationRationaleAndRequest();
 
         startAndBindToQcdmService();
     }
@@ -181,6 +188,32 @@ public class MainActivity extends AppCompatActivity
     }
 
     /**
+     * Check to see if we should show the rationale for the background location permission.  If so, then display a
+     * dialog that explains why we need the background location permission.
+     * <p>
+     * We can only request the background location permission if the user has already granted the general location
+     * permission.
+     *
+     * @since 0.6.0
+     */
+    private void showBackgroundLocationRationaleAndRequest()
+    {
+        if (hasLocationPermission() && ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION))
+        {
+            Timber.d("Showing the background location permission rationale dialog");
+
+            AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
+            alertBuilder.setCancelable(true);
+            alertBuilder.setTitle(getString(R.string.background_location_permission_rationale_title));
+            alertBuilder.setMessage(getText(R.string.background_location_permission_rationale));
+            alertBuilder.setPositiveButton(R.string.open_settings, (dialog, which) -> requestBackgroundLocationPermission());
+
+            AlertDialog permissionsExplanationDialog = alertBuilder.create();
+            permissionsExplanationDialog.show();
+        }
+    }
+
+    /**
      * Request the permissions needed for this app if any of them have not yet been granted.  If all of the permissions
      * are already granted then don't request anything.
      */
@@ -190,6 +223,23 @@ public class MainActivity extends AppCompatActivity
         {
             ActivityCompat.requestPermissions(this, PERMISSIONS, ACCESS_PERMISSION_REQUEST_ID);
             hasRequestedPermissions = true;
+        }
+    }
+
+    /**
+     * Request the background location permission, which presents the user with the App's location permission settings
+     * page.
+     *
+     * @since 1.4.0
+     */
+    private void requestBackgroundLocationPermission()
+    {
+        if (missingBackgroundLocationPermission())
+        {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+            {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION}, ACCESS_BACKGROUND_LOCATION_PERMISSION_REQUEST_ID);
+            }
         }
     }
 
@@ -208,6 +258,38 @@ public class MainActivity extends AppCompatActivity
         }
 
         return false;
+    }
+
+    /**
+     * @return True if the background location permission for this app has been denied; false otherwise.
+     * @since 0.6.0
+     */
+    private boolean missingBackgroundLocationPermission()
+    {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+        {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED)
+            {
+                Timber.i("Missing the permission: %s", Manifest.permission.ACCESS_BACKGROUND_LOCATION);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return True if the {@link Manifest.permission#ACCESS_FINE_LOCATION} permission has been granted.  False otherwise.
+     */
+    private boolean hasLocationPermission()
+    {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+        {
+            Timber.w("The ACCESS_FINE_LOCATION permission has not been granted");
+            return false;
+        }
+
+        return true;
     }
 
     /**
