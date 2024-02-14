@@ -70,6 +70,8 @@ public class QcdmMqttConnection extends DefaultMqttConnection implements IPcapMe
             case CraxiomConstants.LTE_NAS_MESSAGE_TYPE:
                 convertAndPublishLteNasMessage(pcapMessage);
                 break;
+            //TODO
+            //case CraxiomConstants.LTE_MIB_MESSAGE_TYPE:
             default:
                 Timber.w("Unhandled message type for the MQTT Connection %s", pcapMessage.getMessageType());
         }

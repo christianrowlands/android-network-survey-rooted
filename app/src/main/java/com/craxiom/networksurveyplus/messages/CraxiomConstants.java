@@ -13,5 +13,6 @@ public class CraxiomConstants
     public static final String WCDMA_RRC_MESSAGE_TYPE = "WcdmaRrc";
 
     public static final String LTE_RRC_MESSAGE_TYPE = "LteRrc";
+    public static final String LTE_MIB_MESSAGE_TYPE = "LteMib";
     public static final String LTE_NAS_MESSAGE_TYPE = "LteNas";
 }

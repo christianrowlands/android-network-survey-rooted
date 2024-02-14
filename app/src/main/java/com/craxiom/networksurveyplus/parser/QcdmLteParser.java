@@ -111,6 +111,57 @@ public class QcdmLteParser
 
         return new PcapMessage(pcapRecord, CraxiomConstants.LTE_RRC_MESSAGE_TYPE, gsmtapChannelType);
     }
+    /**
+     * Given a {@link QcdmMessage} that contains an LTE NAS message, convert it to a pcap record byte array that
+     * can be consumed by tools like Wireshark.
+     *
+     * @param qcdmMessage The QCDM message to convert into a pcap record.
+     * @param location    The location to tie to the QCDM message when writing it to a pcap file. If null then no
+     *                    location will be added to the PPI header.
+     * @return The pcap record to write to a pcap file or stream over MQTT.
+     */
+    public static PcapMessage convertLteMibMessage(QcdmMessage qcdmMessage, Location location)
+    {
+        Timber.v("Handling an LTE MIB message");
+
+        final byte[] logPayload = qcdmMessage.getLogPayload();
+        // version == 2:
+        final byte pkgVersion = logPayload[0];
+        final int pci = ParserUtils.getShort(logPayload, 1, ByteOrder.LITTLE_ENDIAN);
+        final int earfcn = ParserUtils.getInteger(logPayload, 3, ByteOrder.LITTLE_ENDIAN);
+        final int sfn = ParserUtils.getShort(logPayload, 7, ByteOrder.LITTLE_ENDIAN);
+        final byte txAnt = logPayload[9];
+        final byte bw = logPayload[10];
+        //# 1.4, 3, 5, 10, 15, 20 MHz - 6, 15, 25, 50, 75, 100 PRBs
+        //    prb_to_bitval = {6: 0, 15: 1, 25: 2, 50: 3, 75: 4, 100: 5}
+        final byte[] mib_payload = new byte[]{0,0,0};
+        byte bitVal ;
+        switch (bw){
+            case 15: bitVal=1; break;
+            case 25: bitVal=2; break;
+            case 50: bitVal=3; break;
+            case 75: bitVal=4; break;
+            case 100: bitVal=5; break;
+            case 6:
+            default: bitVal=0;
+        }
+        // https://techlteworld.com/mib-master-information-block-in-lte/
+        int sfn4 = (int)(sfn/4);
+        mib_payload[0] = (byte) (bitVal << 5);
+        mib_payload[0] +=  (2 << 2);
+        mib_payload[0] += (sfn4 & 0b11000000) >> 6;
+        mib_payload[1] = (byte) ((sfn4 & 0b111111) << 2);
+        //Timber.i("MIB pkgVer:%d, pci:%d, earfcn:%d, sfn:%d, txAnt:%d, bw:%d; mib[0]:%d, mib[1]:%d", pkgVersion, pci , earfcn, sfn, txAnt, bw, mib_payload[0], mib_payload[1]);
+
+        final int logType = qcdmMessage.getLogType();
+        final boolean isUplink = false; // Always down-link ?
+        final int gsmtapChannelType =  LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_BCCH_BCH_Message.ordinal();
+
+        final byte[] pcapRecord = PcapUtils.getGsmtapPcapRecord(GsmtapConstants.GSMTAP_TYPE_LTE_RRC, mib_payload, gsmtapChannelType,
+                earfcn, isUplink, sfn, 0, qcdmMessage.getSimId(), location);
+
+        return new PcapMessage(pcapRecord, CraxiomConstants.LTE_MIB_MESSAGE_TYPE, gsmtapChannelType);
+    }
 
     /**
      * Given a {@link QcdmMessage} that contains an LTE NAS message, convert it to a pcap record byte array that
