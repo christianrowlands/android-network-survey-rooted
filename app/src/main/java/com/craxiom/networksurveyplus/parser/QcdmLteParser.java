@@ -274,6 +274,7 @@ public class QcdmLteParser
                 break;
 
             case 20: // 0x14
+            case 24: // 0x18
                 switch (channelType)
                 {
                     case 1:

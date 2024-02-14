@@ -889,7 +889,7 @@ enable_logging (int fd, int mode)
 
     ssize_t arglen = probe_ioctl_arglen(DIAG_IOCTL_SWITCH_LOGGING, sizeof(struct diag_logging_mode_param_t_q));
 
-    if (strstr(board_name, "lito") != NULL && strstr(system_version, "11") != NULL){
+    if (/*strstr(board_name, "lito") != NULL && */strstr(system_version, "11") != NULL){
         LOGD("MATCHED.\n");
         //printf("MATCHED.\n");
         /* Android 11.0.0 (RD1A.201105.003.C1)
@@ -910,7 +910,11 @@ enable_logging (int fd, int mode)
         new_mode.diag_id = 0;
         new_mode.pd_val = 0;
         new_mode.peripheral = 0;
-        new_mode.device_mask = 1 << DIAG_MD_LOCAL;
+        if (remote_dev){
+			new_mode.device_mask = 1 << DIAG_MD_MDM;
+		}else{
+			new_mode.device_mask = 1 << DIAG_MD_LOCAL;
+		}
         ret = ioctl(fd, DIAG_IOCTL_SWITCH_LOGGING, &new_mode);
         LOGD("Enable for Android 11: %d\n", ret);
         printf("Enable for Android 11: %d\n", ret);
