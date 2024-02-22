@@ -132,6 +132,9 @@ public class QcdmMessageProcessor
                     case QcdmConstants.LOG_LTE_RRC_OTA_MSG_LOG_C:
                         pcapMessage = QcdmLteParser.convertLteRrcOtaMessage(qcdmMessage, gpsListener.getLatestLocation());
                         break;
+                    case QcdmConstants.LOG_LTE_RRC_MIB_MSG:
+                        pcapMessage = QcdmLteParser.convertLteMibMessage(qcdmMessage, gpsListener.getLatestLocation());
+                        break;
 
                     case QcdmConstants.LOG_LTE_NAS_EMM_OTA_IN_MSG:
                     case QcdmConstants.LOG_LTE_NAS_EMM_OTA_OUT_MSG:
@@ -178,7 +181,7 @@ public class QcdmMessageProcessor
                         break;*/
 
                     default:
-                        Timber.v("Unhandled QCDM log type for the QCDM Message processor %s", logType);
+                        Timber.w("Unhandled QCDM log type for the QCDM Message processor %h", logType);
                 }
 
                 if (pcapMessage != null)

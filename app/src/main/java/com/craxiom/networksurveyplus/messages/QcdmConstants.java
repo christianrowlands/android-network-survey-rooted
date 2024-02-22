@@ -44,6 +44,8 @@ public final class QcdmConstants
     // LTE RRC
     public static final int LOG_LTE_RRC_OTA_MSG_LOG_C = 0xb0c0;
 
+    // LTE RRC MIB Message Log Packet
+    public static final int LOG_LTE_RRC_MIB_MSG = 0xb0c1;
     // LTE NAS
     public static final int LOG_LTE_NAS_ESM_SEC_OTA_IN_MSG = 0xb0e0; // ESM Secure Incoming message
     public static final int LOG_LTE_NAS_ESM_SEC_OTA_OUT_MSG = 0xb0e1; // ESM Secure Outgoing message

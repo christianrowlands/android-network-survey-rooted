@@ -37,6 +37,7 @@ import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_R
 import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_CCCH_Message_NB;
 import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_DCCH_Message;
 import static com.craxiom.networksurveyplus.messages.LteRrcSubtypes.GSMTAP_LTE_RRC_SUB_UL_DCCH_Message_NB;
+import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_RRC_MIB_MSG;
 import static com.craxiom.networksurveyplus.messages.QcdmConstants.LOG_LTE_RRC_OTA_MSG_LOG_C;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -270,6 +271,33 @@ public class QcdmTest
         assertArrayEquals(expectedPcapRecordBytes, Arrays.copyOfRange(pcapRecordBytes, 8, pcapRecordBytes.length));
     }
 
+    @Test
+    public void testQcdmMessage_lteRrc_Mib_message()
+    {
+        final byte[] qcdmMessageBytes = {(byte) 0x10,(byte) 0x00,(byte) 0x17,(byte) 0x00,(byte) 0x17,(byte) 0x00,(byte) 0xc1,(byte) 0xb0,(byte) 0x27,(byte) 0xb0,(byte) 0xc2,(byte) 0x77,(byte) 0x75,(byte) 0x5e,(byte) 0x03,(byte) 0x01,(byte) 0x02, (byte) 0xae,(byte) 0x00,(byte) 0xfb,(byte) 0x04,(byte) 0x00,(byte) 0x00,(byte) 0x34,(byte) 0x02,(byte) 0x02,(byte) 0x4b};
+        final byte[] expectedQcdmMessagePayloadBytes = {(byte) 0x02, (byte) 0xae,(byte) 0x00,(byte) 0xfb,(byte) 0x04,(byte) 0x00,(byte) 0x00,(byte) 0x34,(byte) 0x02,(byte) 0x02,(byte) 0x4b};
+        //final byte[] expectedPcapRecordBytes = {};
+
+        final QcdmMessage qcdmMessage = new QcdmMessage(qcdmMessageBytes, 0);
+        assertEquals(16, qcdmMessage.getOpCode());
+        assertEquals(LOG_LTE_RRC_MIB_MSG, qcdmMessage.getLogType());
+        assertArrayEquals("The qcdm message bytes did not match what was expected", expectedQcdmMessagePayloadBytes, qcdmMessage.getLogPayload());
+
+        final Location location = new FakeLocation();
+        location.setLatitude(41.4928645);
+        location.setLongitude(-90.1333759);
+        location.setAltitude(152.6591);
+
+        final PcapMessage pcapMessage = QcdmLteParser.convertLteMibMessage(qcdmMessage, location);
+
+        assertNotNull(pcapMessage);
+
+        //final byte[] pcapRecordBytes = pcapMessage.getPcapRecord();
+
+        // Ignore the first 8 bytes since it contains the record timestamp.
+        //assertArrayEquals(expectedPcapRecordBytes, Arrays.copyOfRange(pcapRecordBytes, 8, pcapRecordBytes.length));
+
+    }
     /**
      * Tests the Gsmtap Type conversion and checks the result against the {@link LteRrcChannelType} values.
      * This particular test verifies for versions 2, 3, 4, 6, 7, 8, 13, and 22.
