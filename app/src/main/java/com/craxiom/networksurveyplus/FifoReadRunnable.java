@@ -1,40 +1,45 @@
 package com.craxiom.networksurveyplus;
 
 import com.craxiom.networksurveyplus.messages.DiagRevealerMessage;
+import com.craxiom.networksurveyplus.parser.FrameParser;
+import com.craxiom.networksurveyplus.processor.MessageProcessor;
 import com.craxiom.networksurveyplus.util.ParserUtils;
 
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.List;
 
 import timber.log.Timber;
 
 /**
- * A runnable that handles reading from the FIFO queue that the {@link DiagRevealerRunnable} write
- * to. This runnable handles reading from the queue, stripping off the diag_revealer added headers,
- * and then passing off the bytes to a processor so that the QCDM binary messages can be processed.
+ * A runnable that handles reading from the FIFO queue that the revealer daemon writes to.
+ * This runnable handles reading from the queue, stripping off the revealer added headers,
+ * and then passing off the bytes to a processor so that the modem messages can be processed.
  *
  * @since 0.1.0
  */
 public class FifoReadRunnable implements Runnable
 {
     private final String fifoPipeName;
-    private final QcdmMessageProcessor qcdmMessageProcessor;
+    private final FrameParser frameParser;
+    private final MessageProcessor messageProcessor;
 
     private volatile boolean done = false;
 
     /**
      * Constructs this runnable object so that it can read from the FIFO queue.
      *
-     * @param fifoPipeName         The absolute path to the FIFO named pipe file.
-     * @param qcdmMessageProcessor The message processor that will consume the QCDM messages coming
-     *                             from the FIFO queue.
+     * @param fifoPipeName     The absolute path to the FIFO named pipe file.
+     * @param frameParser      The frame parser that will extract frames from revealer messages.
+     * @param messageProcessor The message processor that will convert frames to PCAP messages.
      */
-    FifoReadRunnable(String fifoPipeName, QcdmMessageProcessor qcdmMessageProcessor)
+    public FifoReadRunnable(String fifoPipeName, FrameParser frameParser, MessageProcessor messageProcessor)
     {
         this.fifoPipeName = fifoPipeName;
-        this.qcdmMessageProcessor = qcdmMessageProcessor;
+        this.frameParser = frameParser;
+        this.messageProcessor = messageProcessor;
     }
 
     @Override
@@ -75,7 +80,8 @@ public class FifoReadRunnable implements Runnable
     }
 
     /**
-     * If the provided message is not null, the message is passed off to the {@link QcdmMessageProcessor}.
+     * If the provided message is not null, the message is processed through the frame parser
+     * and then passed to the message processor.
      * <p>
      * Any exceptions that occur during the processing of the message are trapped here.
      *
@@ -83,12 +89,30 @@ public class FifoReadRunnable implements Runnable
      */
     private void notifyMessageProcessor(DiagRevealerMessage message)
     {
+        if (message == null)
+        {
+            return;
+        }
+
         try
         {
-            if (message != null) qcdmMessageProcessor.onDiagRevealerMessage(message);
+            // Extract frames from the revealer message
+            List<byte[]> frames = frameParser.extractFrames(message);
+
+            // Process each validated frame
+            for (byte[] frame : frames)
+            {
+                if (frameParser.validateFrame(frame))
+                {
+                    messageProcessor.onFrame(frame);
+                } else
+                {
+                    Timber.w("Frame validation failed, skipping frame");
+                }
+            }
         } catch (Throwable e)
         {
-            Timber.e(e, "Could not notify the QCDM message processor about a new diag revealer message");
+            Timber.e(e, "Could not process revealer message through frame parser and message processor");
         }
     }
 }

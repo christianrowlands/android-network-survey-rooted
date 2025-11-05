@@ -10,6 +10,12 @@ public class Constants
     public static final String DIAG_REVEALER_NAME = "libdiag_revealer";
     public static final String LIB_DIAG_REVEALER_NAME = DIAG_REVEALER_NAME + ".so";
 
+    // Shannon revealer constants
+    public static final String SHANNON_REVEALER_NAME = "libshannon_revealer";
+    public static final String LIB_SHANNON_REVEALER_NAME = SHANNON_REVEALER_NAME + ".so";
+    public static final String SHANNON_DEVICE_PATH = "/dev/umts_dm0";
+    public static final String SHANNON_DEVICE_PATH_ALT = "/dev/umts_ipc0";
+
     public static final String NOTIFICATION_CHANNEL_ID = "network_survey_plus_notification";
     public static final int LOGGING_NOTIFICATION_ID = 1;
 

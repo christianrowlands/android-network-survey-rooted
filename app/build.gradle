@@ -4,14 +4,18 @@ apply from: "../artifacts.gradle"
 ext.networkSurveyMessagingVersion = '1.5.0'
 
 android {
-    compileSdkVersion 34
-    ndkVersion '21.3.6528147'
+    compileSdk 36
+    ndkVersion '29.0.14206865'
+
+    buildFeatures {
+        buildConfig = true
+    }
 
     defaultConfig {
         buildConfigField "String", "MESSAGING_API_VERSION", "\"${networkSurveyMessagingVersion}\""
         applicationId "com.craxiom.networksurveyplus"
-        minSdkVersion 26
-        targetSdkVersion 34
+        minSdk 26
+        targetSdk 34
         versionCode 8
         versionName "0.6.0-SNAPSHOT"
         setProperty("archivesBaseName", "$applicationName-$versionName")
@@ -36,8 +40,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = 1.8
-        targetCompatibility = 1.8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     externalNativeBuild {
@@ -50,20 +54,18 @@ android {
         viewBinding true
         dataBinding true
     }
-
     packagingOptions {
-        exclude 'log4j.properties'
+        resources {
+            excludes += ['META-INF/INDEX.LIST', 'META-INF/io.netty.versions.properties', 'google/cloud/audit/audit_log.proto', 'log4j.properties']
+        }
+        jniLibs { useLegacyPackaging = true }
     }
 
     testOptions {
         unitTests.returnDefaultValues = true
     }
+    namespace 'com.craxiom.networksurveyplus'
 
-    packagingOptions {
-        resources {
-            excludes += ['META-INF/INDEX.LIST', 'META-INF/io.netty.versions.properties', 'google/cloud/audit/audit_log.proto']
-        }
-    }
 }
 
 dependencies {

@@ -30,7 +30,13 @@ import com.craxiom.mqttlibrary.connection.BrokerConnectionInfo;
 import com.craxiom.mqttlibrary.connection.ConnectionState;
 import com.craxiom.mqttlibrary.ui.AConnectionFragment;
 import com.craxiom.networksurveyplus.mqtt.QcdmMqttConnection;
+import com.craxiom.networksurveyplus.parser.FrameParser;
+import com.craxiom.networksurveyplus.processor.MessageProcessor;
+import com.craxiom.networksurveyplus.revealer.DiagRevealerRunnable;
+import com.craxiom.networksurveyplus.revealer.ShannonRevealerRunnable;
 import com.craxiom.networksurveyplus.util.PreferenceUtils;
+import com.craxiom.networksurveyplus.vendor.IModemVendor;
+import com.craxiom.networksurveyplus.vendor.ModemVendorFactory;
 import com.google.common.io.ByteStreams;
 
 import java.nio.file.Files;
@@ -64,11 +70,14 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     private GpsListener gpsListener;
     private BroadcastReceiver managedConfigurationListener;
     private FifoReadRunnable fifoReadRunnable;
-    private DiagRevealerRunnable diagRevealerRunnable;
+    private Runnable revealerRunnable;
 
-    private QcdmMessageProcessor qcdmMessageProcessor;
+    // Vendor abstraction components
+    private IModemVendor modemVendor;
+    private FrameParser frameParser;
+    private MessageProcessor messageProcessor;
+
     private QcdmPcapWriter qcdmPcapWriter;
-
     private QcdmMqttConnection qcdmMqttConnection;
 
     public QcdmService()
@@ -144,7 +153,17 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
 
         removeLocationListener();
 
-        diagRevealerRunnable.shutdown();
+        if (revealerRunnable != null)
+        {
+            if (revealerRunnable instanceof DiagRevealerRunnable)
+            {
+                ((DiagRevealerRunnable) revealerRunnable).shutdown();
+            }
+            else if (revealerRunnable instanceof ShannonRevealerRunnable)
+            {
+                ((ShannonRevealerRunnable) revealerRunnable).shutdown();
+            }
+        }
         diagHandlerThread.quitSafely();
         diagHandler = null;
 
@@ -188,9 +207,9 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
             gpsListener.registerLocationUpdatesListener(listener);
         }
 
-        if (qcdmMessageProcessor != null)
+        if (messageProcessor != null)
         {
-            qcdmMessageProcessor.registerRecordsLoggedListener(listener);
+            messageProcessor.registerRecordsLoggedListener(listener);
         }
     }
 
@@ -204,9 +223,9 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
             gpsListener.unregisterLocationUpdatesListener(listener);
         }
 
-        if (qcdmMessageProcessor != null)
+        if (messageProcessor != null)
         {
-            qcdmMessageProcessor.unregisterRecordsLoggedListener(listener);
+            messageProcessor.unregisterRecordsLoggedListener(listener);
         }
     }
 
@@ -239,10 +258,10 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
                     Timber.e(t, "Could not create a new pcap file to write the qcdm messages to");
                     return null;
                 }
-                qcdmMessageProcessor.registerQcdmMessageListener(qcdmPcapWriter);
+                messageProcessor.registerMessageListener(qcdmPcapWriter);
             } else
             {
-                qcdmMessageProcessor.unregisterQcdmMessageListener(qcdmPcapWriter);
+                messageProcessor.unregisterMessageListener(qcdmPcapWriter);
                 qcdmPcapWriter.close();
             }
 
@@ -266,7 +285,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     {
         return pcapLoggingEnabled.get()
                 || getMqttConnectionState() != ConnectionState.DISCONNECTED
-                || qcdmMessageProcessor.isBeingUsed();
+                || (messageProcessor != null && messageProcessor.isBeingUsed());
     }
 
     public boolean isPcapLoggingEnabled()
@@ -358,23 +377,39 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     }
 
     /**
-     * Initialize the /dev/diag port so that it starts sending QCDM messages.
+     * Initialize the modem data feed infrastructure using vendor abstraction.
+     * <p>
+     * This method detects the modem vendor, creates vendor-specific components (frame parser,
+     * message processor, revealer daemon), and sets up the FIFO pipe for communication.
+     * This architecture supports multiple modem vendors without code duplication.
      */
     private void initializeQcdmFeed()
     {
         final Context applicationContext = getApplicationContext();
 
+        // Detect vendor (ONE decision point)
+        modemVendor = ModemVendorFactory.detectVendor();
+        Timber.i("Detected modem vendor: %s (device: %s)",
+                modemVendor.getName(),
+                modemVendor.getActiveDevicePath());
+
+        // Create vendor-specific components
+        frameParser = modemVendor.createFrameParser();
+        messageProcessor = modemVendor.createMessageProcessor(gpsListener);
+
+        // Create FIFO pipe
         final String fifoPipeName = applicationContext.getFilesDir() + "/" + Constants.FIFO_PIPE;
         createNamedPipe(fifoPipeName);
 
-        qcdmMessageProcessor = new QcdmMessageProcessor(gpsListener);
-
-        fifoReadRunnable = new FifoReadRunnable(fifoPipeName, qcdmMessageProcessor);
+        // Create FIFO read runnable (now vendor-agnostic)
+        fifoReadRunnable = new FifoReadRunnable(fifoPipeName, frameParser, messageProcessor);
         fifoReadHandler.post(fifoReadRunnable);
 
-        diagRevealerRunnable = new DiagRevealerRunnable(applicationContext, fifoPipeName);
-        diagHandler.post(diagRevealerRunnable);
+        // Launch vendor-specific daemon
+        revealerRunnable = modemVendor.createDaemonLauncher(applicationContext, fifoPipeName);
+        diagHandler.post(revealerRunnable);
 
+        // Initialize PCAP writer
         if (qcdmPcapWriter == null)
         {
             try
@@ -529,7 +564,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
         final String notificationText = getNotificationText(logging, mqttConnectionActive, connectionState);
 
         final Intent notificationIntent = new Intent(this, MainActivity.class);
-        final PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
+        final PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
 
         final NotificationCompat.Builder builder = new NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID)
                 .setContentTitle(notificationTitle)
@@ -637,7 +672,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     {
         qcdmMqttConnection.connect(getApplicationContext(), connectionInfo);
 
-        qcdmMessageProcessor.registerQcdmMessageListener(qcdmMqttConnection);
+        messageProcessor.registerMessageListener(qcdmMqttConnection);
     }
 
     /**
@@ -650,7 +685,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     {
         Timber.i("Disconnecting from the MQTT Broker");
 
-        qcdmMessageProcessor.unregisterQcdmMessageListener(qcdmMqttConnection);
+        messageProcessor.unregisterMessageListener(qcdmMqttConnection);
 
         qcdmMqttConnection.disconnect();
     }

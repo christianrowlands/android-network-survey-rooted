@@ -9,8 +9,12 @@ import com.craxiom.networksurveyplus.parser.QcdmGsmParser;
 import com.craxiom.networksurveyplus.parser.QcdmLteParser;
 import com.craxiom.networksurveyplus.parser.QcdmUmtsParser;
 import com.craxiom.networksurveyplus.parser.QcdmWcdmaParser;
+import com.craxiom.networksurveyplus.processor.MessageProcessor;
 import com.craxiom.networksurveyplus.util.ParserUtils;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -22,7 +26,7 @@ import timber.log.Timber;
  *
  * @since 0.1.0
  */
-public class QcdmMessageProcessor
+public class QcdmMessageProcessor implements MessageProcessor
 {
     private final Set<IPcapMessageListener> messageListeners = new CopyOnWriteArraySet<>();
     private final Set<IServiceStatusListener> serviceMessageListeners = new CopyOnWriteArraySet<>();
@@ -44,11 +48,34 @@ public class QcdmMessageProcessor
     }
 
     /**
+     * Adds a listener for when this class has finished processing a QCDM message into a PCAP message.
+     *
+     * @param listener The listener to add.
+     */
+    @Override
+    public void registerMessageListener(IPcapMessageListener listener)
+    {
+        messageListeners.add(listener);
+    }
+
+    /**
+     * Removes a listener so that it will no longer be notified of new PCAP messages.
+     *
+     * @param listener The listener to remove.
+     */
+    @Override
+    public void unregisterMessageListener(IPcapMessageListener listener)
+    {
+        messageListeners.remove(listener);
+    }
+
+    /**
      * Adds a status listener.
      *
      * @param listener The listener to add.
      * @since 0.5.0
      */
+    @Override
     public void registerRecordsLoggedListener(IServiceStatusListener listener)
     {
         serviceMessageListeners.add(listener);
@@ -60,19 +87,61 @@ public class QcdmMessageProcessor
      * @param listener The listener to remove.
      * @since 0.5.0
      */
+    @Override
     public void unregisterRecordsLoggedListener(IServiceStatusListener listener)
     {
         serviceMessageListeners.remove(listener);
     }
 
     /**
+     * Processes a single QCDM frame from the modem.
+     * The frame has already been validated and unescaped by the FrameParser.
+     *
+     * @param frame The raw frame bytes to process
+     */
+    @Override
+    public void onFrame(byte[] frame)
+    {
+        if (frame == null || frame.length < 2)
+        {
+            return;
+        }
+
+        try
+        {
+            boolean hasQcdmPrefix = false;
+            int simId = 0; // Assume Subscription ID is 0 unless we see otherwise in the QCDM prefix
+
+            // Check to see if we need to remove the QCDM prefix (checking the first 4 bytes, but it is 8 bytes long)
+            if (frame.length >= 8 && ByteBuffer.wrap(QcdmMessage.QCDM_PREFIX).equals(ByteBuffer.wrap(frame, 0, 4)))
+            {
+                hasQcdmPrefix = true;
+                simId = ParserUtils.getInteger(frame, 4, ByteOrder.LITTLE_ENDIAN);
+            }
+
+            // Remove CRC (last 2 bytes) and optional QCDM prefix (first 8 bytes)
+            final int frameLengthWithoutCrc = frame.length - 2;
+            final byte[] qcdmBytes = Arrays.copyOfRange(frame, hasQcdmPrefix ? 8 : 0, frameLengthWithoutCrc);
+
+            QcdmMessage qcdmMessage = new QcdmMessage(qcdmBytes, simId);
+            convertQcdmMessage(qcdmMessage);
+        } catch (Exception e)
+        {
+            Timber.e(e, "Could not process QCDM frame");
+        }
+    }
+
+    /**
      * @return True if either the UI or a listener needs this survey record processor.  False if the UI is hidden and
      * there are not any listeners.
      */
-    synchronized boolean isBeingUsed()
+    @Override
+    public synchronized boolean isBeingUsed()
     {
         return !messageListeners.isEmpty();
     }
+
+    // Legacy methods for backward compatibility
 
     /**
      * Adds a listener for when this class has finished processing a QCDM message into a PCAP message.
@@ -81,7 +150,7 @@ public class QcdmMessageProcessor
      */
     void registerQcdmMessageListener(IPcapMessageListener qcdmMessageListener)
     {
-        messageListeners.add(qcdmMessageListener);
+        registerMessageListener(qcdmMessageListener);
     }
 
     /**
@@ -91,7 +160,7 @@ public class QcdmMessageProcessor
      */
     void unregisterQcdmMessageListener(IPcapMessageListener qcdmMessageListener)
     {
-        messageListeners.remove(qcdmMessageListener);
+        unregisterMessageListener(qcdmMessageListener);
     }
 
     /**

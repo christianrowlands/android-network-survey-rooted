@@ -1,7 +1,9 @@
-package com.craxiom.networksurveyplus;
+package com.craxiom.networksurveyplus.revealer;
 
 import android.content.Context;
 
+import com.craxiom.networksurveyplus.Constants;
+import com.craxiom.networksurveyplus.R;
 import com.craxiom.networksurveyplus.util.RootUtil;
 import com.google.common.io.ByteStreams;
 
@@ -31,7 +33,7 @@ public class DiagRevealerRunnable implements Runnable
      * @param context      The context to use when getting the native lib directory.
      * @param fifoPipeName The name of the FIFO pipe to write the QCDM output to.
      */
-    DiagRevealerRunnable(Context context, String fifoPipeName)
+    public DiagRevealerRunnable(Context context, String fifoPipeName)
     {
         this.context = context;
         this.fifoPipeName = fifoPipeName;
