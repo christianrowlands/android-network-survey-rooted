@@ -1,0 +1,191 @@
+name: Network Survey+ Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: 21
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Unit Tests
+        run: ./gradlew test --stacktrace
+
+      # Only upload the reports on failure
+      - name: Upload Reports
+        uses: actions/upload-artifact@v6
+        with:
+          name: Test-Reports
+          path: app/build/reports
+        if: failure()
+
+  buildRelease:
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      messagingVersion: ${{ steps.messaging_version.outputs.version }}
+
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v6
+
+      - name: Extract NS Messaging API version
+        id: messaging_version
+        run: |
+          VERSION=$(grep -E 'networkSurveyMessagingVersion[[:space:]]*=' app/build.gradle | sed -E "s/.*'([^']+)'.*/\1/" || true)
+          if [ -z "$VERSION" ]; then
+            echo "ERROR: could not parse networkSurveyMessagingVersion from app/build.gradle" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "NS Messaging API version: $VERSION"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: 21
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Save Keystore
+        env:
+          KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
+        run: echo $KEYSTORE_FILE | base64 -d > my.keystore
+
+      # Built before google-services.json is saved so that the GitHub / IzzyOnDroid APK has no Firebase configuration
+      - name: Build GitHub Release APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleGithubRelease
+          -Pandroid.injected.signing.store.file=$(pwd)/my.keystore
+          -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD
+          -Pandroid.injected.signing.key.alias=$KEY_ALIAS
+          -Pandroid.injected.signing.key.password=$KEY_PASSWORD
+
+      # IzzyOnDroid and existing users can only update if the APK is signed with the same key as previous releases
+      - name: Verify the GitHub APK signing certificate
+        run: |
+          APKSIGNER=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)/apksigner
+          CERTS=$($APKSIGNER verify --print-certs app/build/outputs/apk/github/release/*.apk)
+          echo "$CERTS"
+          echo "$CERTS" | grep -q "SHA-256 digest: 925411a7c727f48eac4151aaf1a692a5cf21c6b435d4748f1ea94bdd18b3d617" || {
+            echo "ERROR: the APK is not signed with the Network Survey+ release key" >&2
+            exit 1
+          }
+
+      - name: Upload GitHub APK
+        uses: actions/upload-artifact@v6
+        with:
+          name: Network Survey+ GitHub Release APK
+          path: app/build/outputs/apk/github/release/*.apk
+
+      - name: Save google-services.json
+        env:
+          GOOGLE_SERVICES: ${{ secrets.GOOGLE_SERVICES }}
+        run: echo "$GOOGLE_SERVICES" > app/google-services.json
+
+      - name: Build Play Release APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assemblePlayRelease
+          -Pandroid.injected.signing.store.file=$(pwd)/my.keystore
+          -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD
+          -Pandroid.injected.signing.key.alias=$KEY_ALIAS
+          -Pandroid.injected.signing.key.password=$KEY_PASSWORD
+
+      - name: Upload Play APK
+        uses: actions/upload-artifact@v6
+        with:
+          name: Network Survey+ Play Release APK
+          path: app/build/outputs/apk/play/release/*.apk
+
+      - name: Build Play Release Bundle
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew bundlePlayRelease
+          -Pandroid.injected.signing.store.file=$(pwd)/my.keystore
+          -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD
+          -Pandroid.injected.signing.key.alias=$KEY_ALIAS
+          -Pandroid.injected.signing.key.password=$KEY_PASSWORD
+
+      - name: Upload Release Bundle
+        uses: actions/upload-artifact@v6
+        with:
+          name: Network Survey+ Release Bundle
+          path: app/build/outputs/bundle/playRelease/*.aab
+
+  uploadRelease:
+    needs: buildRelease
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download GitHub APK
+        uses: actions/download-artifact@v6
+        with:
+          name: Network Survey+ GitHub Release APK
+          path: app/build/outputs/apk/github/release/
+
+      - name: Download Release Bundle
+        uses: actions/download-artifact@v6
+        with:
+          name: Network Survey+ Release Bundle
+          path: app/build/outputs/bundle/playRelease/
+
+      # Only the GitHub APK is attached so that the IzzyOnDroid updater can never pick up the Play APK, which contains Firebase.
+      # The Play APK is still available as an artifact of this workflow run.
+      - name: Create a Release in GitHub
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "app/build/outputs/apk/github/release/*.apk"
+          token: ${{ secrets.GH_TOKEN }}
+          commit: ${{ github.sha }}
+          body: |
+            ## What's Changed
+
+            ---
+
+            ### NS Messaging API
+
+            This release runs on NS Messaging API version ${{ needs.buildRelease.outputs.messagingVersion }}.
+
+            ---
+
+            ### APK Download
+
+            The attached APK is the same as what can be found on IzzyOnDroid, and it does NOT contain ANY tracking libraries.
+            The Google Play version is the same app, but it does not support starting at boot and it contains Firebase Crashlytics and Analytics.
+
+            Network Survey+ requires a rooted Android phone with a Qualcomm modem. Samsung Shannon modem support (Pixel 6 and newer) is experimental.
+          generateReleaseNotes: true
+          draft: false
+
+      - name: Release app to internal track
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAYSTORE_ACCOUNT_KEY }}
+          packageName: com.craxiom.networksurveyplus
+          releaseFiles: app/build/outputs/bundle/playRelease/*.aab
+          track: internal
+          status: completed
