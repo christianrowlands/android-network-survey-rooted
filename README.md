@@ -1,7 +1,9 @@
 # Network Survey Plus Android App
 
-[![Build Status](https://travis-ci.com/christianrowlands/android-network-survey-rooted.svg?branch=develop)](https://travis-ci.com/github/christianrowlands/android-network-survey-rooted)
+[![IzzyOnDroid](https://img.shields.io/endpoint?url=https://apt.izzysoft.de/fdroid/api/v1/shield/com.craxiom.networksurveyplus&label=IzzyOnDroid)](https://apt.izzysoft.de/packages/com.craxiom.networksurveyplus)
 [![License](https://img.shields.io/badge/license-Apache%202-green.svg?style=flat)](https://github.com/christianrowlands/android-network-survey-rooted/blob/develop/LICENSE)
+
+[<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroidButtonGreyBorder_nofont.png" height="80" alt="Get it on IzzyOnDroid">](https://apt.izzysoft.de/packages/com.craxiom.networksurveyplus)
 
 ## What is it?
 
@@ -24,8 +26,20 @@ The following is a list of devices that have been confirmed to work with this Ne
 
 | Device        | Comments      |
 | ------------- | ------------- |
-| Nexus 5X      |               |
+| Nexus 5X      | Android 8.1   |
 | Pixel 3a      |               |
+| Xiaomi 9T     | Android 11    |
+
+#### Experimental: Samsung Shannon modems (Pixel 6 and newer)
+
+Version 0.6.0 includes experimental support for the Samsung Shannon modem found in the Pixel 6 and newer. This support
+is not reliable yet. In testing, the modem only sent diagnostic messages after another app (such as Network Signal Guru)
+had first been used to initialize the modem's diagnostic logging.
+
+#### Google Play vs GitHub / IzzyOnDroid builds
+
+The Google Play build does not support starting at boot, so it does not request the background location permission.
+The GitHub and IzzyOnDroid builds support starting pcap logging or the MQTT connection when the phone boots.
 
 
 ## Build and development instructions
@@ -75,6 +89,19 @@ are a list of other projects that might be of interest to you.
 
 
 ## Changelog
+
+##### [0.6.0](https://github.com/christianrowlands/android-network-survey-rooted/releases/tag/v0.6.0) - 2026-10-14
+ * Updated to target Android 16 (API 36).
+ * Fixed a crash on Android 14 and newer when the app was opened before the location permission was granted.
+ * Request the notification permission on Android 13 and newer so the service notification is shown.
+ * The storage permission is now only requested on Android 10 and lower (it is not needed on newer versions).
+ * Fixed location updates not starting until the app was restarted after granting the location permission.
+ * Stopped processing modem messages when pcap logging and MQTT streaming are both off.
+ * Added parsing of the LTE MIB message.
+ * Added support for the Xiaomi 9T on Android 11.
+ * Added experimental support for Samsung Shannon modems (Pixel 6 and newer).
+ * Removed the Google dependency info block from the APK.
+ * The Google Play build no longer supports starting at boot, and no longer requests the background location permission.
 
 ##### [0.5.0](https://github.com/christianrowlands/android-network-survey-rooted/releases/tag/v0.5.0) - 2021-09-11
  * MQTT streaming now sends the entire pcap record in the JSON message.

@@ -1,1 +1,1 @@
-Logs LTE QCDM Messages to a PCAP file
+Logs cellular QCDM messages to a pcap file (root required)

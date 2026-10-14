@@ -1,0 +1,9 @@
+* Targets Android 16 (API 36)
+* Fixed a crash on Android 14+ when opened before granting location
+* Requests the notification permission on Android 13+
+* Storage permission is only requested on Android 10 and lower
+* GPS starts right after granting location
+* Modem messages are skipped when logging and MQTT are off
+* Added LTE MIB parsing and Xiaomi 9T (Android 11) support
+* Experimental support for Samsung Shannon modems (Pixel 6+)
+* Removed the dependency info block from the APK

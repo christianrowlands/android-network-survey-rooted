@@ -19,19 +19,25 @@ Links to the privacy policy of third party service providers used by the app
 *   [Google Analytics for Firebase](https://firebase.google.com/policies/analytics)
 *   [Firebase Crashlytics](https://firebase.google.com/support/privacy/)
 
-If you installed this app from the Google Play store then Firebase Crashlytics and Analytics information is stored in Google Firebase. This data is anonoymous
-but data related to app crashes and general app usage is set to Google Firebase to improve the stability and functionality of this app. This data is not sold
+If you installed this app from the Google Play store then Firebase Crashlytics and Analytics information is stored in Google Firebase. This data is anonymous
+but data related to app crashes and general app usage is sent to Google Firebase to improve the stability and functionality of this app. This data is not sold
 or provided to any other 3rd party entities by Christian Rowlands or anyone working on the Network Survey Plus Android project.
 
 No other information is stored external to the Network Survey Plus Android app unless configured to by the user. All survey log files remain
-on the phone unless you, the user, moves the. All connections including MQTT server connections have to be
+on the phone unless you, the user, moves them. All connections including MQTT server connections have to be
 configured and initiated by the user, and a default server is not provided.
 
 **Background Location Permission**
 
-The Network Survey Plus Android app requests permission to access the device's location in the background. This background location
-permission is needed to start Network Survey Plus at boot. Denying the background location permission will prevent the auto-start
-at boot location feature from working correctly on Android 11 and above, but all other app functionality will work as expected.
+The GitHub and IzzyOnDroid versions of the Network Survey Plus Android app request permission to access the device's location in the
+background. This background location permission is needed to start Network Survey Plus at boot. Denying the background location
+permission will prevent the auto-start at boot feature from working correctly on Android 10 and above, but all other app functionality
+will work as expected. The Google Play version of the app does not support starting at boot and does not request this permission.
+
+**Storage Permission**
+
+On Android 10 and lower, the app requests the storage permission so that it can save the pcap log files to the Download folder.
+This permission is not requested on newer versions of Android.
 
 **Location Permission**
 
@@ -44,7 +50,7 @@ remote server provided with the app, so it is necessary for the user of the Netw
 server to receive that information. The location data is not used in any other way than defined above. The location data
 is not shared with any 3rd parties, and is not accessable by anyone except for the user. Therefore, the location data
 is not collection, used, or shared by or with anyone that the user has not direclty handed the data to by uploading
-the recorded pcap file or sent to by connecting to someone elses MQTT or gRPC server.
+the recorded pcap file or sent to by connecting to someone elses MQTT server.
 
 **Log Data**
 
