@@ -23,7 +23,7 @@ android {
         applicationId "com.craxiom.networksurveyplus"
         minSdk 26
         targetSdk 36
-        versionCode 8
+        versionCode 9
         versionName "0.6.0"
         setProperty("archivesBaseName", "$applicationName-$versionName")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
