@@ -107,6 +107,9 @@ public class QcdmMessageProcessor implements MessageProcessor
             return;
         }
 
+        // No reason to process the frame if we don't have any listeners
+        if (messageListeners.isEmpty()) return;
+
         try
         {
             boolean hasQcdmPrefix = false;
