@@ -11,6 +11,7 @@ import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceScreen;
 import androidx.preference.SwitchPreferenceCompat;
 
+import com.craxiom.networksurveyplus.BuildConfig;
 import com.craxiom.networksurveyplus.Constants;
 import com.craxiom.networksurveyplus.R;
 import com.craxiom.networksurveyplus.util.MdmUtils;
@@ -36,6 +37,13 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Sha
     {
         setPreferencesFromResource(R.xml.network_survey_settings, rootKey);
         getPreferenceManager().getSharedPreferences().registerOnSharedPreferenceChangeListener(this);
+
+        if (!BuildConfig.START_AT_BOOT_SUPPORTED)
+        {
+            // The MQTT connection category only contains the start at boot setting
+            final Preference mqttConnectionCategory = findPreference(Constants.PROPERTY_MQTT_CONNECTION_CONFIG_CATEGORY);
+            if (mqttConnectionCategory != null) mqttConnectionCategory.setVisible(false);
+        }
 
         updateUiForMdmIfNecessary();
     }

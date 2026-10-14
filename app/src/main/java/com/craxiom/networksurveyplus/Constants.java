@@ -38,4 +38,5 @@ public class Constants
 
     // The following key is used in the app_restrictions.xml file and in the app's shared preferences
     public static final String PROPERTY_MQTT_START_ON_BOOT = "mqtt_start_on_boot";
+    public static final String PROPERTY_MQTT_CONNECTION_CONFIG_CATEGORY = "mqtt_connection_config";
 }

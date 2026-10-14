@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="auto_start_logging_summary_on">Logging will be started upon app opening</string>
+</resources>

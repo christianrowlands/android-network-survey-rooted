@@ -8,6 +8,9 @@ android.applicationVariants.all { variant ->
     }
 
     variant.outputs.all { output ->
-        outputFileName = "${appName}-${output.baseName}-${variant.versionName}.apk"
+        // Keep the GitHub APK name the same as previous releases (e.g. networksurveyplus-release-0.6.0.apk) so the
+        // IzzyOnDroid updater continues to match it
+        def label = variant.flavorName == 'github' ? variant.buildType.name : output.baseName
+        outputFileName = "${appName}-${label}-${variant.versionName}.apk"
     }
 }

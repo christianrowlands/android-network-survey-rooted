@@ -15,9 +15,9 @@ android {
         buildConfigField "String", "MESSAGING_API_VERSION", "\"${networkSurveyMessagingVersion}\""
         applicationId "com.craxiom.networksurveyplus"
         minSdk 26
-        targetSdk 34
+        targetSdk 36
         versionCode 8
-        versionName "0.6.0-SNAPSHOT"
+        versionName "0.6.0"
         setProperty("archivesBaseName", "$applicationName-$versionName")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -31,6 +31,26 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+    }
+
+    flavorDimensions = ['distribution']
+    productFlavors {
+        // GitHub releases, which IzzyOnDroid pulls from
+        github {
+            dimension 'distribution'
+            buildConfigField "boolean", "START_AT_BOOT_SUPPORTED", "true"
+        }
+        // Google Play does not allow background location without a policy declaration, so start at boot is removed
+        play {
+            dimension 'distribution'
+            buildConfigField "boolean", "START_AT_BOOT_SUPPORTED", "false"
+        }
+    }
+
+    dependenciesInfo {
+        // Disables the encrypted dependency metadata block (requested by IzzyOnDroid)
+        includeInApk = false
+        includeInBundle = false
     }
 
     sourceSets {
