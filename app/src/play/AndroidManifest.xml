@@ -10,7 +10,25 @@
         android:name="android.permission.RECEIVE_BOOT_COMPLETED"
         tools:node="remove" />
 
+    <!-- Remove all the permissions coming from libraries that we don't actually use -->
+    <uses-permission
+        android:name="com.google.android.gms.permission.AD_ID"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_ADSERVICES_AD_ID"
+        tools:node="remove" />
+
     <application>
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="google_analytics_default_allow_ad_personalization_signals"
+            android:value="false" />
+
         <receiver
             android:name=".StartAtBootReceiver"
             tools:node="remove" />

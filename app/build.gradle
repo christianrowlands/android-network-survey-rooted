@@ -1,6 +1,13 @@
 apply plugin: 'com.android.application'
 apply from: "../artifacts.gradle"
 
+// Exclude google-services and crashlytics if the json file is missing and for debug builds
+if (file("google-services.json").exists() && !gradle.startParameter.taskNames.any { it.contains("Debug") || it.contains("test") }) {
+    logger.quiet("Using the google-services.json file")
+    apply plugin: 'com.google.gms.google-services'
+    apply plugin: 'com.google.firebase.crashlytics'
+}
+
 ext.networkSurveyMessagingVersion = '1.5.0'
 
 android {
@@ -40,7 +47,8 @@ android {
             dimension 'distribution'
             buildConfigField "boolean", "START_AT_BOOT_SUPPORTED", "true"
         }
-        // Google Play does not allow background location without a policy declaration, so start at boot is removed
+        // Google Play does not allow background location without a policy declaration, so start at boot is removed.
+        // This is also the only build that contains Firebase Crashlytics and Analytics.
         play {
             dimension 'distribution'
             buildConfigField "boolean", "START_AT_BOOT_SUPPORTED", "false"
@@ -88,6 +96,12 @@ android {
 
 }
 
+configurations.configureEach {
+    exclude group: 'com.google.android.gms', module: 'play-services-ads'
+    exclude group: 'com.google.android.gms', module: 'play-services-ads-identifier'
+    exclude group: 'com.google.android.gms', module: 'play-services-ads-lite'
+}
+
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation 'com.jakewharton.timber:timber:5.0.1'
@@ -106,6 +120,11 @@ dependencies {
     }
     implementation 'com.google.protobuf:protobuf-java-util:4.27.3'
     implementation 'com.craxiom:mqtt-library:0.4.3'
+
+    // Only include Firebase in the Google Play build
+    playImplementation platform('com.google.firebase:firebase-bom:34.19.0')
+    playImplementation 'com.google.firebase:firebase-analytics'
+    playImplementation 'com.google.firebase:firebase-crashlytics'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'

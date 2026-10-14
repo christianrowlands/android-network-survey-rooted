@@ -40,6 +40,11 @@ had first been used to initialize the modem's diagnostic logging.
 
 The Google Play build does not support starting at boot, so it does not request the background location permission.
 The GitHub and IzzyOnDroid builds support starting pcap logging or the MQTT connection when the phone boots.
+The Google Play build includes Firebase Crashlytics and Analytics for crash reports and basic usage stats. The GitHub and
+IzzyOnDroid builds do not include Firebase or any other tracking libraries.
+
+To build the Google Play version with Firebase, place a `google-services.json` file in the `app` directory. Without that file,
+or for debug builds, the Firebase Gradle plugins are not applied.
 
 
 ## Build and development instructions
@@ -102,6 +107,7 @@ are a list of other projects that might be of interest to you.
  * Added experimental support for Samsung Shannon modems (Pixel 6 and newer).
  * Removed the Google dependency info block from the APK.
  * The Google Play build no longer supports starting at boot, and no longer requests the background location permission.
+ * The Google Play build includes Firebase Crashlytics and Analytics. The GitHub and IzzyOnDroid builds do not.
 
 ##### [0.5.0](https://github.com/christianrowlands/android-network-survey-rooted/releases/tag/v0.5.0) - 2021-09-11
  * MQTT streaming now sends the entire pcap record in the JSON message.

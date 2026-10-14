@@ -11,17 +11,19 @@ used for providing and improving the Service. I will not use or share your infor
 
 For a better experience, while using our Service, I may require you to provide us with certain personally identifiable information, including but not limited to Location. The information that I request will be retained on your device and is not collected by me in any way.
 
-The app does use third party services that may collect information used to identify you.
+The GitHub and IzzyOnDroid versions of the app do not use any third party analytics, crash reporting, or advertising services.
 
-Links to the privacy policy of third party service providers used by the app
+The Google Play version of the app does use third party services that may collect information used to identify you.
+
+Links to the privacy policy of third party service providers used by the Google Play version of the app
 
 *   [Google Play Services](https://www.google.com/policies/privacy/)
 *   [Google Analytics for Firebase](https://firebase.google.com/policies/analytics)
 *   [Firebase Crashlytics](https://firebase.google.com/support/privacy/)
 
-If you installed this app from the Google Play store then Firebase Crashlytics and Analytics information is stored in Google Firebase. This data is anonymous
-but data related to app crashes and general app usage is sent to Google Firebase to improve the stability and functionality of this app. This data is not sold
-or provided to any other 3rd party entities by Christian Rowlands or anyone working on the Network Survey Plus Android project.
+If you installed this app from the Google Play store then Firebase Crashlytics and Analytics information is stored in Google Firebase. This data is anonymous,
+but data related to app crashes and general app usage is sent to Google Firebase to improve the stability and functionality of this app. The advertising ID
+is not collected. This data is not sold or provided to any other 3rd party entities by Christian Rowlands or anyone working on the Network Survey Plus Android project.
 
 No other information is stored external to the Network Survey Plus Android app unless configured to by the user. All survey log files remain
 on the phone unless you, the user, moves them. All connections including MQTT server connections have to be
