@@ -97,6 +97,14 @@ jobs:
           name: Network Survey+ GitHub Release APK
           path: app/build/outputs/apk/github/release/*.apk
 
+      # The release APKs are obfuscated by R8, so the mapping file is needed to deobfuscate stack traces from GitHub users.
+      # The Play mapping does not need to be uploaded here because it is embedded in the bundle and sent to Crashlytics.
+      - name: Upload GitHub R8 Mapping
+        uses: actions/upload-artifact@v6
+        with:
+          name: Network Survey+ GitHub R8 Mapping
+          path: app/build/outputs/mapping/githubRelease/mapping.txt
+
       - name: Save google-services.json
         env:
           GOOGLE_SERVICES: ${{ secrets.GOOGLE_SERVICES }}
@@ -153,12 +161,21 @@ jobs:
           name: Network Survey+ Release Bundle
           path: app/build/outputs/bundle/playRelease/
 
+      - name: Download GitHub R8 Mapping
+        uses: actions/download-artifact@v6
+        with:
+          name: Network Survey+ GitHub R8 Mapping
+          path: mapping/
+
+      - name: Rename the R8 Mapping
+        run: mv mapping/mapping.txt "mapping/networksurveyplus-${GITHUB_REF_NAME}-mapping.txt"
+
       # Only the GitHub APK is attached so that the IzzyOnDroid updater can never pick up the Play APK, which contains Firebase.
       # The Play APK is still available as an artifact of this workflow run.
       - name: Create a Release in GitHub
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "app/build/outputs/apk/github/release/*.apk"
+          artifacts: "app/build/outputs/apk/github/release/*.apk,mapping/*-mapping.txt"
           token: ${{ secrets.GH_TOKEN }}
           commit: ${{ github.sha }}
           body: |

@@ -21,6 +21,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.activity.EdgeToEdge;
 import androidx.annotation.RawRes;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -77,6 +78,7 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES); // Force Dark Mode
+        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
         applySystemBarInsets();
 
@@ -258,8 +260,9 @@ public class MainActivity extends AppCompatActivity
     }
 
     /**
-     * Pads the root view by the system bar insets. Starting with Android 15 apps are drawn edge-to-edge, so without
-     * this the toolbar and bottom navigation would be drawn under the status and navigation bars.
+     * Pads the root view by the system bar insets. The app is drawn edge-to-edge on all Android versions (enabled in
+     * onCreate, and enforced by the OS starting with Android 15), so without this the content and bottom navigation
+     * would be drawn under the status and navigation bars.
      *
      * @since 0.6.0
      */
