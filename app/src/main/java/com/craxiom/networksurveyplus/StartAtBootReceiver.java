@@ -1,8 +1,13 @@
 package com.craxiom.networksurveyplus;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
+
+import androidx.core.content.ContextCompat;
 
 import com.craxiom.networksurveyplus.util.PreferenceUtils;
 
@@ -25,6 +30,14 @@ public class StartAtBootReceiver extends BroadcastReceiver
         if (!Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) return;
 
         Timber.d("Received the boot completed broadcast message in the Network Survey+ broadcast receiver");
+
+        // Starting the location type foreground service from the background requires the background location permission
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                && ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED)
+        {
+            Timber.w("Not starting the QCDM Service at boot because the background location permission has not been granted");
+            return;
+        }
 
         if (PreferenceUtils.getMqttStartOnBootPreference(context))
         {

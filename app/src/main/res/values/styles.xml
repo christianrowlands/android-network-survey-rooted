@@ -4,7 +4,6 @@
 
     <!-- Base application theme. -->
     <style name="Theme.Illini" parent="Theme.AppCompat.DayNight.DarkActionBar">
-        <item name="android:windowTranslucentStatus" tools:targetApi="kitkat">true</item>
         <!-- General theme colors -->
         <item name="colorPrimary">@color/illiniColorPrimary</item>
         <item name="colorPrimaryDark">@color/illiniColorPrimaryDark</item>

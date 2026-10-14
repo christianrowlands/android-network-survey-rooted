@@ -18,6 +18,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.RawRes;
@@ -26,6 +27,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -43,6 +47,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -51,9 +57,7 @@ import timber.log.Timber;
 public class MainActivity extends AppCompatActivity
 {
     private static final int ACCESS_PERMISSION_REQUEST_ID = 1;
-    public static final String[] PERMISSIONS = {
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE};
+    public static final String[] PERMISSIONS = buildPermissionList();
 
     private static final int ACCESS_BACKGROUND_LOCATION_PERMISSION_REQUEST_ID = 2;
 
@@ -74,6 +78,7 @@ public class MainActivity extends AppCompatActivity
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES); // Force Dark Mode
         setContentView(R.layout.activity_main);
+        applySystemBarInsets();
 
         // Install the defaults specified in the XML preferences file, this is only done the first time the app is opened
         PreferenceManager.setDefaultValues(this, R.xml.network_survey_settings, false);
@@ -108,9 +113,21 @@ public class MainActivity extends AppCompatActivity
 
         // As of Android 11, you have to request the Background location permission as a separate request, otherwise it
         // fails: https://developer.android.com/about/versions/11/privacy/location#background-location
-        if (missingBackgroundLocationPermission()) showBackgroundLocationRationaleAndRequest();
+        // Background location is only needed for starting at boot, which the Google Play build does not support.
+        if (BuildConfig.START_AT_BOOT_SUPPORTED && missingBackgroundLocationPermission())
+        {
+            showBackgroundLocationRationaleAndRequest();
+        }
 
-        startAndBindToQcdmService();
+        // On Android 14+ a location type foreground service can't be started until the location permission is granted.
+        // The permission dialog pauses this activity, so onResume runs again after the user responds to it.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || hasLocationPermission())
+        {
+            startAndBindToQcdmService();
+        } else
+        {
+            Timber.w("Not starting the QcdmService because the location permission has not been granted");
+        }
     }
 
     @Override
@@ -168,8 +185,13 @@ public class MainActivity extends AppCompatActivity
      */
     private void showPermissionRationaleAndRequestPermissions()
     {
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE))
+        boolean showRationale = false;
+        for (String permission : PERMISSIONS)
+        {
+            showRationale |= ActivityCompat.shouldShowRequestPermissionRationale(this, permission);
+        }
+
+        if (showRationale)
         {
             Timber.d("Showing the permissions rationale dialog");
 
@@ -211,6 +233,44 @@ public class MainActivity extends AppCompatActivity
             AlertDialog permissionsExplanationDialog = alertBuilder.create();
             permissionsExplanationDialog.show();
         }
+    }
+
+    /**
+     * Builds the list of runtime permissions to request based on the Android version of this device. The storage
+     * permission is only needed on Android 10 and lower to write the pcap files to the public Download directory, and
+     * the notification permission only exists on Android 13 and higher.
+     *
+     * @since 0.6.0
+     */
+    private static String[] buildPermissionList()
+    {
+        final List<String> permissions = new ArrayList<>();
+        permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q)
+        {
+            permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+        {
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS);
+        }
+        return permissions.toArray(new String[0]);
+    }
+
+    /**
+     * Pads the root view by the system bar insets. Starting with Android 15 apps are drawn edge-to-edge, so without
+     * this the toolbar and bottom navigation would be drawn under the status and navigation bars.
+     *
+     * @since 0.6.0
+     */
+    private void applySystemBarInsets()
+    {
+        final View container = findViewById(R.id.container);
+        ViewCompat.setOnApplyWindowInsetsListener(container, (view, windowInsets) -> {
+            final Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            view.setPadding(insets.left, insets.top, insets.right, insets.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
     }
 
     /**

@@ -12,6 +12,7 @@ import android.content.IntentFilter;
 import android.content.RestrictionsManager;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.pm.ServiceInfo;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -21,6 +22,7 @@ import android.provider.Settings;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
+import androidx.core.app.ServiceCompat;
 import androidx.preference.PreferenceManager;
 
 import com.craxiom.mqttlibrary.IConnectionStateListener;
@@ -68,6 +70,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
 
     private String deviceId;
     private GpsListener gpsListener;
+    private boolean locationUpdatesRequested = false;
     private BroadcastReceiver managedConfigurationListener;
     private FifoReadRunnable fifoReadRunnable;
     private Runnable revealerRunnable;
@@ -118,6 +121,9 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
     @Override
     public int onStartCommand(Intent intent, int flags, int startId)
     {
+        // The location permission might have been granted after this service was created
+        initializeLocationListener();
+
         // If we are started at boot, then we need to kick off the pcap logging.
         final boolean startedAtBoot = intent.getBooleanExtra(Constants.EXTRA_STARTED_AT_BOOT, false);
         if (startedAtBoot)
@@ -298,9 +304,11 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
      */
     private void initializeLocationListener()
     {
-        if (gpsListener != null) return;
+        // The listener is shared with the message processor and MQTT connection, so always create it even if the
+        // location permission has not been granted yet.
+        if (gpsListener == null) gpsListener = new GpsListener();
 
-        gpsListener = new GpsListener();
+        if (locationUpdatesRequested) return;
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
         {
@@ -312,6 +320,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
         if (locationManager != null)
         {
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, LOCATION_REFRESH_RATE, 0f, gpsListener);
+            locationUpdatesRequested = true;
         } else
         {
             Timber.e("The location manager was null when trying to request location updates for the QcdmService");
@@ -546,7 +555,7 @@ public class QcdmService extends Service implements IConnectionStateListener, Sh
      */
     private void updateServiceNotification()
     {
-        startForeground(Constants.LOGGING_NOTIFICATION_ID, buildNotification());
+        ServiceCompat.startForeground(this, Constants.LOGGING_NOTIFICATION_ID, buildNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
     }
 
     /**
