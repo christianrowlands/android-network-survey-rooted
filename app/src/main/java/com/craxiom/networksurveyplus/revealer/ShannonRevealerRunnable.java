@@ -4,6 +4,7 @@ import android.content.Context;
 
 import com.craxiom.networksurveyplus.Constants;
 import com.craxiom.networksurveyplus.FifoReadRunnable;
+import com.craxiom.networksurveyplus.util.RootUtil;
 import com.google.common.io.ByteStreams;
 
 import java.io.InterruptedIOException;
@@ -69,6 +70,7 @@ public class ShannonRevealerRunnable implements Runnable
 
         if (isShannonDeviceAvailable())
         {
+            RootUtil.killProcesses(Constants.LIB_SHANNON_REVEALER_NAME);
             executeCommand(createShannonRevealerCommand(fifoPipeName));
         } else
         {

@@ -68,6 +68,7 @@ public class DiagRevealerRunnable implements Runnable
 
         if (RootUtil.isDeviceReadyForDiagReceiver())
         {
+            RootUtil.killProcesses(Constants.LIB_DIAG_REVEALER_NAME);
             executeCommand(createDiagRevealerCommand(fifoPipeName));
         } else
         {

@@ -36,6 +36,31 @@ public class RootUtil
         return isRootPrivGiven() && isDevDiagAvailable();
     }
 
+    /**
+     * Kills any running processes (as root) for the provided native executable.
+     * <p>
+     * Destroying the {@link Process} for a "su -c" command only stops the su client, so the root process it started
+     * can keep running after the app service is destroyed. A second copy then gets no data from the modem, so any
+     * leftover process needs to be killed before starting a new one. This method blocks, so don't call it from the
+     * main thread.
+     *
+     * @param executableName The file name of the native executable (e.g. libdiag_revealer.so).
+     * @since 0.6.0
+     */
+    public static void killProcesses(String executableName)
+    {
+        // Matching the "." with "[.]" keeps the pattern from matching the shell that runs the pkill command
+        final String pattern = executableName.replace(".", "[.]");
+        try
+        {
+            Process process = new ProcessBuilder("su", "-c", "pkill -f '" + pattern + "'").start();
+            if (process.waitFor() == 0) Timber.i("Killed a leftover %s process", executableName);
+        } catch (Exception e)
+        {
+            Timber.e(e, "Could not kill the leftover %s processes", executableName);
+        }
+    }
+
     private static boolean isRootPrivGiven()
     {
         if (isRootAvailable())
